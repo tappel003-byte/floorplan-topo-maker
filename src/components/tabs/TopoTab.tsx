@@ -24,11 +24,11 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(points, floor.boundary, 240, settings.sharpness);
+    const grid = buildGrid(points, floor.boundary, 240, 2.5);
     if (!grid) return null;
     const cs = computeContours(grid, settings.interval);
     return { grid, contours: cs };
-  }, [canRender, points, floor.boundary, settings.interval, settings.sharpness]);
+  }, [canRender, points, floor.boundary, settings.interval]);
 
 
   return (
