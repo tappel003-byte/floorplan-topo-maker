@@ -243,12 +243,10 @@ export function renderTopo(
         ctx.beginPath();
         for (const poly of c.coordinates) {
           for (const ring of poly) {
-            const iters = Math.max(0, Math.round(settings.sharpness));
-            const smooth = iters > 0 ? chaikin(ring as Array<[number, number]>, iters, true) : (ring as Array<[number, number]>);
-            smooth.forEach((pt, i) =>
-              i === 0 ? ctx.moveTo(toX(pt[0]), toY(pt[1])) : ctx.lineTo(toX(pt[0]), toY(pt[1])),
+            const pts = (ring as Array<[number, number]>).map(
+              (pt) => [toX(pt[0]), toY(pt[1])] as [number, number],
             );
-            ctx.closePath();
+            drawSmoothRing(ctx, pts, Math.max(0, Math.round(settings.sharpness)));
           }
         }
 
