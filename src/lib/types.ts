@@ -51,7 +51,7 @@ export interface SurveyPoint {
 export interface RenderSettings {
   mode: "contour-fill" | "contour-cells" | "contour-bw" | "points-only";
   interval: number; // contour interval in inches
-  sharpness: number; // IDW power: 1 = very smooth, 5 = very local/sharp
+  sharpness: number; // render-only contour line smoothing: 0 = raw, 5 = smooth
   showPlan: boolean;
   planOpacity: number;
   showContours: boolean;
