@@ -137,22 +137,22 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
             />
             <div className="pt-2 border-t">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">Sharpness</Label>
+                <Label className="text-xs">Line smoothing</Label>
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {settings.sharpness.toFixed(1)}
+                  {Math.round(settings.sharpness)}
                 </span>
               </div>
               <Slider
-                min={1}
+                min={0}
                 max={5}
-                step={0.1}
+                step={1}
                 value={[settings.sharpness]}
                 onValueChange={(v) => onSettingsChange({ ...settings, sharpness: v[0] })}
                 className="mt-1"
               />
               <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>Raw</span>
                 <span>Smooth</span>
-                <span>Sharp</span>
               </div>
             </div>
 
