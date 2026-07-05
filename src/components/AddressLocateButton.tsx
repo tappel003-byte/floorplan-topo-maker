@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin, Loader2 } from "lucide-react";
 import { fillAddressFromLocation } from "@/lib/geocode";
@@ -11,12 +11,28 @@ interface Props {
 export function AddressLocateButton({ onFilled }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   async function handle() {
+    if (busy) {
+      abortRef.current?.abort();
+      return;
+    }
     setErr(null);
+    setAccuracy(null);
     setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
-      const res = await fillAddressFromLocation();
+      const res = await fillAddressFromLocation({
+        desiredAccuracy: 8,
+        minWaitMs: 4000,
+        maxWaitMs: 20000,
+        signal: ctrl.signal,
+        onProgress: ({ accuracy }) => setAccuracy(accuracy),
+      });
+      setAccuracy(res.accuracy);
       onFilled(res.formatted);
     } catch (e: unknown) {
       const msg =
@@ -32,8 +48,16 @@ export function AddressLocateButton({ onFilled }: Props) {
       setErr(msg);
     } finally {
       setBusy(false);
+      abortRef.current = null;
     }
   }
+
+  const accuracyLabel =
+    accuracy == null
+      ? null
+      : accuracy < 1000
+        ? `±${Math.round(accuracy)} m`
+        : `±${(accuracy / 1000).toFixed(1)} km`;
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -42,17 +66,24 @@ export function AddressLocateButton({ onFilled }: Props) {
         size="sm"
         variant="outline"
         onClick={handle}
-        disabled={busy}
-        aria-label="Use current location"
+        aria-label={busy ? "Cancel location" : "Use current location"}
       >
         {busy ? (
           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
         ) : (
           <MapPin className="h-4 w-4 mr-1" />
         )}
-        {busy ? "Locating…" : "Use my location"}
+        {busy
+          ? accuracyLabel
+            ? `Locating… ${accuracyLabel}`
+            : "Locating…"
+          : "Use my location"}
       </Button>
+      {!busy && accuracyLabel && !err && (
+        <span className="text-xs text-muted-foreground">Accuracy {accuracyLabel}</span>
+      )}
       {err && <span className="text-xs text-destructive">{err}</span>}
     </div>
   );
 }
+
