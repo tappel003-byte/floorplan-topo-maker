@@ -73,65 +73,30 @@ function solveLinearSystem(A: Float64Array, b: Float64Array, n: number): Float64
 }
 
 /**
- * Fit a thin-plate spline through the given points. Returns f(x, y) → z.
- * Falls back to nearest-neighbor if the system is singular.
+ * Inverse-distance weighted interpolation. Smoother than piecewise-linear
+ * but each point retains local influence, so real features don't get
+ * flattened out. `power` controls locality: higher = more local character.
  */
-function fitThinPlateSpline(
+function fitIDW(
   points: SurveyPoint[],
+  power = 2.5,
 ): (x: number, y: number) => number {
-  const n = points.length;
-  const N = n + 3;
-  const A = new Float64Array(N * N);
-  const rhs = new Float64Array(N);
-  const lambda = 1e-6; // tiny regularization for stability
-
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      if (i === j) {
-        A[i * N + j] = lambda;
-      } else {
-        const dx = points[i].x - points[j].x;
-        const dy = points[i].y - points[j].y;
-        const r2 = dx * dx + dy * dy;
-        A[i * N + j] = r2 > 0 ? 0.5 * r2 * Math.log(r2) : 0;
-      }
-    }
-    A[i * N + n] = 1;
-    A[i * N + n + 1] = points[i].x;
-    A[i * N + n + 2] = points[i].y;
-    rhs[i] = points[i].value;
-  }
-  for (let i = 0; i < n; i++) {
-    A[n * N + i] = 1;
-    A[(n + 1) * N + i] = points[i].x;
-    A[(n + 2) * N + i] = points[i].y;
-  }
-
-  const sol = solveLinearSystem(A, rhs, N);
-  if (!sol) {
-    return (x, y) => {
-      let best = Infinity, v = 0;
-      for (const p of points) {
-        const d = (p.x - x) ** 2 + (p.y - y) ** 2;
-        if (d < best) { best = d; v = p.value; }
-      }
-      return v;
-    };
-  }
-  const w = sol.slice(0, n);
-  const a0 = sol[n], a1 = sol[n + 1], a2 = sol[n + 2];
-
   return (x, y) => {
-    let s = a0 + a1 * x + a2 * y;
-    for (let i = 0; i < n; i++) {
-      const dx = x - points[i].x;
-      const dy = y - points[i].y;
-      const r2 = dx * dx + dy * dy;
-      if (r2 > 0) s += w[i] * 0.5 * r2 * Math.log(r2);
+    let num = 0;
+    let den = 0;
+    for (const p of points) {
+      const dx = x - p.x;
+      const dy = y - p.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 1e-6) return p.value; // sitting on a point
+      const w = 1 / Math.pow(d2, power / 2);
+      num += w * p.value;
+      den += w;
     }
-    return s;
+    return num / den;
   };
 }
+
 
 export function buildGrid(
   points: SurveyPoint[],
@@ -152,7 +117,7 @@ export function buildGrid(
   const cols = Math.max(2, Math.ceil(w / step));
   const rows = Math.max(2, Math.ceil(h / step));
 
-  const evaluate = fitThinPlateSpline(points);
+  const evaluate = fitIDW(points, 2.5);
 
   const values = new Float64Array(cols * rows);
   const mask = new Uint8Array(cols * rows);
