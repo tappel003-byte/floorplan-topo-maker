@@ -1,29 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ProjectList } from "@/components/ProjectList";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "Floor Survey — Foundation topo mapping" },
+      {
+        name: "description",
+        content:
+          "Offline-first floor elevation survey app for foundation inspectors. Capture points, generate topographical maps, export deliverables.",
+      },
+      { property: "og:title", content: "Floor Survey" },
+      {
+        property: "og:description",
+        content: "Foundation topo mapping for field inspectors.",
+      },
+      { property: "og:type", content: "website" },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
+  return <ProjectList />;
 }
