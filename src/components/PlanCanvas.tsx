@@ -230,7 +230,7 @@ export function PlanCanvas({
   }
 
   return (
-    <div className={className ?? "relative flex-1 min-h-0"}>
+    <div className={className ?? "relative flex-1 min-h-0 h-full"}>
       {badge}
       <div
         ref={wrapRef}
