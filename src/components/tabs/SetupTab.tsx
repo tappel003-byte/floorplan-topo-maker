@@ -8,6 +8,7 @@ import { Plus, Trash2, Upload, Undo2 } from "lucide-react";
 import { PlanCanvas } from "../PlanCanvas";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import type { Floor, ProjectMeta } from "@/lib/types";
+import { AddressLocateButton } from "@/components/AddressLocateButton";
 
 interface Props {
   project: ProjectMeta;
@@ -120,7 +121,10 @@ function DetailsPanel({
         <Input value={local.name} onChange={(e) => setLocal({ ...local, name: e.target.value })} />
       </div>
       <div>
-        <Label>Address</Label>
+        <div className="flex items-end justify-between mb-1">
+          <Label>Address</Label>
+          <AddressLocateButton onFilled={(a) => setLocal({ ...local, address: a })} />
+        </div>
         <Input
           value={local.address}
           onChange={(e) => setLocal({ ...local, address: e.target.value })}
