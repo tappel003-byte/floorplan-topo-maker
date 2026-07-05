@@ -221,12 +221,14 @@ export function renderTopo(
         ctx.beginPath();
         for (const poly of c.coordinates) {
           for (const ring of poly) {
-            ring.forEach((pt, i) =>
+            const smooth = chaikin(ring as Array<[number, number]>, 3, true);
+            smooth.forEach((pt, i) =>
               i === 0 ? ctx.moveTo(toX(pt[0]), toY(pt[1])) : ctx.lineTo(toX(pt[0]), toY(pt[1])),
             );
             ctx.closePath();
           }
         }
+
         if (settings.mode === "contour-fill") {
           const t = (c.value - g.minValue) / range;
           ctx.fillStyle = interpolateTurbo(t);
