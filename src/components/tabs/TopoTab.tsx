@@ -198,19 +198,18 @@ export function renderTopo(
       }
     }
 
-    // Contour polygons
+    // Contour polygons — drawn in IMAGE coords so line widths render correctly.
     const cs = gridAndContours?.contours;
     if (cs && g && settings.showContours && settings.mode !== "points-only" && settings.mode !== "contour-cells") {
       const range = g.maxValue - g.minValue || 1;
-      ctx.save();
-      ctx.translate(g.x0, g.y0);
-      ctx.scale(g.step, g.step);
+      const toX = (px: number) => g.x0 + px * g.step;
+      const toY = (py: number) => g.y0 + py * g.step;
       for (const c of cs) {
         ctx.beginPath();
         for (const poly of c.coordinates) {
           for (const ring of poly) {
             ring.forEach((pt, i) =>
-              i === 0 ? ctx.moveTo(pt[0], pt[1]) : ctx.lineTo(pt[0], pt[1]),
+              i === 0 ? ctx.moveTo(toX(pt[0]), toY(pt[1])) : ctx.lineTo(toX(pt[0]), toY(pt[1])),
             );
             ctx.closePath();
           }
@@ -221,24 +220,24 @@ export function renderTopo(
           ctx.globalAlpha = 0.55 * settings.contourOpacity;
           ctx.fill();
           ctx.globalAlpha = settings.contourOpacity;
-          ctx.strokeStyle = "rgba(0,0,0,0.4)";
-          ctx.lineWidth = 0.05;
+          ctx.strokeStyle = "rgba(0,0,0,0.5)";
+          ctx.lineWidth = 1.2;
           ctx.stroke();
         } else {
-          // contour-bw
+          // contour-bw — major (whole-inch) lines heavier
           const isMajor = Math.abs(c.value - Math.round(c.value)) < 1e-6;
           ctx.strokeStyle = "#111";
-          ctx.lineWidth = isMajor ? 0.08 : 0.04;
+          ctx.lineWidth = isMajor ? 2.2 : 1.1;
           ctx.globalAlpha = settings.contourOpacity;
           ctx.stroke();
         }
       }
-      ctx.restore();
       ctx.globalAlpha = 1;
     }
 
     ctx.restore();
   }
+
 
   // Labels along contours: place at rough midpoint of each contour ring
   if (
