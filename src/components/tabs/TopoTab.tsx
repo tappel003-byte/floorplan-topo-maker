@@ -11,36 +11,54 @@ import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, computeContours } from "@/lib/topo";
 
 /**
- * Render-only smoothing. The drawn path passes exactly through every
- * original contour vertex — no vertex is moved. When smooth > 0, uses a
- * Catmull-Rom spline (converted to cubic Beziers) so corners round off
- * without shifting the survey line. smooth = 0 draws straight segments.
+ * Render-only smoothing. Every original contour vertex stays on the drawn
+ * line — no vertex is moved. Collinear stair-step points from marching
+ * squares are collapsed first so the Catmull-Rom spline has room to round
+ * the true corners visibly. smooth = 0 draws straight segments.
  */
 function drawSmoothRing(
   ctx: CanvasRenderingContext2D,
-  pts: Array<[number, number]>,
+  raw: Array<[number, number]>,
   smooth: number,
 ) {
-  const n = pts.length;
-  if (n < 2) return;
-  if (smooth <= 0 || n < 4) {
-    pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
+  if (raw.length < 2) return;
+  if (smooth <= 0) {
+    raw.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
     ctx.closePath();
     return;
   }
-  // Tension: 0 = straight, 1 = full Catmull-Rom curvature.
+  // Drop collinear intermediate points (marching squares emits many).
+  const pts: Array<[number, number]> = [];
+  const n0 = raw.length;
+  for (let i = 0; i < n0; i++) {
+    const prev = raw[(i - 1 + n0) % n0];
+    const curr = raw[i];
+    const next = raw[(i + 1) % n0];
+    const ax = curr[0] - prev[0], ay = curr[1] - prev[1];
+    const bx = next[0] - curr[0], by = next[1] - curr[1];
+    const cross = ax * by - ay * bx;
+    const dot = ax * bx + ay * by;
+    // Keep true corners; drop straight-through and duplicate points.
+    if (Math.abs(cross) > 1e-6 || dot < 0) pts.push(curr);
+  }
+  const n = pts.length;
+  if (n < 4) {
+    raw.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
+    ctx.closePath();
+    return;
+  }
   const tension = Math.min(1, smooth / 5);
-  const k = tension / 6;
+  const k = tension / 2; // stronger rounding at corners
   ctx.moveTo(pts[0][0], pts[0][1]);
   for (let i = 0; i < n; i++) {
     const p0 = pts[(i - 1 + n) % n];
     const p1 = pts[i];
     const p2 = pts[(i + 1) % n];
     const p3 = pts[(i + 2) % n];
-    const c1x = p1[0] + (p2[0] - p0[0]) * k;
-    const c1y = p1[1] + (p2[1] - p0[1]) * k;
-    const c2x = p2[0] - (p3[0] - p1[0]) * k;
-    const c2y = p2[1] - (p3[1] - p1[1]) * k;
+    const c1x = p1[0] + (p2[0] - p0[0]) * k / 3;
+    const c1y = p1[1] + (p2[1] - p0[1]) * k / 3;
+    const c2x = p2[0] - (p3[0] - p1[0]) * k / 3;
+    const c2y = p2[1] - (p3[1] - p1[1]) * k / 3;
     ctx.bezierCurveTo(c1x, c1y, c2x, c2y, p2[0], p2[1]);
   }
   ctx.closePath();
