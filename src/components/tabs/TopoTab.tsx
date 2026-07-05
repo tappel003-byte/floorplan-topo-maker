@@ -8,7 +8,43 @@ import { Input } from "@/components/ui/input";
 import { interpolateTurbo } from "d3-scale-chromatic";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
-import { buildGrid, computeContours, chaikin } from "@/lib/topo";
+import { buildGrid, computeContours } from "@/lib/topo";
+
+/**
+ * Render-only smoothing. The drawn path passes exactly through every
+ * original contour vertex — no vertex is moved. When smooth > 0, uses a
+ * Catmull-Rom spline (converted to cubic Beziers) so corners round off
+ * without shifting the survey line. smooth = 0 draws straight segments.
+ */
+function drawSmoothRing(
+  ctx: CanvasRenderingContext2D,
+  pts: Array<[number, number]>,
+  smooth: number,
+) {
+  const n = pts.length;
+  if (n < 2) return;
+  if (smooth <= 0 || n < 4) {
+    pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
+    ctx.closePath();
+    return;
+  }
+  // Tension: 0 = straight, 1 = full Catmull-Rom curvature.
+  const tension = Math.min(1, smooth / 5);
+  const k = tension / 6;
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    const c1x = p1[0] + (p2[0] - p0[0]) * k;
+    const c1y = p1[1] + (p2[1] - p0[1]) * k;
+    const c2x = p2[0] - (p3[0] - p1[0]) * k;
+    const c2y = p2[1] - (p3[1] - p1[1]) * k;
+    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, p2[0], p2[1]);
+  }
+  ctx.closePath();
+}
 
 interface Props {
   floor: Floor;
@@ -243,12 +279,10 @@ export function renderTopo(
         ctx.beginPath();
         for (const poly of c.coordinates) {
           for (const ring of poly) {
-            const iters = Math.max(0, Math.round(settings.sharpness));
-            const smooth = iters > 0 ? chaikin(ring as Array<[number, number]>, iters, true) : (ring as Array<[number, number]>);
-            smooth.forEach((pt, i) =>
-              i === 0 ? ctx.moveTo(toX(pt[0]), toY(pt[1])) : ctx.lineTo(toX(pt[0]), toY(pt[1])),
+            const pts = (ring as Array<[number, number]>).map(
+              (pt) => [toX(pt[0]), toY(pt[1])] as [number, number],
             );
-            ctx.closePath();
+            drawSmoothRing(ctx, pts, Math.max(0, Math.round(settings.sharpness)));
           }
         }
 
