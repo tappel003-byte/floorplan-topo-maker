@@ -24,11 +24,11 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(points, floor.boundary, 240, settings.sharpness);
+    const grid = buildGrid(points, floor.boundary, 240, 2.5);
     if (!grid) return null;
     const cs = computeContours(grid, settings.interval);
     return { grid, contours: cs };
-  }, [canRender, points, floor.boundary, settings.interval, settings.sharpness]);
+  }, [canRender, points, floor.boundary, settings.interval]);
 
 
   return (
@@ -137,22 +137,22 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
             />
             <div className="pt-2 border-t">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">Sharpness</Label>
+                <Label className="text-xs">Line smoothing</Label>
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {settings.sharpness.toFixed(1)}
+                  {Math.round(settings.sharpness)}
                 </span>
               </div>
               <Slider
-                min={1}
+                min={0}
                 max={5}
-                step={0.1}
+                step={1}
                 value={[settings.sharpness]}
                 onValueChange={(v) => onSettingsChange({ ...settings, sharpness: v[0] })}
                 className="mt-1"
               />
               <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>Raw</span>
                 <span>Smooth</span>
-                <span>Sharp</span>
               </div>
             </div>
 
@@ -243,7 +243,8 @@ export function renderTopo(
         ctx.beginPath();
         for (const poly of c.coordinates) {
           for (const ring of poly) {
-            const smooth = chaikin(ring as Array<[number, number]>, 3, true);
+            const iters = Math.max(0, Math.round(settings.sharpness));
+            const smooth = iters > 0 ? chaikin(ring as Array<[number, number]>, iters, true) : (ring as Array<[number, number]>);
             smooth.forEach((pt, i) =>
               i === 0 ? ctx.moveTo(toX(pt[0]), toY(pt[1])) : ctx.lineTo(toX(pt[0]), toY(pt[1])),
             );
