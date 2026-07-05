@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { listProjects, saveProject, deleteProject, uid, listFloors, listPoints, saveFloor } from "@/lib/db";
+import { AddressLocateButton } from "@/components/AddressLocateButton";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -163,7 +164,10 @@ function NewProjectDialog({
           />
         </div>
         <div>
-          <Label htmlFor="np-addr">Address</Label>
+          <div className="flex items-end justify-between mb-1">
+            <Label htmlFor="np-addr">Address</Label>
+            <AddressLocateButton onFilled={setAddress} />
+          </div>
           <Input id="np-addr" value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
