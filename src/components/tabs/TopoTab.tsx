@@ -10,57 +10,115 @@ import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, computeContours } from "@/lib/topo";
 
+const POINT_EPSILON = 1e-6;
+
+function almostSamePoint(a: [number, number], b: [number, number]) {
+  return Math.hypot(a[0] - b[0], a[1] - b[1]) < POINT_EPSILON;
+}
+
+function cleanClosedRing(raw: Array<[number, number]>) {
+  const pts: Array<[number, number]> = [];
+  for (const p of raw) {
+    if (!pts.length || !almostSamePoint(pts[pts.length - 1], p)) pts.push(p);
+  }
+  if (pts.length > 1 && almostSamePoint(pts[0], pts[pts.length - 1])) pts.pop();
+  return pts;
+}
+
+function medianSegmentLength(pts: Array<[number, number]>) {
+  const lengths: number[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length > POINT_EPSILON) lengths.push(length);
+  }
+  if (!lengths.length) return 1;
+  lengths.sort((a, b) => a - b);
+  return lengths[Math.floor(lengths.length / 2)] || 1;
+}
+
+function pointToSegmentDistance(p: [number, number], a: [number, number], b: [number, number]) {
+  const vx = b[0] - a[0];
+  const vy = b[1] - a[1];
+  const wx = p[0] - a[0];
+  const wy = p[1] - a[1];
+  const len2 = vx * vx + vy * vy;
+  if (len2 < POINT_EPSILON) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+  const t = Math.max(0, Math.min(1, (wx * vx + wy * vy) / len2));
+  return Math.hypot(p[0] - (a[0] + t * vx), p[1] - (a[1] + t * vy));
+}
+
+function simplifyOpenPolyline(pts: Array<[number, number]>, epsilon: number): Array<[number, number]> {
+  if (pts.length <= 2) return pts;
+  let maxDistance = 0;
+  let index = 0;
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const distance = pointToSegmentDistance(pts[i], first, last);
+    if (distance > maxDistance) {
+      index = i;
+      maxDistance = distance;
+    }
+  }
+  if (maxDistance <= epsilon) return [first, last];
+  const left = simplifyOpenPolyline(pts.slice(0, index + 1), epsilon);
+  const right = simplifyOpenPolyline(pts.slice(index), epsilon);
+  return left.slice(0, -1).concat(right);
+}
+
+function simplifyClosedRing(pts: Array<[number, number]>, epsilon: number) {
+  if (pts.length < 8) return pts;
+  let farthestIndex = 1;
+  let farthestDistance = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const distance = Math.hypot(pts[i][0] - pts[0][0], pts[i][1] - pts[0][1]);
+    if (distance > farthestDistance) {
+      farthestIndex = i;
+      farthestDistance = distance;
+    }
+  }
+  const firstHalf = simplifyOpenPolyline(pts.slice(0, farthestIndex + 1), epsilon);
+  const secondHalf = simplifyOpenPolyline([...pts.slice(farthestIndex), pts[0]], epsilon);
+  const simplified = firstHalf.slice(0, -1).concat(secondHalf.slice(0, -1));
+  return simplified.length >= 3 ? simplified : pts;
+}
+
+function chaikinClosedRing(pts: Array<[number, number]>, iterations: number) {
+  let out = pts;
+  for (let iteration = 0; iteration < iterations; iteration++) {
+    const next: Array<[number, number]> = [];
+    for (let i = 0; i < out.length; i++) {
+      const a = out[i];
+      const b = out[(i + 1) % out.length];
+      next.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
+      next.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+    }
+    out = next;
+  }
+  return out;
+}
+
 /**
- * Render-only smoothing. Every original contour vertex stays on the drawn
- * line — no vertex is moved. Collinear stair-step points from marching
- * squares are collapsed first so the Catmull-Rom spline has room to round
- * the true corners visibly. smooth = 0 draws straight segments.
+ * Render-only line smoothing. The grid and contour thresholds are not rebuilt;
+ * this only simplifies and rounds the stroke path drawn on the canvas.
  */
 function drawSmoothRing(
   ctx: CanvasRenderingContext2D,
   raw: Array<[number, number]>,
   smooth: number,
 ) {
-  if (raw.length < 2) return;
-  if (smooth <= 0) {
-    raw.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
-    ctx.closePath();
-    return;
+  const cleaned = cleanClosedRing(raw);
+  if (cleaned.length < 2) return;
+  let pts = cleaned;
+  if (smooth > 0 && cleaned.length >= 4) {
+    const amount = Math.min(5, Math.max(0, smooth));
+    const gridStep = medianSegmentLength(cleaned);
+    pts = simplifyClosedRing(cleaned, gridStep * (0.2 + amount * 0.55));
+    pts = chaikinClosedRing(pts, amount <= 2 ? 1 : amount <= 4 ? 2 : 3);
   }
-  // Drop collinear intermediate points (marching squares emits many).
-  const pts: Array<[number, number]> = [];
-  const n0 = raw.length;
-  for (let i = 0; i < n0; i++) {
-    const prev = raw[(i - 1 + n0) % n0];
-    const curr = raw[i];
-    const next = raw[(i + 1) % n0];
-    const ax = curr[0] - prev[0], ay = curr[1] - prev[1];
-    const bx = next[0] - curr[0], by = next[1] - curr[1];
-    const cross = ax * by - ay * bx;
-    const dot = ax * bx + ay * by;
-    // Keep true corners; drop straight-through and duplicate points.
-    if (Math.abs(cross) > 1e-6 || dot < 0) pts.push(curr);
-  }
-  const n = pts.length;
-  if (n < 4) {
-    raw.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
-    ctx.closePath();
-    return;
-  }
-  const tension = Math.min(1, smooth / 5);
-  const k = tension / 2; // stronger rounding at corners
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 0; i < n; i++) {
-    const p0 = pts[(i - 1 + n) % n];
-    const p1 = pts[i];
-    const p2 = pts[(i + 1) % n];
-    const p3 = pts[(i + 2) % n];
-    const c1x = p1[0] + (p2[0] - p0[0]) * k / 3;
-    const c1y = p1[1] + (p2[1] - p0[1]) * k / 3;
-    const c2x = p2[0] - (p3[0] - p1[0]) * k / 3;
-    const c2y = p2[1] - (p3[1] - p1[1]) * k / 3;
-    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, p2[0], p2[1]);
-  }
+  pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
   ctx.closePath();
 }
 
@@ -293,27 +351,32 @@ export function renderTopo(
       const range = g.maxValue - g.minValue || 1;
       const toX = (px: number) => g.x0 + px * g.step;
       const toY = (py: number) => g.y0 + py * g.step;
-      for (const c of cs) {
+      const smoothing = Math.max(0, Math.round(settings.sharpness));
+      const drawContourPath = (contour: (typeof cs)[number], smooth: number) => {
         ctx.beginPath();
-        for (const poly of c.coordinates) {
+        for (const poly of contour.coordinates) {
           for (const ring of poly) {
             const pts = (ring as Array<[number, number]>).map(
               (pt) => [toX(pt[0]), toY(pt[1])] as [number, number],
             );
-            drawSmoothRing(ctx, pts, Math.max(0, Math.round(settings.sharpness)));
+            drawSmoothRing(ctx, pts, smooth);
           }
         }
-
+      };
+      for (const c of cs) {
         if (settings.mode === "contour-fill") {
+          drawContourPath(c, 0);
           const t = (c.value - g.minValue) / range;
           ctx.fillStyle = interpolateTurbo(t);
           ctx.globalAlpha = 0.55 * settings.contourOpacity;
           ctx.fill();
+          drawContourPath(c, smoothing);
           ctx.globalAlpha = settings.contourOpacity;
           ctx.strokeStyle = "rgba(0,0,0,0.5)";
           ctx.lineWidth = 1.2;
           ctx.stroke();
         } else {
+          drawContourPath(c, smoothing);
           // contour-bw — major (whole-inch) lines heavier
           const isMajor = Math.abs(c.value - Math.round(c.value)) < 1e-6;
           ctx.strokeStyle = "#111";
