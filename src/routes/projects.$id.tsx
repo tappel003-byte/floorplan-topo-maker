@@ -77,7 +77,7 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-[100dvh]">
       <header className="border-b bg-background">
         <div className="flex items-center gap-3 px-3 h-12">
           <Link
