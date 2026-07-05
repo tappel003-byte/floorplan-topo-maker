@@ -1,0 +1,186 @@
+import { useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Download } from "lucide-react";
+import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
+import { buildGrid, computeContours } from "@/lib/topo";
+import { renderTopo } from "./TopoTab";
+
+interface Props {
+  project: ProjectMeta;
+  floor: Floor;
+  points: SurveyPoint[];
+  settings: RenderSettings;
+}
+
+const DPIS = [150, 300, 600] as const;
+const FORMATS = ["png", "jpeg"] as const;
+
+export function ExportTab({ project, floor, points, settings }: Props) {
+  const [dpi, setDpi] = useState<(typeof DPIS)[number]>(150);
+  const [format, setFormat] = useState<(typeof FORMATS)[number]>("png");
+  const [status, setStatus] = useState<string>("");
+  const previewRef = useRef<HTMLCanvasElement | null>(null);
+
+  const grid = useMemo(() => {
+    if (points.length < 3 || floor.boundary.length < 3) return null;
+    return buildGrid(points, floor.boundary, 140);
+  }, [points, floor.boundary]);
+
+  const gridAndContours = useMemo(() => {
+    if (!grid) return null;
+    return { grid, contours: computeContours(grid, settings.interval) };
+  }, [grid, settings.interval]);
+
+  const imgW = floor.planWidth ?? 1000;
+  const imgH = floor.planHeight ?? 750;
+
+  function renderTo(canvas: HTMLCanvasElement, targetDpi: number) {
+    // 1 image px = 1/96 in at 96dpi. Multiply pixel size by (targetDpi/96)
+    const scale = targetDpi / 96;
+    canvas.width = Math.round(imgW * scale);
+    canvas.height = Math.round(imgH * scale);
+    const ctx = canvas.getContext("2d")!;
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+    // background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, imgW, imgH);
+
+    // plan image
+    if (settings.showPlan && floor.planDataUrl) {
+      return new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          ctx.globalAlpha = settings.planOpacity;
+          ctx.drawImage(img, 0, 0, imgW, imgH);
+          ctx.globalAlpha = 1;
+          renderTopo(ctx, floor, points, settings, gridAndContours);
+          drawTitleBlock(ctx, imgW, imgH, project, floor, points);
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = floor.planDataUrl!;
+      });
+    } else {
+      renderTopo(ctx, floor, points, settings, gridAndContours);
+      drawTitleBlock(ctx, imgW, imgH, project, floor, points);
+      return Promise.resolve();
+    }
+  }
+
+  async function doExport() {
+    setStatus("Rendering…");
+    const canvas = document.createElement("canvas");
+    await renderTo(canvas, dpi);
+    const mime = format === "png" ? "image/png" : "image/jpeg";
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return setStatus("Export failed");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        const safe = project.name.replace(/[^a-z0-9-]+/gi, "_");
+        a.download = `${safe}_${floor.name.replace(/\s+/g, "_")}_${dpi}dpi.${format}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        setStatus("Exported.");
+      },
+      mime,
+      0.92,
+    );
+  }
+
+  async function updatePreview() {
+    if (!previewRef.current) return;
+    setStatus("Rendering preview…");
+    await renderTo(previewRef.current, 96);
+    setStatus("");
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="border-b p-3 flex flex-wrap items-end gap-3">
+        <div>
+          <Label className="text-xs">Format</Label>
+          <div className="mt-1 flex rounded-md border overflow-hidden">
+            {FORMATS.map((f) => (
+              <button
+                key={f}
+                onClick={() => setFormat(f)}
+                className={
+                  "px-3 py-1.5 text-sm uppercase " +
+                  (format === f ? "bg-primary text-primary-foreground" : "bg-background")
+                }
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">DPI</Label>
+          <div className="mt-1 flex rounded-md border overflow-hidden">
+            {DPIS.map((d) => (
+              <button
+                key={d}
+                onClick={() => setDpi(d)}
+                className={
+                  "px-3 py-1.5 text-sm " +
+                  (dpi === d ? "bg-primary text-primary-foreground" : "bg-background")
+                }
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="ml-auto flex gap-2">
+          <Button variant="outline" onClick={updatePreview}>
+            Refresh preview
+          </Button>
+          <Button onClick={doExport}>
+            <Download className="h-4 w-4 mr-2" /> Export
+          </Button>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto bg-muted/30 p-4 flex justify-center items-start">
+        <canvas
+          ref={previewRef}
+          className="border shadow-md bg-white max-w-full h-auto"
+          style={{ width: Math.min(imgW, 900), height: "auto" }}
+        />
+      </div>
+      {status && <div className="border-t px-3 py-2 text-xs text-muted-foreground">{status}</div>}
+    </div>
+  );
+}
+
+function drawTitleBlock(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  project: ProjectMeta,
+  floor: Floor,
+  points: SurveyPoint[],
+) {
+  const pad = 12;
+  const boxW = 280;
+  const boxH = 88;
+  const x = w - boxW - pad;
+  const y = h - boxH - pad;
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, boxW, boxH);
+  ctx.strokeRect(x, y, boxW, boxH);
+  ctx.fillStyle = "#111";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.font = "bold 14px sans-serif";
+  ctx.fillText(project.name, x + 10, y + 8);
+  ctx.font = "11px sans-serif";
+  ctx.fillText(project.address, x + 10, y + 26);
+  ctx.fillText(`${floor.name} · ${points.length} points`, x + 10, y + 40);
+  ctx.fillText(`Inspected: ${project.inspectionDate}`, x + 10, y + 54);
+  ctx.fillText(`Inspector: ${project.inspector || "—"}`, x + 10, y + 68);
+}
