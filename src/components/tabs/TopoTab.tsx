@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { interpolateTurbo } from "d3-scale-chromatic";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
-import { buildGrid, computeContours } from "@/lib/topo";
+import { buildGrid, computeContours, chaikin } from "@/lib/topo";
 
 interface Props {
   floor: Floor;
@@ -24,7 +24,7 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(points, floor.boundary, 140);
+    const grid = buildGrid(points, floor.boundary, 240);
     if (!grid) return null;
     const cs = computeContours(grid, settings.interval);
     return { grid, contours: cs };
@@ -221,12 +221,14 @@ export function renderTopo(
         ctx.beginPath();
         for (const poly of c.coordinates) {
           for (const ring of poly) {
-            ring.forEach((pt, i) =>
+            const smooth = chaikin(ring as Array<[number, number]>, 3, true);
+            smooth.forEach((pt, i) =>
               i === 0 ? ctx.moveTo(toX(pt[0]), toY(pt[1])) : ctx.lineTo(toX(pt[0]), toY(pt[1])),
             );
             ctx.closePath();
           }
         }
+
         if (settings.mode === "contour-fill") {
           const t = (c.value - g.minValue) / range;
           ctx.fillStyle = interpolateTurbo(t);

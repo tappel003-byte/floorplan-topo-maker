@@ -52,8 +52,9 @@ function bary(
 export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
-  targetCols = 160,
+  targetCols = 240,
 ): Grid | null {
+
   if (points.length < 3 || boundary.length < 3) return null;
 
   const xs = boundary.map((p) => p.x);
@@ -123,8 +124,12 @@ export function buildGrid(
     }
   }
 
+  // Smooth the raster (mask-aware box blur, 2 passes ≈ gaussian) so contour
+  // lines come out rounded instead of faceted along triangle edges.
+  const smoothed = smoothValues(values, mask, cols, rows, 2);
+
   return {
-    values,
+    values: smoothed,
     mask,
     width: cols,
     height: rows,
@@ -135,6 +140,74 @@ export function buildGrid(
     step,
   };
 }
+
+function smoothValues(
+  values: Float64Array,
+  mask: Uint8Array,
+  cols: number,
+  rows: number,
+  passes: number,
+): Float64Array {
+  let src = values;
+  for (let p = 0; p < passes; p++) {
+    const dst = new Float64Array(src.length);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const idx = r * cols + c;
+        if (!mask[idx]) {
+          dst[idx] = NaN;
+          continue;
+        }
+        let sum = 0;
+        let n = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const rr = r + dr;
+            const cc = c + dc;
+            if (rr < 0 || cc < 0 || rr >= rows || cc >= cols) continue;
+            const j = rr * cols + cc;
+            if (!mask[j]) continue;
+            const w = dr === 0 && dc === 0 ? 4 : dr === 0 || dc === 0 ? 2 : 1;
+            sum += src[j] * w;
+            n += w;
+          }
+        }
+        dst[idx] = n > 0 ? sum / n : src[idx];
+      }
+    }
+    src = dst;
+  }
+  return src;
+}
+
+/**
+ * Chaikin corner-cutting: smooths a polyline/ring by inserting two points per
+ * segment at 1/4 and 3/4 positions. `iterations` controls smoothness.
+ */
+export function chaikin(
+  ring: Array<[number, number]>,
+  iterations = 2,
+  closed = true,
+): Array<[number, number]> {
+  if (ring.length < 3) return ring;
+  let pts = ring;
+  for (let it = 0; it < iterations; it++) {
+    const out: Array<[number, number]> = [];
+    const n = pts.length;
+    const last = closed ? n : n - 1;
+    if (!closed) out.push(pts[0]);
+    for (let i = 0; i < last; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % n];
+      out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
+      out.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+    }
+    if (!closed) out.push(pts[n - 1]);
+    pts = out;
+  }
+  return pts;
+}
+
 
 export function computeContours(grid: Grid, interval: number) {
   // clean values array — replace NaN with a huge sentinel so contours ignore holes
