@@ -117,7 +117,7 @@ export function buildGrid(
   const cols = Math.max(2, Math.ceil(w / step));
   const rows = Math.max(2, Math.ceil(h / step));
 
-  const evaluate = fitThinPlateSpline(points);
+  const evaluate = fitIDW(points, 2.5);
 
   const values = new Float64Array(cols * rows);
   const mask = new Uint8Array(cols * rows);
