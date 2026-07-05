@@ -102,6 +102,7 @@ export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
   targetCols = 240,
+  power = 2.5,
 ): Grid | null {
   if (points.length < 3 || boundary.length < 3) return null;
 
@@ -117,7 +118,8 @@ export function buildGrid(
   const cols = Math.max(2, Math.ceil(w / step));
   const rows = Math.max(2, Math.ceil(h / step));
 
-  const evaluate = fitIDW(points, 2.5);
+  const evaluate = fitIDW(points, power);
+
 
   const values = new Float64Array(cols * rows);
   const mask = new Uint8Array(cols * rows);

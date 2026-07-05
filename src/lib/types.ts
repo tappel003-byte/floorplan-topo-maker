@@ -51,6 +51,7 @@ export interface SurveyPoint {
 export interface RenderSettings {
   mode: "contour-fill" | "contour-cells" | "contour-bw" | "points-only";
   interval: number; // contour interval in inches
+  sharpness: number; // IDW power: 1 = very smooth, 5 = very local/sharp
   showPlan: boolean;
   planOpacity: number;
   showContours: boolean;
@@ -64,6 +65,7 @@ export interface RenderSettings {
 export const defaultRenderSettings: RenderSettings = {
   mode: "contour-bw",
   interval: 0.2,
+  sharpness: 2.5,
   showPlan: true,
   planOpacity: 0.5,
   showContours: true,
@@ -73,3 +75,4 @@ export const defaultRenderSettings: RenderSettings = {
   pointsOpacity: 1,
   exaggeration: 1,
 };
+
