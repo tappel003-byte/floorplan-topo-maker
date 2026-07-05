@@ -102,6 +102,12 @@ export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
   targetCols = 240,
+  power = 2.5,
+): Grid | null {
+
+  points: SurveyPoint[],
+  boundary: Array<{ x: number; y: number }>,
+  targetCols = 240,
 ): Grid | null {
   if (points.length < 3 || boundary.length < 3) return null;
 
