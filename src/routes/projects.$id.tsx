@@ -141,7 +141,7 @@ function ProjectWorkspace() {
         )}
       </main>
 
-      <nav className="border-t bg-background grid grid-cols-5 shrink-0">
+      <nav className="border-t bg-background grid grid-cols-5 shrink-0 pb-[env(safe-area-inset-bottom)]">
         <ModeBtn
           active={mode === "setup"}
           onClick={() => setMode("setup")}
