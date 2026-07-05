@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { interpolateTurbo } from "d3-scale-chromatic";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
-import { buildGrid, computeContours } from "@/lib/topo";
+import { buildGrid, computeContours, chaikin } from "@/lib/topo";
 
 interface Props {
   floor: Floor;
