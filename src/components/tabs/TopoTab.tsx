@@ -135,6 +135,27 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
               opacity={settings.pointsOpacity}
               onOpacity={(v) => onSettingsChange({ ...settings, pointsOpacity: v })}
             />
+            <div className="pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Sharpness</Label>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {settings.sharpness.toFixed(1)}
+                </span>
+              </div>
+              <Slider
+                min={1}
+                max={5}
+                step={0.1}
+                value={[settings.sharpness]}
+                onValueChange={(v) => onSettingsChange({ ...settings, sharpness: v[0] })}
+                className="mt-1"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>Smooth</span>
+                <span>Sharp</span>
+              </div>
+            </div>
+
           </div>
         )}
       </div>
