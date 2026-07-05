@@ -93,13 +93,26 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
         />
         {panelOpen && (
           <div className="absolute top-2 right-14 rounded-lg border bg-background/95 shadow-lg p-3 w-56 space-y-3 text-sm">
-            <LayerRow
-              label="Plan"
-              on={settings.showPlan}
-              onToggle={(v) => onSettingsChange({ ...settings, showPlan: v })}
-              opacity={settings.planOpacity}
-              onOpacity={(v) => onSettingsChange({ ...settings, planOpacity: v })}
-            />
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Plan</Label>
+                <Switch
+                  checked={settings.showPlan}
+                  onCheckedChange={(v) => onSettingsChange({ ...settings, showPlan: v })}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <Label className="text-xs text-muted-foreground">Transparent</Label>
+                <Switch
+                  checked={settings.planOpacity < 1}
+                  disabled={!settings.showPlan}
+                  onCheckedChange={(v) =>
+                    onSettingsChange({ ...settings, planOpacity: v ? 0.5 : 1 })
+                  }
+                />
+              </div>
+            </div>
+
             <LayerRow
               label="Contours"
               on={settings.showContours}
