@@ -18,6 +18,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-toggle-on: var(--toggle-on);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
@@ -63,8 +64,11 @@
   --popover: oklch(0.985 0.014 85);
   --popover-foreground: oklch(0.191 0 0);
 
-  --primary: oklch(0.556 0.170 35);              /* #c14a2b terracotta */
+  --primary: oklch(0.555 0.115 45);              /* burnt sienna — warmer, less red */
   --primary-foreground: oklch(0.985 0.014 85);
+
+  /* Muted olive-brown for toggle "on" — recedes so 9 stacked switches don't scream */
+  --toggle-on: oklch(0.470 0.045 75);
 
   --secondary: oklch(0.918 0.018 82);            /* warm sand-2 */
   --secondary-foreground: oklch(0.191 0 0);
