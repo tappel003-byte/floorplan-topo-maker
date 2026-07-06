@@ -178,7 +178,8 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
 
       <NumericKeypad
         open={(!!pending && !bpPromptOpen) || !!editingPoint}
-        initialValue={editingPoint?.value ?? (isBasePointCapture ? 9.0 : points[points.length - 1]?.value)}
+        initialValue={editingPoint?.value ?? (isBasePointCapture ? 9.0 : undefined)}
+        repeatValue={!editingPoint && !isBasePointCapture ? points[points.length - 1]?.value : undefined}
         title={editingPoint ? `Edit point #${editingPoint.index}` : isBasePointCapture ? "Base Point value (BP1)" : `Point #${nextIndex}`}
         subtitle="Inches. Positive = higher, negative = lower."
         onClose={() => { setPending(null); setEditingPoint(null); }}

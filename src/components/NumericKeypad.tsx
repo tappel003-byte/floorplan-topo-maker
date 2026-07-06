@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X } from "lucide-react";
+import { Delete, Check, X, Repeat2 } from "lucide-react";
 
 interface Props {
   open: boolean;
   initialValue?: number;
+  /** Previous point's value — shown as ghost + one-tap "Repeat" button. Not prefilled. */
+  repeatValue?: number;
   title?: string;
   subtitle?: string;
   onSubmit: (value: number) => void;
@@ -15,6 +17,7 @@ interface Props {
 export function NumericKeypad({
   open,
   initialValue,
+  repeatValue,
   title = "Elevation",
   subtitle,
   onSubmit,
@@ -47,6 +50,9 @@ export function NumericKeypad({
     const n = parseFloat(text);
     if (isFinite(n)) onSubmit(n);
   }
+  function repeatLast() {
+    if (repeatValue != null && isFinite(repeatValue)) onSubmit(repeatValue);
+  }
 
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
 
@@ -66,8 +72,20 @@ export function NumericKeypad({
           </Button>
         </div>
         <div className="mb-3 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl font-mono tabular-nums h-16 flex items-center justify-end">
-          {text || <span className="text-muted-foreground">0.0</span>}
+          {text || (
+            <span className="text-muted-foreground/60">
+              {repeatValue != null ? repeatValue.toFixed(2) : "0.0"}
+            </span>
+          )}
         </div>
+        {repeatValue != null && (
+          <button
+            onClick={repeatLast}
+            className="mb-3 w-full h-11 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99]"
+          >
+            <Repeat2 className="h-4 w-4" /> Repeat last ({repeatValue.toFixed(2)})
+          </button>
+        )}
         <div className="grid grid-cols-3 gap-2">
           {keys.map((k) => (
             <KeyBtn key={k} onClick={() => push(k)}>{k}</KeyBtn>
