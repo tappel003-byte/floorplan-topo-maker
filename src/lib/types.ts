@@ -47,6 +47,10 @@ export interface SurveyPoint {
   label?: string; // BP1, BP2, etc.
   notes?: string;
   createdAt: number;
+  // Topo presentation: user-nudged label offset from the dot.
+  // undefined = use default offset (+8, +6).
+  labelDx?: number;
+  labelDy?: number;
 }
 
 export interface RenderSettings {
