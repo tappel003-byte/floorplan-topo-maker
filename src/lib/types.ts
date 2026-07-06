@@ -95,6 +95,7 @@ export const defaultRenderSettings: RenderSettings = {
   showLabels: true,
   showPoints: true,
   pointsOpacity: 1,
+  pointLabelBackground: "white",
   showLegend: true,
   legendX: 24,
   legendY: 24,
