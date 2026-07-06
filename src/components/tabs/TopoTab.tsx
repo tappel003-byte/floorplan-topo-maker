@@ -125,7 +125,8 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
           planWidth={floor.planWidth}
           planHeight={floor.planHeight}
           hidePlan={!resolved.showPlan}
-          planOpacity={resolved.planOpacity}
+          planOnTop
+
           onImagePointerDown={(x, y) => {
             if (!resolved.showLegend || !gridAndContours?.grid || resolved.mode === "points-only") return false;
             const box = legendBox(resolved);
@@ -161,13 +162,10 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
                 </select>
               </div>
             </div>
-            <LayerRow
-              label="Plan"
-              on={resolved.showPlan}
-              onToggle={(v) => update({ showPlan: v })}
-              opacity={resolved.planOpacity}
-              onOpacity={(v) => update({ planOpacity: v })}
-            />
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Show floor plan</Label>
+              <Switch checked={resolved.showPlan} onCheckedChange={(v) => update({ showPlan: v })} />
+            </div>
             <LayerRow
               label="Contours"
               on={resolved.showContours}

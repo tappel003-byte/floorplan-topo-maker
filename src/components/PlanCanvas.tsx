@@ -24,10 +24,12 @@ interface Props {
   onImagePointerDown?: (x: number, y: number) => boolean;
   onImagePointerMove?: (x: number, y: number) => void;
   onImagePointerUp?: (x: number, y: number) => void;
-  /** Plan opacity */
+  /** Plan opacity (only used when planOnTop is false) */
   planOpacity?: number;
   /** Suppress rendering the plan raster (still keeps size) */
   hidePlan?: boolean;
+  /** Draw the plan ON TOP of the overlay using multiply blend, so walls stay crisp over color fills */
+  planOnTop?: boolean;
 }
 
 const IMPLIED_W = 1000;
@@ -47,6 +49,7 @@ export function PlanCanvas({
   onImagePointerUp,
   planOpacity = 1,
   hidePlan = false,
+  planOnTop = false,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -120,8 +123,8 @@ export function PlanCanvas({
     ctx.translate(transform.tx, transform.ty);
     ctx.scale(transform.scale, transform.scale);
 
-    // Plan bounds
-    if (!hidePlan) {
+    // Plan bounds — under the overlay UNLESS planOnTop
+    if (!hidePlan && !planOnTop) {
       if (imgLoaded && imgRef.current) {
         ctx.globalAlpha = planOpacity;
         ctx.drawImage(imgRef.current, 0, 0, imgW, imgH);
@@ -133,11 +136,22 @@ export function PlanCanvas({
         ctx.lineWidth = 2 / transform.scale;
         ctx.strokeRect(0, 0, imgW, imgH);
       }
+    } else if (!hidePlan && planOnTop && (!imgLoaded || !imgRef.current)) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, imgW, imgH);
     }
 
     if (drawOverlay) drawOverlay(ctx);
+
+    // Plan on top: multiply blend keeps walls crisp while white paper reveals color underneath
+    if (!hidePlan && planOnTop && imgLoaded && imgRef.current) {
+      ctx.globalCompositeOperation = "multiply";
+      ctx.drawImage(imgRef.current, 0, 0, imgW, imgH);
+      ctx.globalCompositeOperation = "source-over";
+    }
+
     ctx.restore();
-  }, [transform, imgLoaded, imgW, imgH, drawOverlay, planOpacity, hidePlan]);
+  }, [transform, imgLoaded, imgW, imgH, drawOverlay, planOpacity, hidePlan, planOnTop]);
 
   useEffect(() => {
     render();
