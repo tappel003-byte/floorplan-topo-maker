@@ -534,7 +534,7 @@ function drawLegend(ctx: CanvasRenderingContext2D, settings: RenderSettings, gri
   ctx.font = "bold 10px sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  const ticks = Math.min(7, Math.max(3, settings.contourCount));
+  const ticks = Math.min(7, Math.max(3, settings.contourCount ?? 5));
   for (let i = 0; i < ticks; i++) {
     const t = i / (ticks - 1);
     const value = max - (max - min) * t;
