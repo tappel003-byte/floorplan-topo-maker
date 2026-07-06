@@ -742,7 +742,7 @@ export function renderTopoTop(
 
   // Legend + High/Low pins
   if (g && resolved.mode !== "points-only") {
-    if (resolved.showLegend) drawLegend(ctx, resolved, g);
+    if (resolved.showLegend) drawLegend(ctx, resolved, g, gridAndContours?.contours ?? null);
     if (resolved.showHighLow && points.length) {
       let hi = points[0], lo = points[0];
       for (const p of points) {
