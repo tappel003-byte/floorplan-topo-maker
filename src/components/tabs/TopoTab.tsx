@@ -376,7 +376,7 @@ export function renderTopo(
     ctx.restore();
   }
 
-  // Labels along contours: place at rough midpoint of each contour ring
+  // Inline contour labels: rotated along the line, with a small gap masking the stroke
   if (
     resolved.showLabels &&
     gridAndContours?.contours &&
@@ -385,26 +385,59 @@ export function renderTopo(
     resolved.mode !== "contour-cells"
   ) {
     const g = gridAndContours.grid;
-    ctx.font = `bold ${Math.max(10, 12 + resolved.lineThickness)}px sans-serif`;
+    const fontPx = Math.max(10, 11 + resolved.lineThickness);
+    ctx.font = `bold ${fontPx}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     for (const c of gridAndContours.contours) {
       for (const poly of c.coordinates) {
         for (const ring of poly) {
           if (ring.length < 8) continue;
-          const mid = ring[Math.floor(ring.length / 2)];
-          const wx = g.x0 + mid[0] * g.step;
-          const wy = g.y0 + mid[1] * g.step;
           const label = c.value.toFixed(resolved.decimalPlaces);
-          const w = ctx.measureText(label).width + 6;
-          ctx.fillStyle = "rgba(255,255,255,0.85)";
-          ctx.fillRect(wx - w / 2, wy - 8, w, 16);
+          const tw = ctx.measureText(label).width;
+
+          // Pick a segment near the midpoint that's long enough to host the label
+          const midIdx = Math.floor(ring.length / 2);
+          let a = ring[midIdx];
+          let b = ring[Math.min(ring.length - 1, midIdx + 1)];
+          // Walk outward to find a segment with enough world-space length
+          for (let step = 1; step < Math.floor(ring.length / 2); step++) {
+            const p1 = ring[midIdx];
+            const p2 = ring[Math.min(ring.length - 1, midIdx + step)];
+            const dx = (p2[0] - p1[0]) * g.step;
+            const dy = (p2[1] - p1[1]) * g.step;
+            if (Math.hypot(dx, dy) >= tw + 6) {
+              a = p1;
+              b = p2;
+              break;
+            }
+          }
+
+          const ax = g.x0 + a[0] * g.step;
+          const ay = g.y0 + a[1] * g.step;
+          const bx = g.x0 + b[0] * g.step;
+          const by = g.y0 + b[1] * g.step;
+          const cx = (ax + bx) / 2;
+          const cy = (ay + by) / 2;
+          let angle = Math.atan2(by - ay, bx - ax);
+          // Keep text upright
+          if (angle > Math.PI / 2) angle -= Math.PI;
+          if (angle < -Math.PI / 2) angle += Math.PI;
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(angle);
+          // Mask the contour line under the text
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.fillRect(-tw / 2 - 3, -fontPx / 2, tw + 6, fontPx);
           ctx.fillStyle = "#17130e";
-          ctx.fillText(label, wx, wy);
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
         }
       }
     }
   }
+
 
   // Boundary line
   if (floor.boundary.length >= 3) {
