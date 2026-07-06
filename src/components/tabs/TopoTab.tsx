@@ -226,23 +226,81 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
           planOnTop
 
           onImagePointerDown={(x, y) => {
-            if (!resolved.showLegend || !gridAndContours?.grid || resolved.mode === "points-only") return false;
-            const box = legendBox(resolved);
-            if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
-              setLegendDrag({ dx: x - box.x, dy: y - box.y });
-              return true;
+            // Legend drag first
+            if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
+              const box = legendBox(resolved);
+              if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+                setLegendDrag({ dx: x - box.x, dy: y - box.y });
+                return true;
+              }
+            }
+            // Long-press on a number label to pick it up
+            if (resolved.showPoints) {
+              const hit = hitLabel(x, y);
+              if (hit) {
+                const startDx = hit.labelDx ?? DEFAULT_LABEL_DX;
+                const startDy = hit.labelDy ?? DEFAULT_LABEL_DY;
+                setLabelDrag({
+                  id: hit.id,
+                  dx: startDx,
+                  dy: startDy,
+                  startPointerX: x,
+                  startPointerY: y,
+                  startDx,
+                  startDy,
+                  active: false,
+                });
+                clearLongPress();
+                longPressTimer.current = window.setTimeout(() => {
+                  setLabelDrag((d) => (d ? { ...d, active: true } : d));
+                }, LONG_PRESS_MS);
+                return true;
+              }
             }
             return false;
           }}
           onImagePointerMove={(x, y) => {
-            if (legendDrag) update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
+            if (legendDrag) {
+              update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
+              return;
+            }
+            if (labelDrag) {
+              // If user moves before long-press fires, cancel the pickup
+              if (!labelDrag.active) {
+                const moved = Math.hypot(x - labelDrag.startPointerX, y - labelDrag.startPointerY);
+                if (moved > 6) {
+                  clearLongPress();
+                  setLabelDrag(null);
+                }
+                return;
+              }
+              setLabelDrag({
+                ...labelDrag,
+                dx: labelDrag.startDx + (x - labelDrag.startPointerX),
+                dy: labelDrag.startDy + (y - labelDrag.startPointerY),
+              });
+            }
           }}
-          onImagePointerUp={() => setLegendDrag(null)}
+          onImagePointerUp={() => {
+            setLegendDrag(null);
+            clearLongPress();
+            if (labelDrag && labelDrag.active) {
+              if (labelDrag.dx !== labelDrag.startDx || labelDrag.dy !== labelDrag.startDy) {
+                commitLabelMove(labelDrag.id, labelDrag.dx, labelDrag.dy);
+              }
+            }
+            setLabelDrag(null);
+          }}
           drawOverlay={(ctx) => {
             renderTopoBase(ctx, floor, resolved, gridAndContours);
           }}
           drawOverlayTop={(ctx) => {
-            renderTopoTop(ctx, floor, points, resolved, gridAndContours);
+            renderTopoTop(ctx, floor, points, resolved, gridAndContours, {
+              liveDrag: labelDrag && labelDrag.active
+                ? { id: labelDrag.id, dx: labelDrag.dx, dy: labelDrag.dy }
+                : null,
+              highlightId: labelDrag?.active ? labelDrag.id : null,
+            });
           }}
         />
         {panelOpen && (
