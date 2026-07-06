@@ -150,11 +150,11 @@ function NewProjectDialog({
       </DialogHeader>
       <div className="grid gap-3">
         <div>
-          <Label htmlFor="np-date">Inspection date</Label>
+          <Label htmlFor="np-date" className="label-micro">Inspection date</Label>
           <Input id="np-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <div>
-          <Label htmlFor="np-name">Project name</Label>
+          <Label htmlFor="np-name" className="label-micro">Project name</Label>
           <Input
             id="np-name"
             value={name}
@@ -163,21 +163,21 @@ function NewProjectDialog({
           />
         </div>
         <div>
-          <Label htmlFor="np-addr">Address</Label>
+          <Label htmlFor="np-addr" className="label-micro">Address</Label>
           <Input id="np-addr" value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="np-client">Client</Label>
+            <Label htmlFor="np-client" className="label-micro">Client</Label>
             <Input id="np-client" value={client} onChange={(e) => setClient(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="np-insp">Inspector</Label>
+            <Label htmlFor="np-insp" className="label-micro">Inspector</Label>
             <Input id="np-insp" value={inspector} onChange={(e) => setInspector(e.target.value)} />
           </div>
         </div>
         <div>
-          <Label htmlFor="np-notes">Notes</Label>
+          <Label htmlFor="np-notes" className="label-micro">Notes</Label>
           <Textarea id="np-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       </div>
