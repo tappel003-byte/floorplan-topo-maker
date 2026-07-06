@@ -100,7 +100,7 @@ export function buildGrid(
     }
   }
 
-  const relaxed = relaxMinimumCurvature(values, mask, fixed, cols, rows, 280);
+  const relaxed = relaxMinimumCurvature(values, mask, fixed, cols, rows, 220);
 
   for (let i = 0; i < relaxed.length; i++) {
     if (!mask[i]) continue;
@@ -134,7 +134,7 @@ function relaxMinimumCurvature(
 ): Float64Array {
   let src: Float64Array = values;
   let dst: Float64Array = new Float64Array(values.length);
-  const omega = 1.34;
+  const omega = 0.58;
   for (let pass = 0; pass < iterations; pass++) {
     for (let r = 0; r < h; r++) {
       for (let c = 0; c < w; c++) {
@@ -161,6 +161,7 @@ function relaxMinimumCurvature(
         } else {
           const average = sum / n;
           dst[i] = src[i] + omega * (average - src[i]);
+          if (!Number.isFinite(dst[i])) dst[i] = src[i];
         }
       }
     }
