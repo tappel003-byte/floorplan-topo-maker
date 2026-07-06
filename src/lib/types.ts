@@ -68,6 +68,7 @@ export interface RenderSettings {
   showLabels: boolean;
   showPoints: boolean;
   pointsOpacity: number;
+  pointLabelBackground: "white" | "transparent";
   showLegend: boolean;
   legendX: number;
   legendY: number;
