@@ -144,8 +144,8 @@ function smoothGrid(
   h: number,
   passes: number,
 ): Float64Array {
-  let src = values;
-  let dst = new Float64Array(values.length);
+  let src: Float64Array = values;
+  let dst: Float64Array = new Float64Array(values.length);
   for (let p = 0; p < passes; p++) {
     for (let r = 0; r < h; r++) {
       for (let c = 0; c < w; c++) {
@@ -165,7 +165,9 @@ function smoothGrid(
         dst[i] = n ? sum / n : src[i];
       }
     }
-    const tmp = src; src = dst; dst = tmp as Float64Array;
+    const tmp = src;
+    src = dst;
+    dst = tmp;
   }
   return src;
 }
