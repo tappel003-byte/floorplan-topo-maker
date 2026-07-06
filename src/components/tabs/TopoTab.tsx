@@ -569,14 +569,23 @@ export function renderTopoTop(
     grid: Grid;
     contours: ReturnType<typeof computeContours>;
   } | null,
+  overlay?: {
+    liveDrag?: { id: string; dx: number; dy: number } | null;
+    highlightId?: string | null;
+  },
 ) {
   const resolved = resolveSettings(settings);
   const g = gridAndContours?.grid ?? null;
+  const live = overlay?.liveDrag ?? null;
+  const highlightId = overlay?.highlightId ?? null;
+  const fontPx = resolved.pointLabelFontSize;
+  const weight = resolved.pointLabelWeight;
+  const color = resolved.pointLabelColor;
 
-  // Points
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
     for (const p of points) {
+      // dot
       ctx.beginPath();
       ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
       ctx.fillStyle = p.isBasePoint ? "#16834a" : "#17130e";
@@ -584,20 +593,36 @@ export function renderTopoTop(
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      // label
       const text = p.value.toFixed(resolved.decimalPlaces);
-      ctx.font = "bold 11px sans-serif";
+      ctx.font = `${weight} ${fontPx}px sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      const tx = p.x + 8;
-      const ty = p.y + 6;
-      if (resolved.pointLabelBackground === "white") {
-        const tw = ctx.measureText(text).width;
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        roundRectPath(ctx, tx - 2, ty - 1, tw + 4, 13, 2);
+      const isLive = live && live.id === p.id;
+      const dx = isLive ? live!.dx : p.labelDx ?? DEFAULT_LABEL_DX;
+      const dy = isLive ? live!.dy : p.labelDy ?? DEFAULT_LABEL_DY;
+      const tx = p.x + dx;
+      const ty = p.y + dy;
+      const tw = ctx.measureText(text).width;
+      const inverted = highlightId === p.id;
+
+      if (inverted) {
+        // Inverted highlight: dark pill, light text
+        ctx.fillStyle = color;
+        roundRectPath(ctx, tx - 3, ty - 2, tw + 6, fontPx + 4, 3);
         ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(text, tx, ty);
+      } else {
+        if (resolved.pointLabelBackground === "white") {
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          roundRectPath(ctx, tx - 2, ty - 1, tw + 4, fontPx + 2, 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = color;
+        ctx.fillText(text, tx, ty);
       }
-      ctx.fillStyle = "#17130e";
-      ctx.fillText(text, tx, ty);
     }
     ctx.globalAlpha = 1;
   }
