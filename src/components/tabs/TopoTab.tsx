@@ -478,7 +478,7 @@ function contourOptions(grid: Grid, settings: RenderSettings) {
   return {
     first: settings.firstContour,
     step: settings.contourStep,
-    count: settings.contourCount,
+    count: settings.contourCount ?? undefined,
     min: settings.minClamp ?? grid.minValue,
     max: settings.maxClamp ?? grid.maxValue,
   };
