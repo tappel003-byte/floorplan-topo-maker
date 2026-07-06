@@ -26,7 +26,7 @@ export function SetupTab({
   onFloorsChange,
   onActiveFloorChange,
 }: Props) {
-  const [tab, setTab] = useState<"details" | "plan" | "boundary" | "scale">("details");
+  const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
 
   return (
     <div className="flex flex-col h-full">
