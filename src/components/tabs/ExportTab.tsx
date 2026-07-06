@@ -38,7 +38,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
       contours: computeContours(grid, {
         first: resolved.firstContour,
         step: resolved.contourStep,
-        count: resolved.contourCount,
+        count: resolved.contourCount ?? undefined,
         min: resolved.minClamp ?? grid.minValue,
         max: resolved.maxClamp ?? grid.maxValue,
       }),
