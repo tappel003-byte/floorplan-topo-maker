@@ -165,7 +165,7 @@ function smoothGrid(
         dst[i] = n ? sum / n : src[i];
       }
     }
-    const tmp = src; src = dst; dst = tmp;
+    const tmp = src; src = dst; dst = tmp as Float64Array;
   }
   return src;
 }
