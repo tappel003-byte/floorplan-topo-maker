@@ -26,7 +26,7 @@ export function SetupTab({
   onFloorsChange,
   onActiveFloorChange,
 }: Props) {
-  const [tab, setTab] = useState<"details" | "plan" | "boundary" | "scale">("details");
+  const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
 
   return (
     <div className="flex flex-col h-full">
@@ -36,7 +36,6 @@ export function SetupTab({
             ["details", "Details"],
             ["plan", "Plan & floors"],
             ["boundary", "Boundary"],
-            ["scale", "Scale"],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -69,15 +68,6 @@ export function SetupTab({
         )}
         {tab === "boundary" && (
           <BoundaryPanel
-            floor={activeFloor}
-            onChange={async (f) => {
-              await saveFloor(f);
-              onFloorsChange(await listFloors(project.id));
-            }}
-          />
-        )}
-        {tab === "scale" && (
-          <ScalePanel
             floor={activeFloor}
             onChange={async (f) => {
               await saveFloor(f);
@@ -345,127 +335,3 @@ function BoundaryPanel({
   );
 }
 
-function ScalePanel({
-  floor,
-  onChange,
-}: {
-  floor: Floor;
-  onChange: (f: Floor) => void;
-}) {
-  const [step, setStep] = useState<"idle" | "a" | "b" | "length">(
-    floor.scale ? "idle" : "idle",
-  );
-  const [tempA, setTempA] = useState<{ x: number; y: number } | null>(
-    floor.scale?.a ?? null,
-  );
-  const [tempB, setTempB] = useState<{ x: number; y: number } | null>(
-    floor.scale?.b ?? null,
-  );
-  const [lenStr, setLenStr] = useState<string>(
-    floor.scale ? String(floor.scale.lengthInches) : "",
-  );
-
-  function reset() {
-    setTempA(null);
-    setTempB(null);
-    setLenStr("");
-    setStep("a");
-  }
-
-  async function save() {
-    if (!tempA || !tempB) return;
-    const n = parseFloat(lenStr);
-    if (!isFinite(n) || n <= 0) return;
-    onChange({ ...floor, scale: { a: tempA, b: tempB, lengthInches: n } });
-    setStep("idle");
-  }
-
-  const pixels = tempA && tempB ? Math.hypot(tempA.x - tempB.x, tempA.y - tempB.y) : 0;
-  const inchesPerPx =
-    floor.scale && pixels ? floor.scale.lengthInches / pixels : 0;
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="border-b p-2 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-muted-foreground">
-          {step === "a"
-            ? "Tap the first wall end"
-            : step === "b"
-            ? "Tap the second wall end"
-            : "Calibrate scale from a known length."}
-        </span>
-        <div className="ml-auto flex items-center gap-2">
-          {step === "idle" && (
-            <Button size="sm" variant="outline" onClick={reset}>
-              {floor.scale ? "Re-calibrate" : "Start"}
-            </Button>
-          )}
-          {(tempA || tempB) && (
-            <Button size="sm" variant="ghost" onClick={reset}>
-              Reset
-            </Button>
-          )}
-        </div>
-      </div>
-      <div className="flex-1 min-h-0 relative">
-        <PlanCanvas
-          planDataUrl={floor.planDataUrl}
-          planWidth={floor.planWidth}
-          planHeight={floor.planHeight}
-          onTap={(x, y) => {
-            if (step === "a") {
-              setTempA({ x, y });
-              setStep("b");
-            } else if (step === "b") {
-              setTempB({ x, y });
-              setStep("length");
-            }
-          }}
-          drawOverlay={(ctx) => {
-            if (tempA) {
-              ctx.beginPath();
-              ctx.arc(tempA.x, tempA.y, 8, 0, Math.PI * 2);
-              ctx.fillStyle = "#dc2626";
-              ctx.fill();
-            }
-            if (tempB) {
-              ctx.beginPath();
-              ctx.arc(tempB.x, tempB.y, 8, 0, Math.PI * 2);
-              ctx.fillStyle = "#dc2626";
-              ctx.fill();
-            }
-            if (tempA && tempB) {
-              ctx.beginPath();
-              ctx.moveTo(tempA.x, tempA.y);
-              ctx.lineTo(tempB.x, tempB.y);
-              ctx.strokeStyle = "#dc2626";
-              ctx.lineWidth = 3;
-              ctx.stroke();
-            }
-          }}
-        />
-      </div>
-      {step === "length" && tempA && tempB && (
-        <div className="border-t p-3 flex items-end gap-2">
-          <div className="flex-1">
-            <Label>Known length (inches)</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              value={lenStr}
-              onChange={(e) => setLenStr(e.target.value)}
-              placeholder="e.g. 120"
-            />
-          </div>
-          <Button onClick={save}>Save scale</Button>
-        </div>
-      )}
-      {floor.scale && step === "idle" && (
-        <div className="border-t p-3 text-sm text-muted-foreground">
-          Calibrated: {floor.scale.lengthInches}" over {pixels.toFixed(1)}px ={" "}
-          {inchesPerPx.toFixed(4)} in/px
-        </div>
-      )}
-    </div>
-  );
-}

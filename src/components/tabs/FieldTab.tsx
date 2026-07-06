@@ -98,11 +98,6 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
           Draw a boundary in Setup → Boundary before collecting points.
         </div>
       )}
-      {!floor.scale && points.length > 0 && (
-        <div className="bg-blue-50 border-b border-blue-200 text-blue-900 text-xs px-3 py-2">
-          No scale calibrated yet — you can add it later in Setup → Scale.
-        </div>
-      )}
 
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
