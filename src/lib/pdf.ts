@@ -23,7 +23,7 @@ export function canvasToPdfBlob(canvas: HTMLCanvasElement) {
     const bytes = typeof part === "string" ? encoder.encode(part) : part;
     const copy = new Uint8Array(bytes.length);
     copy.set(bytes);
-    chunks.push(copy.buffer);
+    chunks.push(copy.buffer as ArrayBuffer);
     offset += bytes.length;
   };
   const obj = (id: number, body: Array<string | Uint8Array>) => {

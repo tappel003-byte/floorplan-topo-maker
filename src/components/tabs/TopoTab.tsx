@@ -282,7 +282,7 @@ export function renderTopo(
   points: SurveyPoint[],
   settings: RenderSettings,
   gridAndContours: {
-    grid: ReturnType<typeof buildGrid>;
+    grid: Grid;
     contours: ReturnType<typeof computeContours>;
   } | null,
 ) {
