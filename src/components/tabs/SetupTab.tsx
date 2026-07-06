@@ -98,7 +98,7 @@ function DetailsPanel({
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-3">
       <div>
-        <Label>Inspection date</Label>
+        <Label className="label-micro">Inspection date</Label>
         <Input
           type="date"
           value={local.inspectionDate}
@@ -106,11 +106,11 @@ function DetailsPanel({
         />
       </div>
       <div>
-        <Label>Project name</Label>
+        <Label className="label-micro">Project name</Label>
         <Input value={local.name} onChange={(e) => setLocal({ ...local, name: e.target.value })} />
       </div>
       <div>
-        <Label>Address</Label>
+        <Label className="label-micro">Address</Label>
         <Input
           value={local.address}
           onChange={(e) => setLocal({ ...local, address: e.target.value })}
@@ -118,14 +118,14 @@ function DetailsPanel({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label>Client</Label>
+          <Label className="label-micro">Client</Label>
           <Input
             value={local.client}
             onChange={(e) => setLocal({ ...local, client: e.target.value })}
           />
         </div>
         <div>
-          <Label>Inspector</Label>
+          <Label className="label-micro">Inspector</Label>
           <Input
             value={local.inspector}
             onChange={(e) => setLocal({ ...local, inspector: e.target.value })}
@@ -133,7 +133,7 @@ function DetailsPanel({
         </div>
       </div>
       <div>
-        <Label>Notes</Label>
+        <Label className="label-micro">Notes</Label>
         <Textarea
           rows={3}
           value={local.notes}
