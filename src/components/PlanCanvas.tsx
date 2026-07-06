@@ -49,6 +49,7 @@ export function PlanCanvas({
   onImagePointerUp,
   planOpacity = 1,
   hidePlan = false,
+  planOnTop = false,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
