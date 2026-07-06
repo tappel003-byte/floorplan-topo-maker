@@ -15,6 +15,8 @@ interface Props {
 export function FieldTab({ floor, points, onPointsChange }: Props) {
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
+  const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
+  const [dragging, setDragging] = useState<{ id: string; moved: boolean } | null>(null);
 
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
@@ -30,6 +32,13 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
   }
 
   async function submitValue(v: number) {
+    if (editingPoint) {
+      const updated = { ...editingPoint, value: v };
+      await savePoint(updated);
+      onPointsChange(points.map((p) => (p.id === updated.id ? updated : p)));
+      setEditingPoint(null);
+      return;
+    }
     if (!pending) return;
     const now = Date.now();
     const idx = nextIndex;
@@ -49,6 +58,10 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
     onPointsChange([...points, point]);
     setPending(null);
     setBpPromptOpen(false);
+  }
+
+  function hitPoint(x: number, y: number) {
+    return points.find((p) => Math.hypot(p.x - x, p.y - y) < 18) ?? null;
   }
 
   async function undoLast() {
@@ -96,6 +109,29 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
         onTap={handleTap}
+        onImagePointerDown={(x, y) => {
+          const hit = hitPoint(x, y);
+          if (!hit) return false;
+          setDragging({ id: hit.id, moved: false });
+          return true;
+        }}
+        onImagePointerMove={(x, y) => {
+          if (!dragging) return;
+          setDragging({ ...dragging, moved: true });
+          onPointsChange(points.map((p) => (p.id === dragging.id ? { ...p, x, y } : p)));
+        }}
+        onImagePointerUp={async (x, y) => {
+          if (!dragging) return;
+          const point = points.find((p) => p.id === dragging.id);
+          setDragging(null);
+          if (!point) return;
+          if (!dragging.moved) {
+            setEditingPoint(point);
+            return;
+          }
+          const updated = { ...point, x, y };
+          await savePoint(updated);
+        }}
         drawOverlay={(ctx) => {
           // boundary
           if (floor.boundary.length > 1) {
@@ -141,11 +177,11 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
       />
 
       <NumericKeypad
-        open={!!pending && !bpPromptOpen}
-        initialValue={isBasePointCapture ? 9.0 : points[points.length - 1]?.value}
-        title={isBasePointCapture ? "Base Point value (BP1)" : `Point #${nextIndex}`}
+        open={(!!pending && !bpPromptOpen) || !!editingPoint}
+        initialValue={editingPoint?.value ?? (isBasePointCapture ? 9.0 : points[points.length - 1]?.value)}
+        title={editingPoint ? `Edit point #${editingPoint.index}` : isBasePointCapture ? "Base Point value (BP1)" : `Point #${nextIndex}`}
         subtitle="Inches. Positive = higher, negative = lower."
-        onClose={() => setPending(null)}
+        onClose={() => { setPending(null); setEditingPoint(null); }}
         onSubmit={submitValue}
       />
 

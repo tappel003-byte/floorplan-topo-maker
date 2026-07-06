@@ -21,7 +21,9 @@ export function canvasToPdfBlob(canvas: HTMLCanvasElement) {
   let offset = 0;
   const push = (part: string | Uint8Array) => {
     const bytes = typeof part === "string" ? encoder.encode(part) : part;
-    chunks.push(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const copy = new Uint8Array(bytes.length);
+    copy.set(bytes);
+    chunks.push(copy.buffer);
     offset += bytes.length;
   };
   const obj = (id: number, body: Array<string | Uint8Array>) => {

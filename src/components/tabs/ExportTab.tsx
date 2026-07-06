@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { buildGrid, computeContours } from "@/lib/topo";
-import { renderTopo } from "./TopoTab";
+import { renderTopo, resolveSettings } from "./TopoTab";
+import { canvasToPdfBlob } from "@/lib/pdf";
 
 interface Props {
   project: ProjectMeta;
@@ -14,23 +15,35 @@ interface Props {
 }
 
 const DPIS = [150, 300, 600] as const;
-const FORMATS = ["png", "jpeg"] as const;
+const FORMATS = ["png", "jpeg", "pdf"] as const;
 
 export function ExportTab({ project, floor, points, settings }: Props) {
   const [dpi, setDpi] = useState<(typeof DPIS)[number]>(150);
   const [format, setFormat] = useState<(typeof FORMATS)[number]>("png");
   const [status, setStatus] = useState<string>("");
+  const [pointsOnly, setPointsOnly] = useState(false);
   const previewRef = useRef<HTMLCanvasElement | null>(null);
+  const resolved = resolveSettings(settings);
+  const exportSettings = pointsOnly ? resolveSettings({ ...resolved, mode: "points-only", showContours: false, showLegend: false, showHighLow: false, showPoints: true, showLabels: false }) : resolved;
 
   const grid = useMemo(() => {
     if (points.length < 3 || floor.boundary.length < 3) return null;
-    return buildGrid(points, floor.boundary, 140);
+    return buildGrid(points, floor.boundary, 190);
   }, [points, floor.boundary]);
 
   const gridAndContours = useMemo(() => {
     if (!grid) return null;
-    return { grid, contours: computeContours(grid, settings.interval) };
-  }, [grid, settings.interval]);
+    return {
+      grid,
+      contours: computeContours(grid, {
+        first: resolved.firstContour,
+        step: resolved.contourStep,
+        count: resolved.contourCount,
+        min: resolved.minClamp ?? grid.minValue,
+        max: resolved.maxClamp ?? grid.maxValue,
+      }),
+    };
+  }, [grid, resolved.firstContour, resolved.contourStep, resolved.contourCount, resolved.minClamp, resolved.maxClamp]);
 
   const imgW = floor.planWidth ?? 1000;
   const imgH = floor.planHeight ?? 750;
@@ -48,14 +61,14 @@ export function ExportTab({ project, floor, points, settings }: Props) {
     ctx.fillRect(0, 0, imgW, imgH);
 
     // plan image
-    if (settings.showPlan && floor.planDataUrl) {
+    if (exportSettings.showPlan && floor.planDataUrl) {
       return new Promise<void>((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
-          ctx.globalAlpha = settings.planOpacity;
+          ctx.globalAlpha = exportSettings.planOpacity;
           ctx.drawImage(img, 0, 0, imgW, imgH);
           ctx.globalAlpha = 1;
-          renderTopo(ctx, floor, points, settings, gridAndContours);
+          renderTopo(ctx, floor, points, exportSettings, gridAndContours);
           drawTitleBlock(ctx, imgW, imgH, project, floor, points);
           resolve();
         };
@@ -63,7 +76,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
         img.src = floor.planDataUrl!;
       });
     } else {
-      renderTopo(ctx, floor, points, settings, gridAndContours);
+      renderTopo(ctx, floor, points, exportSettings, gridAndContours);
       drawTitleBlock(ctx, imgW, imgH, project, floor, points);
       return Promise.resolve();
     }
@@ -73,14 +86,25 @@ export function ExportTab({ project, floor, points, settings }: Props) {
     setStatus("Rendering…");
     const canvas = document.createElement("canvas");
     await renderTo(canvas, dpi);
+    const safe = project.name.replace(/[^a-z0-9-]+/gi, "_");
+    const suffix = `${floor.name.replace(/\s+/g, "_")}_${pointsOnly ? "points" : "topo"}_${dpi}dpi`;
+    if (format === "pdf") {
+      const blob = canvasToPdfBlob(canvas);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${safe}_${suffix}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      setStatus("Exported.");
+      return;
+    }
     const mime = format === "png" ? "image/png" : "image/jpeg";
     canvas.toBlob(
       (blob) => {
         if (!blob) return setStatus("Export failed");
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        const safe = project.name.replace(/[^a-z0-9-]+/gi, "_");
-        a.download = `${safe}_${floor.name.replace(/\s+/g, "_")}_${dpi}dpi.${format}`;
+        a.download = `${safe}_${suffix}.${format}`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
         setStatus("Exported.");
@@ -134,6 +158,10 @@ export function ExportTab({ project, floor, points, settings }: Props) {
             ))}
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm rounded-md border px-3 h-9">
+          <input type="checkbox" checked={pointsOnly} onChange={(e) => setPointsOnly(e.target.checked)} />
+          Points only
+        </label>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" onClick={updatePreview}>
             Refresh preview
