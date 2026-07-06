@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Undo2 } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
-import { buildGrid, clampValue, computeContours, type Grid } from "@/lib/topo";
+import { buildGrid, clampValue, computeContours, contourThresholds, type Grid } from "@/lib/topo";
 import { savePoint } from "@/lib/db";
 
 interface Props {
@@ -742,7 +742,7 @@ export function renderTopoTop(
 
   // Legend + High/Low pins
   if (g && resolved.mode !== "points-only") {
-    if (resolved.showLegend) drawLegend(ctx, resolved, g);
+    if (resolved.showLegend) drawLegend(ctx, resolved, g, gridAndContours?.contours ?? null);
     if (resolved.showHighLow && points.length) {
       let hi = points[0], lo = points[0];
       for (const p of points) {
@@ -823,10 +823,20 @@ function legendBox(settings: RenderSettings) {
   return { x: settings.legendX, y: settings.legendY, w: 82, h: 226 };
 }
 
-function drawLegend(ctx: CanvasRenderingContext2D, settings: RenderSettings, grid: Grid) {
+function drawLegend(
+  ctx: CanvasRenderingContext2D,
+  settings: RenderSettings,
+  grid: Grid,
+  _contours: ReturnType<typeof computeContours> | null,
+) {
   const box = legendBox(settings);
   const min = settings.minClamp ?? grid.minValue;
   const max = settings.maxClamp ?? grid.maxValue;
+  const span = Math.max(1e-6, max - min);
+
+  // Contour thresholds — the same values used to draw bands on the map.
+  const thresholds = contourThresholds(grid, contourOptions(grid, settings));
+
   ctx.save();
   ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.strokeStyle = "rgba(23,19,14,0.85)";
@@ -834,34 +844,52 @@ function drawLegend(ctx: CanvasRenderingContext2D, settings: RenderSettings, gri
   roundRectPath(ctx, box.x, box.y, box.w, box.h, 6);
   ctx.fill();
   ctx.stroke();
+
   const barX = box.x + 14;
   const barY = box.y + 18;
   const barW = 18;
   const barH = box.h - 42;
-  const steps = 80;
-  for (let i = 0; i < steps; i++) {
-    const t0 = i / steps;
-    const y = barY + barH - (i + 1) * (barH / steps);
-    ctx.fillStyle = paletteColor(t0, settings.palette, settings.reversePalette);
-    ctx.fillRect(barX, y, barW, barH / steps + 1);
+
+  // Build band edges from min → thresholds → max so the swatches match the map fill.
+  const edges = [min, ...thresholds.filter((t) => t > min && t < max), max];
+  for (let i = 0; i < edges.length - 1; i++) {
+    const lo = edges[i];
+    const hi = edges[i + 1];
+    // Sample color at the band midpoint, same as color-fill-contours mode.
+    const mid = (lo + hi) / 2;
+    const t = (mid - min) / span;
+    const yTop = barY + barH - ((hi - min) / span) * barH;
+    const yBot = barY + barH - ((lo - min) / span) * barH;
+    ctx.fillStyle = paletteColor(t, settings.palette, settings.reversePalette);
+    ctx.fillRect(barX, yTop, barW, yBot - yTop + 0.5);
   }
   ctx.strokeStyle = "#17130e";
   ctx.strokeRect(barX, barY, barW, barH);
+
+  // Tick labels on actual contour thresholds, subsampled to ~5–7 across the bar.
   ctx.fillStyle = "#17130e";
   ctx.font = "bold 10px sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  const ticks = Math.min(7, Math.max(3, settings.contourCount ?? 5));
-  for (let i = 0; i < ticks; i++) {
-    const t = i / (ticks - 1);
-    const value = max - (max - min) * t;
-    const y = barY + barH * t;
+  const labels: number[] = [];
+  if (thresholds.length <= 7) {
+    labels.push(...thresholds);
+  } else {
+    const stride = Math.ceil(thresholds.length / 6);
+    for (let i = 0; i < thresholds.length; i += stride) labels.push(thresholds[i]);
+    if (labels[labels.length - 1] !== thresholds[thresholds.length - 1]) {
+      labels.push(thresholds[thresholds.length - 1]);
+    }
+  }
+  for (const value of labels) {
+    const y = barY + barH - ((value - min) / span) * barH;
     ctx.beginPath();
     ctx.moveTo(barX + barW, y);
     ctx.lineTo(barX + barW + 5, y);
     ctx.stroke();
     ctx.fillText(value.toFixed(settings.decimalPlaces), barX + barW + 8, y);
   }
+
   ctx.fillStyle = "rgba(23,19,14,0.7)";
   ctx.font = "bold 9px sans-serif";
   ctx.textAlign = "center";
