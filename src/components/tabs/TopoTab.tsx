@@ -697,8 +697,8 @@ export function renderTopoTop(
       // label
       const text = p.value.toFixed(resolved.decimalPlaces);
       ctx.font = `${weight} ${fontPx}px sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       const isLive = live && live.id === p.id;
       const dx = isLive ? live!.dx : p.labelDx ?? DEFAULT_LABEL_DX;
       const dy = isLive ? live!.dy : p.labelDy ?? DEFAULT_LABEL_DY;
@@ -706,22 +706,35 @@ export function renderTopoTop(
       const ty = p.y + dy;
       const tw = ctx.measureText(text).width;
       const inverted = highlightId === p.id;
+      const padX = 6;
+      const padY = 3;
+      const pillW = tw + padX * 2;
+      const pillH = fontPx + padY * 2;
+      const cx = tx + tw / 2;
+      const cy = ty + fontPx / 2;
 
       if (inverted) {
         // Inverted highlight: dark pill, light text
         ctx.fillStyle = color;
-        roundRectPath(ctx, tx - 3, ty - 2, tw + 6, fontPx + 4, 3);
+        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
         ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = color;
+        ctx.stroke();
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(text, tx, ty);
+        ctx.fillText(text, cx, cy);
       } else {
         if (resolved.pointLabelBackground === "white") {
-          ctx.fillStyle = "rgba(255,255,255,0.9)";
-          roundRectPath(ctx, tx - 2, ty - 1, tw + 4, fontPx + 2, 2);
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
           ctx.fill();
         }
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = color;
+        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+        ctx.stroke();
         ctx.fillStyle = color;
-        ctx.fillText(text, tx, ty);
+        ctx.fillText(text, cx, cy);
       }
     }
     ctx.globalAlpha = 1;
