@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X } from "lucide-react";
+import { Delete, Check, X, Repeat2 } from "lucide-react";
 
 interface Props {
   open: boolean;
   initialValue?: number;
+  /** Previous point's value — shown as ghost + one-tap "Repeat" button. Not prefilled. */
+  repeatValue?: number;
   title?: string;
   subtitle?: string;
   onSubmit: (value: number) => void;
@@ -15,6 +17,7 @@ interface Props {
 export function NumericKeypad({
   open,
   initialValue,
+  repeatValue,
   title = "Elevation",
   subtitle,
   onSubmit,
@@ -46,6 +49,9 @@ export function NumericKeypad({
   function submit() {
     const n = parseFloat(text);
     if (isFinite(n)) onSubmit(n);
+  }
+  function repeatLast() {
+    if (repeatValue != null && isFinite(repeatValue)) onSubmit(repeatValue);
   }
 
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
