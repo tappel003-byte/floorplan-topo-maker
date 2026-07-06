@@ -146,8 +146,6 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
         {panelOpen && (
           <div className="absolute top-2 right-14 rounded-lg border bg-background/95 shadow-lg p-3 w-72 max-h-[calc(100%-1rem)] overflow-auto space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-2">
-              <NumberControl label="Min clamp" value={resolved.minClamp} placeholder="auto" onChange={(v) => update({ minClamp: v })} />
-              <NumberControl label="Max clamp" value={resolved.maxClamp} placeholder="auto" onChange={(v) => update({ maxClamp: v })} />
               <NumberControl label="Decimals" value={resolved.decimalPlaces} min={0} max={3} step={1} onChange={(v) => update({ decimalPlaces: Math.max(0, Math.min(3, Math.round(v ?? 2))) })} />
               <div>
                 <Label className="text-xs">Palette</Label>
@@ -210,6 +208,16 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
               <Label className="text-xs">High / low pins</Label>
               <Switch checked={resolved.showHighLow} onCheckedChange={(v) => update({ showHighLow: v })} />
             </div>
+            <details className="border-t pt-2">
+              <summary className="text-xs text-muted-foreground cursor-pointer select-none">Advanced</summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <NumberControl label="Color min" value={resolved.minClamp} placeholder="auto" onChange={(v) => update({ minClamp: v })} />
+                <NumberControl label="Color max" value={resolved.maxClamp} placeholder="auto" onChange={(v) => update({ maxClamp: v })} />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                Force the color scale to a fixed range. Leave auto for normal use.
+              </p>
+            </details>
           </div>
         )}
       </div>
