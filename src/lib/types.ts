@@ -45,12 +45,22 @@ export interface SurveyPoint {
   value: number; // elevation in inches (BP default 9.0)
   isBasePoint?: boolean;
   label?: string; // BP1, BP2, etc.
+  notes?: string;
   createdAt: number;
 }
 
 export interface RenderSettings {
   mode: "contour-fill" | "contour-cells" | "contour-bw" | "points-only";
-  interval: number; // contour interval in inches
+  interval: number; // legacy alias for contourStep
+  firstContour: number | null;
+  contourStep: number;
+  contourCount: number;
+  minClamp: number | null;
+  maxClamp: number | null;
+  decimalPlaces: number;
+  palette: "brown" | "rainbow" | "blue-red" | "gray";
+  reversePalette: boolean;
+  lineThickness: number;
   showPlan: boolean;
   planOpacity: number;
   showContours: boolean;
@@ -58,18 +68,35 @@ export interface RenderSettings {
   showLabels: boolean;
   showPoints: boolean;
   pointsOpacity: number;
+  showLegend: boolean;
+  legendX: number;
+  legendY: number;
+  showHighLow: boolean;
   exaggeration: number;
 }
 
 export const defaultRenderSettings: RenderSettings = {
-  mode: "contour-bw",
+  mode: "contour-fill",
   interval: 0.2,
+  firstContour: null,
+  contourStep: 0.2,
+  contourCount: 12,
+  minClamp: null,
+  maxClamp: null,
+  decimalPlaces: 2,
+  palette: "brown",
+  reversePalette: false,
+  lineThickness: 1.2,
   showPlan: true,
-  planOpacity: 0.5,
+  planOpacity: 0.62,
   showContours: true,
   contourOpacity: 1,
   showLabels: true,
   showPoints: true,
   pointsOpacity: 1,
+  showLegend: true,
+  legendX: 24,
+  legendY: 24,
+  showHighLow: true,
   exaggeration: 1,
 };

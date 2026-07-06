@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Edit3, AlertTriangle } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { deletePoint, savePoint } from "@/lib/db";
@@ -14,6 +15,8 @@ interface Props {
 export function ReviewTab({ points, onPointsChange }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
+  const [noteId, setNoteId] = useState<string | null>(null);
+  const [noteVal, setNoteVal] = useState("");
 
   const stats = useMemo(() => {
     if (points.length === 0) return null;
@@ -50,6 +53,13 @@ export function ReviewTab({ points, onPointsChange }: Props) {
     onPointsChange(points.filter((x) => x.id !== p.id));
   }
 
+  async function commitNote(p: SurveyPoint) {
+    const updated = { ...p, notes: noteVal.trim() };
+    await savePoint(updated);
+    onPointsChange(points.map((x) => (x.id === p.id ? updated : x)));
+    setNoteId(null);
+  }
+
   return (
     <div className="flex flex-col h-full">
       {stats && (
@@ -72,6 +82,7 @@ export function ReviewTab({ points, onPointsChange }: Props) {
                 <th className="text-left px-3 py-2">#</th>
                 <th className="text-left px-3 py-2">Label</th>
                 <th className="text-right px-3 py-2">Value (in)</th>
+                <th className="text-left px-3 py-2">Notes</th>
                 <th className="text-right px-3 py-2 w-24"></th>
               </tr>
             </thead>
@@ -107,6 +118,31 @@ export function ReviewTab({ points, onPointsChange }: Props) {
                       />
                     ) : (
                       p.value.toFixed(2)
+                    )}
+                  </td>
+                  <td className="px-3 py-2 min-w-56">
+                    {noteId === p.id ? (
+                      <Textarea
+                        autoFocus
+                        rows={2}
+                        value={noteVal}
+                        onChange={(e) => setNoteVal(e.target.value)}
+                        onBlur={() => commitNote(p)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) commitNote(p);
+                        }}
+                        className="text-xs"
+                      />
+                    ) : (
+                      <button
+                        className="text-left text-xs text-muted-foreground hover:text-foreground w-full"
+                        onClick={() => {
+                          setNoteId(p.id);
+                          setNoteVal(p.notes ?? "");
+                        }}
+                      >
+                        {p.notes || "Add note"}
+                      </button>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
