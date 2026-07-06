@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Undo2 } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
-import { buildGrid, clampValue, computeContours, type Grid } from "@/lib/topo";
+import { buildGrid, clampValue, computeContours, contourThresholds, type Grid } from "@/lib/topo";
 import { savePoint } from "@/lib/db";
 
 interface Props {
