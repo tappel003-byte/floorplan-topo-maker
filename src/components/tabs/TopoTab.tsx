@@ -446,6 +446,49 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
   );
 }
 
+// Free-form step input. Keeps local text state so partial input like "." or
+// "0." doesn't clobber the committed value mid-typing.
+function StepInput({
+  value,
+  onCommit,
+}: {
+  value: number;
+  onCommit: (v: number) => void;
+}) {
+  const [text, setText] = useState(String(value));
+  const lastValueRef = useRef(value);
+  // Sync external changes (e.g. Reset) into the text field
+  if (value !== lastValueRef.current && String(value) !== text) {
+    lastValueRef.current = value;
+    // schedule via microtask isn't safe here — set directly
+    setText(String(value));
+  }
+  return (
+    <Input
+      type="text"
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setText(raw);
+        // Only commit when it parses to a positive finite number.
+        const n = parseFloat(raw);
+        if (Number.isFinite(n) && n > 0) onCommit(n);
+      }}
+      onBlur={() => {
+        const n = parseFloat(text);
+        if (!Number.isFinite(n) || n <= 0) {
+          setText(String(value));
+        } else {
+          setText(String(n));
+        }
+      }}
+      className="w-20 h-10"
+    />
+  );
+}
+
+
 function NumberControl({
   label,
   value,
