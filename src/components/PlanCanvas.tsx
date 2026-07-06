@@ -153,8 +153,11 @@ export function PlanCanvas({
       ctx.globalCompositeOperation = "source-over";
     }
 
+    // Overlay that must sit above walls (points, labels, pins, legend)
+    if (drawOverlayTop) drawOverlayTop(ctx);
+
     ctx.restore();
-  }, [transform, imgLoaded, imgW, imgH, drawOverlay, planOpacity, hidePlan, planOnTop]);
+  }, [transform, imgLoaded, imgW, imgH, drawOverlay, drawOverlayTop, planOpacity, hidePlan, planOnTop]);
 
   useEffect(() => {
     render();
