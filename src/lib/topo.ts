@@ -184,11 +184,16 @@ export function contourThresholds(grid: Grid, options: ContourOptions) {
   const step = Math.max(0.01, options.step || 0.2);
   const min = options.min ?? grid.minValue;
   const max = options.max ?? grid.maxValue;
-  const first = options.first ?? Math.floor(min / step) * step;
+  // Snap the first contour to the nearest tenth at or above the data min.
+  // Data is entered in tenths, so contour levels should always land on tenths.
+  const first = options.first ?? Math.ceil(min * 10 - 1e-6) / 10;
   const count = options.count && options.count > 0 ? options.count : Math.ceil((max - first) / step) + 1;
   const thresholds: number[] = [];
-  for (let i = 0; i < count; i++) thresholds.push(first + i * step);
-  return thresholds.filter((v) => v >= min - step * 2 && v <= max + step * 2);
+  for (let i = 0; i < count; i++) {
+    // Round to 3 decimals to avoid floating-point drift like 5.2000000001.
+    thresholds.push(Math.round((first + i * step) * 1000) / 1000);
+  }
+  return thresholds.filter((v) => v >= min - 1e-6 && v <= max + 1e-6);
 }
 
 export function computeContours(grid: Grid, options: ContourOptions | number) {
