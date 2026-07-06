@@ -376,7 +376,7 @@ export function renderTopo(
     ctx.restore();
   }
 
-  // Inline contour labels: rotated along the line, with a small gap masking the stroke
+  // Inline contour labels: rotated along the line, no background (blends into fill)
   if (
     resolved.showLabels &&
     gridAndContours?.contours &&
@@ -385,28 +385,28 @@ export function renderTopo(
     resolved.mode !== "contour-cells"
   ) {
     const g = gridAndContours.grid;
-    const fontPx = Math.max(10, 11 + resolved.lineThickness);
+    const fontPx = Math.max(7, 6 + resolved.lineThickness);
     ctx.font = `bold ${fontPx}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    for (const c of gridAndContours.contours) {
+    gridAndContours.contours.forEach((c, ci) => {
+      // Label every other contour to reduce clutter
+      if (ci % 2 !== 0) return;
       for (const poly of c.coordinates) {
         for (const ring of poly) {
-          if (ring.length < 8) continue;
+          if (ring.length < 4) continue;
           const label = c.value.toFixed(resolved.decimalPlaces);
           const tw = ctx.measureText(label).width;
 
-          // Pick a segment near the midpoint that's long enough to host the label
           const midIdx = Math.floor(ring.length / 2);
           let a = ring[midIdx];
           let b = ring[Math.min(ring.length - 1, midIdx + 1)];
-          // Walk outward to find a segment with enough world-space length
           for (let step = 1; step < Math.floor(ring.length / 2); step++) {
             const p1 = ring[midIdx];
             const p2 = ring[Math.min(ring.length - 1, midIdx + step)];
             const dx = (p2[0] - p1[0]) * g.step;
             const dy = (p2[1] - p1[1]) * g.step;
-            if (Math.hypot(dx, dy) >= tw + 6) {
+            if (Math.hypot(dx, dy) >= tw + 2) {
               a = p1;
               b = p2;
               break;
@@ -420,23 +420,20 @@ export function renderTopo(
           const cx = (ax + bx) / 2;
           const cy = (ay + by) / 2;
           let angle = Math.atan2(by - ay, bx - ax);
-          // Keep text upright
           if (angle > Math.PI / 2) angle -= Math.PI;
           if (angle < -Math.PI / 2) angle += Math.PI;
 
           ctx.save();
           ctx.translate(cx, cy);
           ctx.rotate(angle);
-          // Mask the contour line under the text
-          ctx.fillStyle = "rgba(255,255,255,0.92)";
-          ctx.fillRect(-tw / 2 - 3, -fontPx / 2, tw + 6, fontPx);
           ctx.fillStyle = "#17130e";
           ctx.fillText(label, 0, 0);
           ctx.restore();
         }
       }
-    }
+    });
   }
+
 
 
   // Boundary line
