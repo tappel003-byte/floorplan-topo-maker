@@ -16,12 +16,12 @@ export function canvasToPdfBlob(canvas: HTMLCanvasElement) {
   const content = `q\n${drawW.toFixed(3)} 0 0 ${drawH.toFixed(3)} ${drawX.toFixed(3)} ${drawY.toFixed(3)} cm\n/TopoMap Do\nQ\n`;
 
   const encoder = new TextEncoder();
-  const chunks: Uint8Array[] = [];
+  const chunks: BlobPart[] = [];
   const offsets: number[] = [0];
   let offset = 0;
   const push = (part: string | Uint8Array) => {
     const bytes = typeof part === "string" ? encoder.encode(part) : part;
-    chunks.push(bytes);
+    chunks.push(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
     offset += bytes.length;
   };
   const obj = (id: number, body: Array<string | Uint8Array>) => {
