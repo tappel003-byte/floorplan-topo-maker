@@ -1,20 +1,48 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Undo2 } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, clampValue, computeContours, type Grid } from "@/lib/topo";
+import { savePoint } from "@/lib/db";
 
 interface Props {
   floor: Floor;
   points: SurveyPoint[];
+  onPointsChange: (points: SurveyPoint[]) => void;
   settings: RenderSettings;
   onSettingsChange: (s: RenderSettings) => void;
 }
+
+const DEFAULT_LABEL_DX = 8;
+const DEFAULT_LABEL_DY = 6;
+const LONG_PRESS_MS = 350;
+
+// Offscreen ctx for text width measurement in event handlers
+let measureCtx: CanvasRenderingContext2D | null = null;
+function measureLabel(text: string, fontPx: number, weight: string) {
+  if (!measureCtx) {
+    const c = document.createElement("canvas");
+    measureCtx = c.getContext("2d");
+  }
+  if (!measureCtx) return { w: text.length * fontPx * 0.6, h: fontPx };
+  measureCtx.font = `${weight} ${fontPx}px sans-serif`;
+  return { w: measureCtx.measureText(text).width, h: fontPx };
+}
+
+// Where the label sits (top-left corner) for a given point in image coords.
+function labelAnchor(p: SurveyPoint) {
+  return {
+    x: p.x + (p.labelDx ?? DEFAULT_LABEL_DX),
+    y: p.y + (p.labelDy ?? DEFAULT_LABEL_DY),
+  };
+}
+
 
 export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
   const [panelOpen, setPanelOpen] = useState(true);
