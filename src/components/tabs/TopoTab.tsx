@@ -159,15 +159,9 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
         </div>
         <div className="flex items-center gap-1">
           <Label className="text-xs text-muted-foreground">Step</Label>
-          <Input
-            type="number"
-            step="0.05"
+          <StepInput
             value={resolved.contourStep}
-            onChange={(e) => {
-              const step = parseFloat(e.target.value) || 0.1;
-              update({ contourStep: step, interval: step });
-            }}
-            className="w-20 h-10"
+            onCommit={(step) => update({ contourStep: step, interval: step })}
           />
         </div>
         <div className="flex items-center gap-1">
