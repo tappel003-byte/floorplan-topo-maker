@@ -125,7 +125,8 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
           planWidth={floor.planWidth}
           planHeight={floor.planHeight}
           hidePlan={!resolved.showPlan}
-          planOpacity={resolved.planOpacity}
+          planOnTop
+
           onImagePointerDown={(x, y) => {
             if (!resolved.showLegend || !gridAndContours?.grid || resolved.mode === "points-only") return false;
             const box = legendBox(resolved);
