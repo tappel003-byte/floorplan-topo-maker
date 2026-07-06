@@ -199,6 +199,13 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
               onOpacity={(v) => update({ pointsOpacity: v })}
             />
             <div className="flex items-center justify-between">
+              <Label className="text-xs">Label background</Label>
+              <Switch
+                checked={resolved.pointLabelBackground === "white"}
+                onCheckedChange={(v) => update({ pointLabelBackground: v ? "white" : "transparent" })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
               <Label className="text-xs">Legend</Label>
               <Switch checked={resolved.showLegend} onCheckedChange={(v) => update({ showLegend: v })} />
             </div>
