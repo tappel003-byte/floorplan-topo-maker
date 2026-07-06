@@ -12,6 +12,8 @@ interface Props {
   planHeight?: number;
   /** Draw on top of the plan, in image coordinates (transform applied) */
   drawOverlay?: (ctx: CanvasRenderingContext2D) => void;
+  /** Draw AFTER the plan raster (when planOnTop). Same coord space. Use for elements that must sit over walls. */
+  drawOverlayTop?: (ctx: CanvasRenderingContext2D) => void;
   /** Tap in image coordinates (single-tap, after gestures settle) */
   onTap?: (x: number, y: number) => void;
   /** Optional badge above canvas */
