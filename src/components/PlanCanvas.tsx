@@ -24,10 +24,12 @@ interface Props {
   onImagePointerDown?: (x: number, y: number) => boolean;
   onImagePointerMove?: (x: number, y: number) => void;
   onImagePointerUp?: (x: number, y: number) => void;
-  /** Plan opacity */
+  /** Plan opacity (only used when planOnTop is false) */
   planOpacity?: number;
   /** Suppress rendering the plan raster (still keeps size) */
   hidePlan?: boolean;
+  /** Draw the plan ON TOP of the overlay using multiply blend, so walls stay crisp over color fills */
+  planOnTop?: boolean;
 }
 
 const IMPLIED_W = 1000;
