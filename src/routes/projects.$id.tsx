@@ -77,7 +77,7 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh]">
+    <div className="flex flex-col h-screen">
       <header className="border-b bg-background">
         <div className="flex items-center gap-3 px-3 h-12">
           <Link
@@ -141,7 +141,7 @@ function ProjectWorkspace() {
         )}
       </main>
 
-      <nav className="border-t bg-background grid grid-cols-5 shrink-0 pb-[env(safe-area-inset-bottom)]">
+      <nav className="border-t bg-background grid grid-cols-5 shrink-0">
         <ModeBtn
           active={mode === "setup"}
           onClick={() => setMode("setup")}

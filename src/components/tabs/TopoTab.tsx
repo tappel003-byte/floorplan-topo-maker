@@ -10,118 +10,6 @@ import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, computeContours } from "@/lib/topo";
 
-const POINT_EPSILON = 1e-6;
-
-function almostSamePoint(a: [number, number], b: [number, number]) {
-  return Math.hypot(a[0] - b[0], a[1] - b[1]) < POINT_EPSILON;
-}
-
-function cleanClosedRing(raw: Array<[number, number]>) {
-  const pts: Array<[number, number]> = [];
-  for (const p of raw) {
-    if (!pts.length || !almostSamePoint(pts[pts.length - 1], p)) pts.push(p);
-  }
-  if (pts.length > 1 && almostSamePoint(pts[0], pts[pts.length - 1])) pts.pop();
-  return pts;
-}
-
-function medianSegmentLength(pts: Array<[number, number]>) {
-  const lengths: number[] = [];
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i];
-    const b = pts[(i + 1) % pts.length];
-    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    if (length > POINT_EPSILON) lengths.push(length);
-  }
-  if (!lengths.length) return 1;
-  lengths.sort((a, b) => a - b);
-  return lengths[Math.floor(lengths.length / 2)] || 1;
-}
-
-function pointToSegmentDistance(p: [number, number], a: [number, number], b: [number, number]) {
-  const vx = b[0] - a[0];
-  const vy = b[1] - a[1];
-  const wx = p[0] - a[0];
-  const wy = p[1] - a[1];
-  const len2 = vx * vx + vy * vy;
-  if (len2 < POINT_EPSILON) return Math.hypot(p[0] - a[0], p[1] - a[1]);
-  const t = Math.max(0, Math.min(1, (wx * vx + wy * vy) / len2));
-  return Math.hypot(p[0] - (a[0] + t * vx), p[1] - (a[1] + t * vy));
-}
-
-function simplifyOpenPolyline(pts: Array<[number, number]>, epsilon: number): Array<[number, number]> {
-  if (pts.length <= 2) return pts;
-  let maxDistance = 0;
-  let index = 0;
-  const first = pts[0];
-  const last = pts[pts.length - 1];
-  for (let i = 1; i < pts.length - 1; i++) {
-    const distance = pointToSegmentDistance(pts[i], first, last);
-    if (distance > maxDistance) {
-      index = i;
-      maxDistance = distance;
-    }
-  }
-  if (maxDistance <= epsilon) return [first, last];
-  const left = simplifyOpenPolyline(pts.slice(0, index + 1), epsilon);
-  const right = simplifyOpenPolyline(pts.slice(index), epsilon);
-  return left.slice(0, -1).concat(right);
-}
-
-function simplifyClosedRing(pts: Array<[number, number]>, epsilon: number) {
-  if (pts.length < 8) return pts;
-  let farthestIndex = 1;
-  let farthestDistance = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const distance = Math.hypot(pts[i][0] - pts[0][0], pts[i][1] - pts[0][1]);
-    if (distance > farthestDistance) {
-      farthestIndex = i;
-      farthestDistance = distance;
-    }
-  }
-  const firstHalf = simplifyOpenPolyline(pts.slice(0, farthestIndex + 1), epsilon);
-  const secondHalf = simplifyOpenPolyline([...pts.slice(farthestIndex), pts[0]], epsilon);
-  const simplified = firstHalf.slice(0, -1).concat(secondHalf.slice(0, -1));
-  return simplified.length >= 3 ? simplified : pts;
-}
-
-function chaikinClosedRing(pts: Array<[number, number]>, iterations: number) {
-  let out = pts;
-  for (let iteration = 0; iteration < iterations; iteration++) {
-    const next: Array<[number, number]> = [];
-    for (let i = 0; i < out.length; i++) {
-      const a = out[i];
-      const b = out[(i + 1) % out.length];
-      next.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
-      next.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
-    }
-    out = next;
-  }
-  return out;
-}
-
-/**
- * Render-only line smoothing. The grid and contour thresholds are not rebuilt;
- * this only simplifies and rounds the stroke path drawn on the canvas.
- */
-function drawSmoothRing(
-  ctx: CanvasRenderingContext2D,
-  raw: Array<[number, number]>,
-  smooth: number,
-) {
-  const cleaned = cleanClosedRing(raw);
-  if (cleaned.length < 2) return;
-  let pts = cleaned;
-  if (smooth > 0 && cleaned.length >= 4) {
-    const amount = Math.min(5, Math.max(0, smooth));
-    const gridStep = medianSegmentLength(cleaned);
-    pts = simplifyClosedRing(cleaned, gridStep * (0.2 + amount * 0.55));
-    pts = chaikinClosedRing(pts, amount <= 2 ? 1 : amount <= 4 ? 2 : 3);
-  }
-  pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
-  ctx.closePath();
-}
-
 interface Props {
   floor: Floor;
   points: SurveyPoint[];
@@ -136,12 +24,11 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(points, floor.boundary, 240, 2.5);
+    const grid = buildGrid(points, floor.boundary, 140);
     if (!grid) return null;
     const cs = computeContours(grid, settings.interval);
     return { grid, contours: cs };
   }, [canRender, points, floor.boundary, settings.interval]);
-
 
   return (
     <div className="flex flex-col h-full">
@@ -206,26 +93,13 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
         />
         {panelOpen && (
           <div className="absolute top-2 right-14 rounded-lg border bg-background/95 shadow-lg p-3 w-56 space-y-3 text-sm">
-            <div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Plan</Label>
-                <Switch
-                  checked={settings.showPlan}
-                  onCheckedChange={(v) => onSettingsChange({ ...settings, showPlan: v })}
-                />
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                <Label className="text-xs text-muted-foreground">Transparent</Label>
-                <Switch
-                  checked={settings.planOpacity < 1}
-                  disabled={!settings.showPlan}
-                  onCheckedChange={(v) =>
-                    onSettingsChange({ ...settings, planOpacity: v ? 0.5 : 1 })
-                  }
-                />
-              </div>
-            </div>
-
+            <LayerRow
+              label="Plan"
+              on={settings.showPlan}
+              onToggle={(v) => onSettingsChange({ ...settings, showPlan: v })}
+              opacity={settings.planOpacity}
+              onOpacity={(v) => onSettingsChange({ ...settings, planOpacity: v })}
+            />
             <LayerRow
               label="Contours"
               on={settings.showContours}
@@ -247,27 +121,6 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
               opacity={settings.pointsOpacity}
               onOpacity={(v) => onSettingsChange({ ...settings, pointsOpacity: v })}
             />
-            <div className="pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Line smoothing</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {Math.round(settings.sharpness)}
-                </span>
-              </div>
-              <Slider
-                min={0}
-                max={5}
-                step={1}
-                value={[settings.sharpness]}
-                onValueChange={(v) => onSettingsChange({ ...settings, sharpness: v[0] })}
-                className="mt-1"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>Raw</span>
-                <span>Smooth</span>
-              </div>
-            </div>
-
           </div>
         )}
       </div>
@@ -345,52 +198,47 @@ export function renderTopo(
       }
     }
 
-    // Contour polygons — drawn in IMAGE coords so line widths render correctly.
+    // Contour polygons
     const cs = gridAndContours?.contours;
     if (cs && g && settings.showContours && settings.mode !== "points-only" && settings.mode !== "contour-cells") {
       const range = g.maxValue - g.minValue || 1;
-      const toX = (px: number) => g.x0 + px * g.step;
-      const toY = (py: number) => g.y0 + py * g.step;
-      const smoothing = Math.max(0, Math.round(settings.sharpness));
-      const drawContourPath = (contour: (typeof cs)[number], smooth: number) => {
+      ctx.save();
+      ctx.translate(g.x0, g.y0);
+      ctx.scale(g.step, g.step);
+      for (const c of cs) {
         ctx.beginPath();
-        for (const poly of contour.coordinates) {
+        for (const poly of c.coordinates) {
           for (const ring of poly) {
-            const pts = (ring as Array<[number, number]>).map(
-              (pt) => [toX(pt[0]), toY(pt[1])] as [number, number],
+            ring.forEach((pt, i) =>
+              i === 0 ? ctx.moveTo(pt[0], pt[1]) : ctx.lineTo(pt[0], pt[1]),
             );
-            drawSmoothRing(ctx, pts, smooth);
+            ctx.closePath();
           }
         }
-      };
-      for (const c of cs) {
         if (settings.mode === "contour-fill") {
-          drawContourPath(c, 0);
           const t = (c.value - g.minValue) / range;
           ctx.fillStyle = interpolateTurbo(t);
           ctx.globalAlpha = 0.55 * settings.contourOpacity;
           ctx.fill();
-          drawContourPath(c, smoothing);
           ctx.globalAlpha = settings.contourOpacity;
-          ctx.strokeStyle = "rgba(0,0,0,0.5)";
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = "rgba(0,0,0,0.4)";
+          ctx.lineWidth = 0.05;
           ctx.stroke();
         } else {
-          drawContourPath(c, smoothing);
-          // contour-bw — major (whole-inch) lines heavier
+          // contour-bw
           const isMajor = Math.abs(c.value - Math.round(c.value)) < 1e-6;
           ctx.strokeStyle = "#111";
-          ctx.lineWidth = isMajor ? 2.2 : 1.1;
+          ctx.lineWidth = isMajor ? 0.08 : 0.04;
           ctx.globalAlpha = settings.contourOpacity;
           ctx.stroke();
         }
       }
+      ctx.restore();
       ctx.globalAlpha = 1;
     }
 
     ctx.restore();
   }
-
 
   // Labels along contours: place at rough midpoint of each contour ring
   if (

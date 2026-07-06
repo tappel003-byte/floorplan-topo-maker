@@ -1,8 +1,9 @@
 // Topo interpolation and contouring.
-// Surface: thin-plate spline (TPS) — one smooth surface fit through all points,
-// like a stretched rubber sheet. Contours computed via marching squares.
+// v1: linear interpolation via Delaunay triangulation onto a raster grid,
+// then contour lines via d3-contour marching squares.
 // Points outside the boundary polygon are masked out.
 
+import Delaunator from "delaunator";
 import { contours } from "d3-contour";
 import type { SurveyPoint } from "./types";
 
@@ -33,76 +34,25 @@ function pointInPolygon(px: number, py: number, poly: Array<{ x: number; y: numb
   return inside;
 }
 
-/**
- * Solve A x = b in place using Gaussian elimination with partial pivoting.
- * A is n×n row-major (Float64Array length n*n). b is length n. Returns x
- * (same array as b, overwritten). Returns null if singular.
- */
-function solveLinearSystem(A: Float64Array, b: Float64Array, n: number): Float64Array | null {
-  for (let k = 0; k < n; k++) {
-    let maxRow = k;
-    let maxVal = Math.abs(A[k * n + k]);
-    for (let i = k + 1; i < n; i++) {
-      const v = Math.abs(A[i * n + k]);
-      if (v > maxVal) { maxVal = v; maxRow = i; }
-    }
-    if (maxVal < 1e-12) return null;
-    if (maxRow !== k) {
-      for (let j = k; j < n; j++) {
-        const tmp = A[k * n + j];
-        A[k * n + j] = A[maxRow * n + j];
-        A[maxRow * n + j] = tmp;
-      }
-      const tb = b[k]; b[k] = b[maxRow]; b[maxRow] = tb;
-    }
-    const pivot = A[k * n + k];
-    for (let i = k + 1; i < n; i++) {
-      const factor = A[i * n + k] / pivot;
-      if (factor === 0) continue;
-      for (let j = k; j < n; j++) A[i * n + j] -= factor * A[k * n + j];
-      b[i] -= factor * b[k];
-    }
-  }
-  const x = b;
-  for (let i = n - 1; i >= 0; i--) {
-    let sum = x[i];
-    for (let j = i + 1; j < n; j++) sum -= A[i * n + j] * x[j];
-    x[i] = sum / A[i * n + i];
-  }
-  return x;
+// Barycentric coords helper
+function bary(
+  ax: number, ay: number,
+  bx: number, by: number,
+  cx: number, cy: number,
+  px: number, py: number,
+) {
+  const denom = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+  if (Math.abs(denom) < 1e-12) return null;
+  const w1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / denom;
+  const w2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / denom;
+  const w3 = 1 - w1 - w2;
+  return [w1, w2, w3] as const;
 }
-
-/**
- * Inverse-distance weighted interpolation. Smoother than piecewise-linear
- * but each point retains local influence, so real features don't get
- * flattened out. `power` controls locality: higher = more local character.
- */
-function fitIDW(
-  points: SurveyPoint[],
-  power = 2.5,
-): (x: number, y: number) => number {
-  return (x, y) => {
-    let num = 0;
-    let den = 0;
-    for (const p of points) {
-      const dx = x - p.x;
-      const dy = y - p.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < 1e-6) return p.value; // sitting on a point
-      const w = 1 / Math.pow(d2, power / 2);
-      num += w * p.value;
-      den += w;
-    }
-    return num / den;
-  };
-}
-
 
 export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
-  targetCols = 240,
-  power = 2.5,
+  targetCols = 160,
 ): Grid | null {
   if (points.length < 3 || boundary.length < 3) return null;
 
@@ -118,8 +68,13 @@ export function buildGrid(
   const cols = Math.max(2, Math.ceil(w / step));
   const rows = Math.max(2, Math.ceil(h / step));
 
-  const evaluate = fitIDW(points, power);
-
+  const coords = new Float64Array(points.length * 2);
+  points.forEach((p, i) => {
+    coords[i * 2] = p.x;
+    coords[i * 2 + 1] = p.y;
+  });
+  const del = new Delaunator(coords);
+  const tri = del.triangles;
 
   const values = new Float64Array(cols * rows);
   const mask = new Uint8Array(cols * rows);
@@ -135,7 +90,32 @@ export function buildGrid(
         values[idx] = NaN;
         continue;
       }
-      const v = evaluate(px, py);
+      // find triangle containing (px, py) — linear scan (fine for v1 grids)
+      let v: number | null = null;
+      for (let t = 0; t < tri.length; t += 3) {
+        const ia = tri[t], ib = tri[t + 1], ic = tri[t + 2];
+        const ax = coords[ia * 2], ay = coords[ia * 2 + 1];
+        const bx = coords[ib * 2], by = coords[ib * 2 + 1];
+        const cx = coords[ic * 2], cy = coords[ic * 2 + 1];
+        const b = bary(ax, ay, bx, by, cx, cy, px, py);
+        if (!b) continue;
+        const [w1, w2, w3] = b;
+        const eps = -1e-6;
+        if (w1 >= eps && w2 >= eps && w3 >= eps) {
+          v = w1 * points[ia].value + w2 * points[ib].value + w3 * points[ic].value;
+          break;
+        }
+      }
+      if (v === null) {
+        // outside convex hull — nearest neighbor fallback
+        let best = Infinity;
+        let bestV = 0;
+        for (const p of points) {
+          const d = (p.x - px) ** 2 + (p.y - py) ** 2;
+          if (d < best) { best = d; bestV = p.value; }
+        }
+        v = bestV;
+      }
       values[idx] = v;
       mask[idx] = 1;
       if (v < minV) minV = v;
@@ -156,36 +136,8 @@ export function buildGrid(
   };
 }
 
-/**
- * Chaikin corner-cutting: smooths a polyline/ring by inserting two points per
- * segment at 1/4 and 3/4 positions. Kept for a tiny final polish on contour
- * rings; the TPS surface already produces smooth curves.
- */
-export function chaikin(
-  ring: Array<[number, number]>,
-  iterations = 2,
-  closed = true,
-): Array<[number, number]> {
-  if (ring.length < 3) return ring;
-  let pts = ring;
-  for (let it = 0; it < iterations; it++) {
-    const out: Array<[number, number]> = [];
-    const n = pts.length;
-    const last = closed ? n : n - 1;
-    if (!closed) out.push(pts[0]);
-    for (let i = 0; i < last; i++) {
-      const a = pts[i];
-      const b = pts[(i + 1) % n];
-      out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
-      out.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
-    }
-    if (!closed) out.push(pts[n - 1]);
-    pts = out;
-  }
-  return pts;
-}
-
 export function computeContours(grid: Grid, interval: number) {
+  // clean values array — replace NaN with a huge sentinel so contours ignore holes
   const clean = new Float64Array(grid.values.length);
   for (let i = 0; i < clean.length; i++) {
     clean[i] = grid.mask[i] ? grid.values[i] : NaN;

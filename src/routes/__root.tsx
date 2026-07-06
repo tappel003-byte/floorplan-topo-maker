@@ -76,37 +76,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#0F172A" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "Floor Survey" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Floor Survey — Foundation topo mapping" },
       {
         name: "description",
         content:
           "Offline-first floor elevation survey app for foundation inspectors.",
       },
-      { property: "og:title", content: "Floor Survey — Foundation topo mapping" },
+      { property: "og:title", content: "Floor Survey" },
       {
         property: "og:description",
         content: "Foundation topo mapping for field inspectors.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Floor Survey — Foundation topo mapping" },
-      { name: "description", content: "Offline-first floor elevation survey app for foundation inspectors. Capture points, generate topographical maps, export deliverables." },
-      { property: "og:description", content: "Offline-first floor elevation survey app for foundation inspectors. Capture points, generate topographical maps, export deliverables." },
-      { name: "twitter:description", content: "Offline-first floor elevation survey app for foundation inspectors. Capture points, generate topographical maps, export deliverables." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/dc31bbfd-1b22-4722-8a11-b21d798777f7/id-preview-37cd803c--705e6ef9-d8ee-437d-a499-9e79d60b5a9d.lovable.app-1783258156736.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/dc31bbfd-1b22-4722-8a11-b21d798777f7/id-preview-37cd803c--705e6ef9-d8ee-437d-a499-9e79d60b5a9d.lovable.app-1783258156736.png" },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
-      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
     ],
   }),
   shellComponent: RootShell,
