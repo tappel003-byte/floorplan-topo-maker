@@ -36,7 +36,6 @@ export function SetupTab({
             ["details", "Details"],
             ["plan", "Plan & floors"],
             ["boundary", "Boundary"],
-            ["scale", "Scale"],
           ] as const
         ).map(([k, label]) => (
           <button
