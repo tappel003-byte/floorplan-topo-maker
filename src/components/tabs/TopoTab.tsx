@@ -80,7 +80,7 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
         </div>
       )}
 
-      <div className="flex-1 relative min-h-0">
+      <div className="flex-1 relative min-h-0 flex flex-col">
         <PlanCanvas
           planDataUrl={floor.planDataUrl}
           planWidth={floor.planWidth}
