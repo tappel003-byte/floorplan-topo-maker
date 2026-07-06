@@ -54,7 +54,7 @@ export interface RenderSettings {
   interval: number; // legacy alias for contourStep
   firstContour: number | null;
   contourStep: number;
-  contourCount: number;
+  contourCount: number | null; // null = auto (cover full data range at contourStep)
   minClamp: number | null;
   maxClamp: number | null;
   decimalPlaces: number;
