@@ -44,10 +44,27 @@ function labelAnchor(p: SurveyPoint) {
 }
 
 
-export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
+export function TopoTab({ floor, points, onPointsChange, settings, onSettingsChange }: Props) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const resolved = resolveSettings(settings);
+
+  // Live label drag (long-press-and-drag on a number)
+  const [labelDrag, setLabelDrag] = useState<{
+    id: string;
+    dx: number;
+    dy: number;
+    startPointerX: number;
+    startPointerY: number;
+    startDx: number;
+    startDy: number;
+    active: boolean; // true after long-press fires
+  } | null>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const [lastMove, setLastMove] = useState<
+    | { id: string; prevDx: number | undefined; prevDy: number | undefined }
+    | null
+  >(null);
 
   const canRender = points.length >= 3 && floor.boundary.length >= 3;
 
@@ -60,6 +77,59 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
   }, [canRender, points, floor.boundary, resolved.firstContour, resolved.contourStep, resolved.contourCount, resolved.minClamp, resolved.maxClamp]);
 
   const update = (patch: Partial<RenderSettings>) => onSettingsChange(resolveSettings({ ...resolved, ...patch }));
+
+  function hitLabel(x: number, y: number): SurveyPoint | null {
+    const dec = resolved.decimalPlaces;
+    const fontPx = resolved.pointLabelFontSize;
+    const weight = resolved.pointLabelWeight;
+    const pad = 4;
+    for (const p of points) {
+      const text = p.value.toFixed(dec);
+      const { w, h } = measureLabel(text, fontPx, weight);
+      const a = labelAnchor(p);
+      if (x >= a.x - pad && x <= a.x + w + pad && y >= a.y - pad && y <= a.y + h + pad) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  function clearLongPress() {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function commitLabelMove(id: string, dx: number, dy: number) {
+    const p = points.find((pt) => pt.id === id);
+    if (!p) return;
+    setLastMove({ id, prevDx: p.labelDx, prevDy: p.labelDy });
+    const updated: SurveyPoint = { ...p, labelDx: dx, labelDy: dy };
+    onPointsChange(points.map((pt) => (pt.id === id ? updated : pt)));
+    savePoint(updated).catch(() => {});
+  }
+
+  function undoLastMove() {
+    if (!lastMove) return;
+    const p = points.find((pt) => pt.id === lastMove.id);
+    if (!p) { setLastMove(null); return; }
+    const updated: SurveyPoint = { ...p, labelDx: lastMove.prevDx, labelDy: lastMove.prevDy };
+    onPointsChange(points.map((pt) => (pt.id === lastMove.id ? updated : pt)));
+    savePoint(updated).catch(() => {});
+    setLastMove(null);
+  }
+
+  function resetAllLabelPositions() {
+    const updates = points
+      .filter((p) => p.labelDx !== undefined || p.labelDy !== undefined)
+      .map((p) => ({ ...p, labelDx: undefined, labelDy: undefined }));
+    if (!updates.length) return;
+    const map = new Map(updates.map((u) => [u.id, u]));
+    onPointsChange(points.map((p) => map.get(p.id) ?? p));
+    updates.forEach((u) => savePoint(u).catch(() => {}));
+    setLastMove(null);
+  }
 
   return (
     <div className="flex flex-col h-full">
