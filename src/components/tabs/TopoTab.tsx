@@ -222,13 +222,13 @@ export function renderTopo(
           ctx.fill();
           ctx.globalAlpha = settings.contourOpacity;
           ctx.strokeStyle = "rgba(0,0,0,0.4)";
-          ctx.lineWidth = 0.05;
+          ctx.lineWidth = 1 / g.step;
           ctx.stroke();
         } else {
           // contour-bw
           const isMajor = Math.abs(c.value - Math.round(c.value)) < 1e-6;
           ctx.strokeStyle = "#111";
-          ctx.lineWidth = isMajor ? 0.08 : 0.04;
+          ctx.lineWidth = (isMajor ? 2.5 : 1.25) / g.step;
           ctx.globalAlpha = settings.contourOpacity;
           ctx.stroke();
         }
