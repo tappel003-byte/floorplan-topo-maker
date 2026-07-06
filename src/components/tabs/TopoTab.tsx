@@ -75,11 +75,19 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
         <div className="flex items-center gap-1">
           <Label className="text-xs text-muted-foreground">Count</Label>
           <Input
-            type="number"
-            min={2}
-            max={40}
-            value={resolved.contourCount}
-            onChange={(e) => update({ contourCount: Math.max(2, parseInt(e.target.value, 10) || 12) })}
+            type="text"
+            inputMode="numeric"
+            value={resolved.contourCount ?? ""}
+            placeholder="auto"
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              if (raw === "" || raw.toLowerCase() === "auto") {
+                update({ contourCount: null });
+              } else {
+                const n = parseInt(raw, 10);
+                update({ contourCount: isFinite(n) ? Math.max(2, n) : null });
+              }
+            }}
             className="w-20 h-10"
           />
         </div>
