@@ -20,6 +20,10 @@ interface Props {
   className?: string;
   /** Called on transform change */
   onTransform?: (t: CanvasTransform) => void;
+  /** Optional image-space pointer hooks. Return true from down to consume pan/tap. */
+  onImagePointerDown?: (x: number, y: number) => boolean;
+  onImagePointerMove?: (x: number, y: number) => void;
+  onImagePointerUp?: (x: number, y: number) => void;
   /** Plan opacity */
   planOpacity?: number;
   /** Suppress rendering the plan raster (still keeps size) */
@@ -38,6 +42,9 @@ export function PlanCanvas({
   badge,
   className,
   onTransform,
+  onImagePointerDown,
+  onImagePointerMove,
+  onImagePointerUp,
   planOpacity = 1,
   hidePlan = false,
 }: Props) {
@@ -144,9 +151,26 @@ export function PlanCanvas({
     transform: CanvasTransform;
   } | null>(null);
   const singleStart = useRef<{ x: number; y: number; t0: number; moved: boolean } | null>(null);
+  const customPointer = useRef<number | null>(null);
+
+  function toImage(clientX: number, clientY: number) {
+    const rect = wrapRef.current!.getBoundingClientRect();
+    const localX = clientX - rect.left;
+    const localY = clientY - rect.top;
+    const t = transformRef.current;
+    return { x: (localX - t.tx) / t.scale, y: (localY - t.ty) / t.scale };
+  }
 
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     (e.target as Element).setPointerCapture?.(e.pointerId);
+    if (onImagePointerDown) {
+      const img = toImage(e.clientX, e.clientY);
+      if (onImagePointerDown(img.x, img.y)) {
+        customPointer.current = e.pointerId;
+        pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        return;
+      }
+    }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 1) {
       singleStart.current = { x: e.clientX, y: e.clientY, t0: performance.now(), moved: false };
@@ -161,6 +185,12 @@ export function PlanCanvas({
 
   function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
     if (!pointers.current.has(e.pointerId)) return;
+    if (customPointer.current === e.pointerId) {
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const img = toImage(e.clientX, e.clientY);
+      onImagePointerMove?.(img.x, img.y);
+      return;
+    }
     const prev = pointers.current.get(e.pointerId)!;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2 && gestureStart.current) {
@@ -198,6 +228,14 @@ export function PlanCanvas({
   }
 
   function onPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
+    if (customPointer.current === e.pointerId) {
+      const img = toImage(e.clientX, e.clientY);
+      onImagePointerUp?.(img.x, img.y);
+      customPointer.current = null;
+      pointers.current.delete(e.pointerId);
+      singleStart.current = null;
+      return;
+    }
     const wasSingle = pointers.current.size === 1 && singleStart.current;
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) gestureStart.current = null;
