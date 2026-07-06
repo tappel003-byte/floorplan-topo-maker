@@ -199,6 +199,13 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
               onOpacity={(v) => update({ pointsOpacity: v })}
             />
             <div className="flex items-center justify-between">
+              <Label className="text-xs">Label background</Label>
+              <Switch
+                checked={resolved.pointLabelBackground === "white"}
+                onCheckedChange={(v) => update({ pointLabelBackground: v ? "white" : "transparent" })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
               <Label className="text-xs">Legend</Label>
               <Switch checked={resolved.showLegend} onCheckedChange={(v) => update({ showLegend: v })} />
             </div>
@@ -420,11 +427,20 @@ export function renderTopo(
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 1.5;
       ctx.stroke();
-      ctx.fillStyle = "#17130e";
+      const text = p.value.toFixed(resolved.decimalPlaces);
       ctx.font = "bold 11px sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(p.value.toFixed(resolved.decimalPlaces), p.x + 8, p.y + 6);
+      const tx = p.x + 8;
+      const ty = p.y + 6;
+      if (resolved.pointLabelBackground === "white") {
+        const tw = ctx.measureText(text).width;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        roundRectPath(ctx, tx - 2, ty - 1, tw + 4, 13, 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#17130e";
+      ctx.fillText(text, tx, ty);
     }
     ctx.globalAlpha = 1;
   }
