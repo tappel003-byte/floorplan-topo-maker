@@ -80,7 +80,7 @@ export const defaultRenderSettings: RenderSettings = {
   interval: 0.2,
   firstContour: null,
   contourStep: 0.2,
-  contourCount: 12,
+  contourCount: null,
   minClamp: null,
   maxClamp: null,
   decimalPlaces: 2,
