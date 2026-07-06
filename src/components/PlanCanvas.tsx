@@ -42,6 +42,7 @@ export function PlanCanvas({
   planWidth,
   planHeight,
   drawOverlay,
+  drawOverlayTop,
   onTap,
   badge,
   className,
