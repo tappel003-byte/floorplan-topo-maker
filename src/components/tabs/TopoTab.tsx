@@ -364,6 +364,69 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
                 onCheckedChange={(v) => update({ pointLabelBackground: v ? "white" : "transparent" })}
               />
             </div>
+            <div className="flex items-center justify-between gap-2 border-t pt-2">
+              <span className="text-[11px] text-muted-foreground leading-tight">
+                Long-press a number on the map to move it.
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={undoLastMove}
+                disabled={!lastMove}
+                className="h-8 px-2 gap-1 shrink-0"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+                Undo
+              </Button>
+            </div>
+            <details className="border-t pt-2">
+              <summary className="text-xs text-muted-foreground cursor-pointer select-none">Label style</summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <NumberControl
+                  label="Font size"
+                  value={resolved.pointLabelFontSize}
+                  min={7}
+                  max={28}
+                  step={1}
+                  onChange={(v) => update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })}
+                />
+                <div>
+                  <Label className="text-xs">Weight</Label>
+                  <select
+                    value={resolved.pointLabelWeight}
+                    onChange={(e) => update({ pointLabelWeight: e.target.value as "normal" | "bold" })}
+                    className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="bold">Bold</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Color</Label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={resolved.pointLabelColor}
+                      onChange={(e) => update({ pointLabelColor: e.target.value })}
+                      className="h-9 w-12 rounded-md border bg-background p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={resolved.pointLabelColor}
+                      onChange={(e) => update({ pointLabelColor: e.target.value })}
+                      className="h-9 flex-1 font-mono text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={resetAllLabelPositions}
+                className="mt-2 w-full h-8"
+              >
+                Reset all label positions
+              </Button>
+            </details>
             <div className="flex items-center justify-between">
               <Label className="text-xs">Legend</Label>
               <Switch checked={resolved.showLegend} onCheckedChange={(v) => update({ showLegend: v })} />
