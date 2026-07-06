@@ -141,7 +141,10 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
           }}
           onImagePointerUp={() => setLegendDrag(null)}
           drawOverlay={(ctx) => {
-            renderTopo(ctx, floor, points, resolved, gridAndContours);
+            renderTopoBase(ctx, floor, resolved, gridAndContours);
+          }}
+          drawOverlayTop={(ctx) => {
+            renderTopoTop(ctx, floor, points, resolved, gridAndContours);
           }}
         />
         {panelOpen && (
