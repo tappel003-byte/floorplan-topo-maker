@@ -47,6 +47,10 @@ export interface SurveyPoint {
   label?: string; // BP1, BP2, etc.
   notes?: string;
   createdAt: number;
+  // Topo presentation: user-nudged label offset from the dot.
+  // undefined = use default offset (+8, +6).
+  labelDx?: number;
+  labelDy?: number;
 }
 
 export interface RenderSettings {
@@ -69,6 +73,9 @@ export interface RenderSettings {
   showPoints: boolean;
   pointsOpacity: number;
   pointLabelBackground: "white" | "transparent";
+  pointLabelFontSize: number;
+  pointLabelColor: string;
+  pointLabelWeight: "normal" | "bold";
   showLegend: boolean;
   legendX: number;
   legendY: number;
@@ -96,6 +103,9 @@ export const defaultRenderSettings: RenderSettings = {
   showPoints: true,
   pointsOpacity: 1,
   pointLabelBackground: "white",
+  pointLabelFontSize: 11,
+  pointLabelColor: "#17130e",
+  pointLabelWeight: "bold",
   showLegend: true,
   legendX: 24,
   legendY: 24,

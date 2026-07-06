@@ -132,6 +132,7 @@ function ProjectWorkspace() {
           <TopoTab
             floor={activeFloor}
             points={points}
+            onPointsChange={setPoints}
             settings={settings}
             onSettingsChange={setSettings}
           />

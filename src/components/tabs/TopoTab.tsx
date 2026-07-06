@@ -1,25 +1,70 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Undo2 } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, clampValue, computeContours, type Grid } from "@/lib/topo";
+import { savePoint } from "@/lib/db";
 
 interface Props {
   floor: Floor;
   points: SurveyPoint[];
+  onPointsChange: (points: SurveyPoint[]) => void;
   settings: RenderSettings;
   onSettingsChange: (s: RenderSettings) => void;
 }
 
-export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
+const DEFAULT_LABEL_DX = 8;
+const DEFAULT_LABEL_DY = 6;
+const LONG_PRESS_MS = 350;
+
+// Offscreen ctx for text width measurement in event handlers
+let measureCtx: CanvasRenderingContext2D | null = null;
+function measureLabel(text: string, fontPx: number, weight: string) {
+  if (!measureCtx) {
+    const c = document.createElement("canvas");
+    measureCtx = c.getContext("2d");
+  }
+  if (!measureCtx) return { w: text.length * fontPx * 0.6, h: fontPx };
+  measureCtx.font = `${weight} ${fontPx}px sans-serif`;
+  return { w: measureCtx.measureText(text).width, h: fontPx };
+}
+
+// Where the label sits (top-left corner) for a given point in image coords.
+function labelAnchor(p: SurveyPoint) {
+  return {
+    x: p.x + (p.labelDx ?? DEFAULT_LABEL_DX),
+    y: p.y + (p.labelDy ?? DEFAULT_LABEL_DY),
+  };
+}
+
+
+export function TopoTab({ floor, points, onPointsChange, settings, onSettingsChange }: Props) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const resolved = resolveSettings(settings);
+
+  // Live label drag (long-press-and-drag on a number)
+  const [labelDrag, setLabelDrag] = useState<{
+    id: string;
+    dx: number;
+    dy: number;
+    startPointerX: number;
+    startPointerY: number;
+    startDx: number;
+    startDy: number;
+    active: boolean; // true after long-press fires
+  } | null>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const [lastMove, setLastMove] = useState<
+    | { id: string; prevDx: number | undefined; prevDy: number | undefined }
+    | null
+  >(null);
 
   const canRender = points.length >= 3 && floor.boundary.length >= 3;
 
@@ -32,6 +77,59 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
   }, [canRender, points, floor.boundary, resolved.firstContour, resolved.contourStep, resolved.contourCount, resolved.minClamp, resolved.maxClamp]);
 
   const update = (patch: Partial<RenderSettings>) => onSettingsChange(resolveSettings({ ...resolved, ...patch }));
+
+  function hitLabel(x: number, y: number): SurveyPoint | null {
+    const dec = resolved.decimalPlaces;
+    const fontPx = resolved.pointLabelFontSize;
+    const weight = resolved.pointLabelWeight;
+    const pad = 4;
+    for (const p of points) {
+      const text = p.value.toFixed(dec);
+      const { w, h } = measureLabel(text, fontPx, weight);
+      const a = labelAnchor(p);
+      if (x >= a.x - pad && x <= a.x + w + pad && y >= a.y - pad && y <= a.y + h + pad) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  function clearLongPress() {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function commitLabelMove(id: string, dx: number, dy: number) {
+    const p = points.find((pt) => pt.id === id);
+    if (!p) return;
+    setLastMove({ id, prevDx: p.labelDx, prevDy: p.labelDy });
+    const updated: SurveyPoint = { ...p, labelDx: dx, labelDy: dy };
+    onPointsChange(points.map((pt) => (pt.id === id ? updated : pt)));
+    savePoint(updated).catch(() => {});
+  }
+
+  function undoLastMove() {
+    if (!lastMove) return;
+    const p = points.find((pt) => pt.id === lastMove.id);
+    if (!p) { setLastMove(null); return; }
+    const updated: SurveyPoint = { ...p, labelDx: lastMove.prevDx, labelDy: lastMove.prevDy };
+    onPointsChange(points.map((pt) => (pt.id === lastMove.id ? updated : pt)));
+    savePoint(updated).catch(() => {});
+    setLastMove(null);
+  }
+
+  function resetAllLabelPositions() {
+    const updates = points
+      .filter((p) => p.labelDx !== undefined || p.labelDy !== undefined)
+      .map((p) => ({ ...p, labelDx: undefined, labelDy: undefined }));
+    if (!updates.length) return;
+    const map = new Map(updates.map((u) => [u.id, u]));
+    onPointsChange(points.map((p) => map.get(p.id) ?? p));
+    updates.forEach((u) => savePoint(u).catch(() => {}));
+    setLastMove(null);
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -128,23 +226,81 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
           planOnTop
 
           onImagePointerDown={(x, y) => {
-            if (!resolved.showLegend || !gridAndContours?.grid || resolved.mode === "points-only") return false;
-            const box = legendBox(resolved);
-            if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
-              setLegendDrag({ dx: x - box.x, dy: y - box.y });
-              return true;
+            // Legend drag first
+            if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
+              const box = legendBox(resolved);
+              if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+                setLegendDrag({ dx: x - box.x, dy: y - box.y });
+                return true;
+              }
+            }
+            // Long-press on a number label to pick it up
+            if (resolved.showPoints) {
+              const hit = hitLabel(x, y);
+              if (hit) {
+                const startDx = hit.labelDx ?? DEFAULT_LABEL_DX;
+                const startDy = hit.labelDy ?? DEFAULT_LABEL_DY;
+                setLabelDrag({
+                  id: hit.id,
+                  dx: startDx,
+                  dy: startDy,
+                  startPointerX: x,
+                  startPointerY: y,
+                  startDx,
+                  startDy,
+                  active: false,
+                });
+                clearLongPress();
+                longPressTimer.current = window.setTimeout(() => {
+                  setLabelDrag((d) => (d ? { ...d, active: true } : d));
+                }, LONG_PRESS_MS);
+                return true;
+              }
             }
             return false;
           }}
           onImagePointerMove={(x, y) => {
-            if (legendDrag) update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
+            if (legendDrag) {
+              update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
+              return;
+            }
+            if (labelDrag) {
+              // If user moves before long-press fires, cancel the pickup
+              if (!labelDrag.active) {
+                const moved = Math.hypot(x - labelDrag.startPointerX, y - labelDrag.startPointerY);
+                if (moved > 6) {
+                  clearLongPress();
+                  setLabelDrag(null);
+                }
+                return;
+              }
+              setLabelDrag({
+                ...labelDrag,
+                dx: labelDrag.startDx + (x - labelDrag.startPointerX),
+                dy: labelDrag.startDy + (y - labelDrag.startPointerY),
+              });
+            }
           }}
-          onImagePointerUp={() => setLegendDrag(null)}
+          onImagePointerUp={() => {
+            setLegendDrag(null);
+            clearLongPress();
+            if (labelDrag && labelDrag.active) {
+              if (labelDrag.dx !== labelDrag.startDx || labelDrag.dy !== labelDrag.startDy) {
+                commitLabelMove(labelDrag.id, labelDrag.dx, labelDrag.dy);
+              }
+            }
+            setLabelDrag(null);
+          }}
           drawOverlay={(ctx) => {
             renderTopoBase(ctx, floor, resolved, gridAndContours);
           }}
           drawOverlayTop={(ctx) => {
-            renderTopoTop(ctx, floor, points, resolved, gridAndContours);
+            renderTopoTop(ctx, floor, points, resolved, gridAndContours, {
+              liveDrag: labelDrag && labelDrag.active
+                ? { id: labelDrag.id, dx: labelDrag.dx, dy: labelDrag.dy }
+                : null,
+              highlightId: labelDrag?.active ? labelDrag.id : null,
+            });
           }}
         />
         {panelOpen && (
@@ -208,6 +364,69 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
                 onCheckedChange={(v) => update({ pointLabelBackground: v ? "white" : "transparent" })}
               />
             </div>
+            <div className="flex items-center justify-between gap-2 border-t pt-2">
+              <span className="text-[11px] text-muted-foreground leading-tight">
+                Long-press a number on the map to move it.
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={undoLastMove}
+                disabled={!lastMove}
+                className="h-8 px-2 gap-1 shrink-0"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+                Undo
+              </Button>
+            </div>
+            <details className="border-t pt-2">
+              <summary className="text-xs text-muted-foreground cursor-pointer select-none">Label style</summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <NumberControl
+                  label="Font size"
+                  value={resolved.pointLabelFontSize}
+                  min={7}
+                  max={28}
+                  step={1}
+                  onChange={(v) => update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })}
+                />
+                <div>
+                  <Label className="text-xs">Weight</Label>
+                  <select
+                    value={resolved.pointLabelWeight}
+                    onChange={(e) => update({ pointLabelWeight: e.target.value as "normal" | "bold" })}
+                    className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="bold">Bold</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Color</Label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={resolved.pointLabelColor}
+                      onChange={(e) => update({ pointLabelColor: e.target.value })}
+                      className="h-9 w-12 rounded-md border bg-background p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={resolved.pointLabelColor}
+                      onChange={(e) => update({ pointLabelColor: e.target.value })}
+                      className="h-9 flex-1 font-mono text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={resetAllLabelPositions}
+                className="mt-2 w-full h-8"
+              >
+                Reset all label positions
+              </Button>
+            </details>
             <div className="flex items-center justify-between">
               <Label className="text-xs">Legend</Label>
               <Switch checked={resolved.showLegend} onCheckedChange={(v) => update({ showLegend: v })} />
@@ -413,14 +632,23 @@ export function renderTopoTop(
     grid: Grid;
     contours: ReturnType<typeof computeContours>;
   } | null,
+  overlay?: {
+    liveDrag?: { id: string; dx: number; dy: number } | null;
+    highlightId?: string | null;
+  },
 ) {
   const resolved = resolveSettings(settings);
   const g = gridAndContours?.grid ?? null;
+  const live = overlay?.liveDrag ?? null;
+  const highlightId = overlay?.highlightId ?? null;
+  const fontPx = resolved.pointLabelFontSize;
+  const weight = resolved.pointLabelWeight;
+  const color = resolved.pointLabelColor;
 
-  // Points
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
     for (const p of points) {
+      // dot
       ctx.beginPath();
       ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
       ctx.fillStyle = p.isBasePoint ? "#16834a" : "#17130e";
@@ -428,20 +656,36 @@ export function renderTopoTop(
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      // label
       const text = p.value.toFixed(resolved.decimalPlaces);
-      ctx.font = "bold 11px sans-serif";
+      ctx.font = `${weight} ${fontPx}px sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      const tx = p.x + 8;
-      const ty = p.y + 6;
-      if (resolved.pointLabelBackground === "white") {
-        const tw = ctx.measureText(text).width;
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        roundRectPath(ctx, tx - 2, ty - 1, tw + 4, 13, 2);
+      const isLive = live && live.id === p.id;
+      const dx = isLive ? live!.dx : p.labelDx ?? DEFAULT_LABEL_DX;
+      const dy = isLive ? live!.dy : p.labelDy ?? DEFAULT_LABEL_DY;
+      const tx = p.x + dx;
+      const ty = p.y + dy;
+      const tw = ctx.measureText(text).width;
+      const inverted = highlightId === p.id;
+
+      if (inverted) {
+        // Inverted highlight: dark pill, light text
+        ctx.fillStyle = color;
+        roundRectPath(ctx, tx - 3, ty - 2, tw + 6, fontPx + 4, 3);
         ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(text, tx, ty);
+      } else {
+        if (resolved.pointLabelBackground === "white") {
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          roundRectPath(ctx, tx - 2, ty - 1, tw + 4, fontPx + 2, 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = color;
+        ctx.fillText(text, tx, ty);
       }
-      ctx.fillStyle = "#17130e";
-      ctx.fillText(text, tx, ty);
     }
     ctx.globalAlpha = 1;
   }
