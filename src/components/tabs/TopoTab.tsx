@@ -385,13 +385,11 @@ export function renderTopo(
     resolved.mode !== "contour-cells"
   ) {
     const g = gridAndContours.grid;
-    const fontPx = Math.max(7, 6 + resolved.lineThickness);
+    const fontPx = Math.max(9, 8 + resolved.lineThickness);
     ctx.font = `bold ${fontPx}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    gridAndContours.contours.forEach((c, ci) => {
-      // Label every other contour to reduce clutter
-      if (ci % 2 !== 0) return;
+    gridAndContours.contours.forEach((c) => {
       for (const poly of c.coordinates) {
         for (const ring of poly) {
           if (ring.length < 4) continue;
