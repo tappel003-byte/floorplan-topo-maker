@@ -12,6 +12,8 @@ interface Props {
   planHeight?: number;
   /** Draw on top of the plan, in image coordinates (transform applied) */
   drawOverlay?: (ctx: CanvasRenderingContext2D) => void;
+  /** Draw AFTER the plan raster (when planOnTop). Same coord space. Use for elements that must sit over walls. */
+  drawOverlayTop?: (ctx: CanvasRenderingContext2D) => void;
   /** Tap in image coordinates (single-tap, after gestures settle) */
   onTap?: (x: number, y: number) => void;
   /** Optional badge above canvas */
@@ -40,6 +42,7 @@ export function PlanCanvas({
   planWidth,
   planHeight,
   drawOverlay,
+  drawOverlayTop,
   onTap,
   badge,
   className,
@@ -150,8 +153,11 @@ export function PlanCanvas({
       ctx.globalCompositeOperation = "source-over";
     }
 
+    // Overlay that must sit above walls (points, labels, pins, legend)
+    if (drawOverlayTop) drawOverlayTop(ctx);
+
     ctx.restore();
-  }, [transform, imgLoaded, imgW, imgH, drawOverlay, planOpacity, hidePlan, planOnTop]);
+  }, [transform, imgLoaded, imgW, imgH, drawOverlay, drawOverlayTop, planOpacity, hidePlan, planOnTop]);
 
   useEffect(() => {
     render();
