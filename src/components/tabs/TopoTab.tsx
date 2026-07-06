@@ -310,12 +310,25 @@ export function renderTopo(
     contours: ReturnType<typeof computeContours>;
   } | null,
 ) {
+  renderTopoBase(ctx, floor, settings, gridAndContours);
+  renderTopoTop(ctx, floor, points, settings, gridAndContours);
+}
+
+// Base pass: contour fills / lines / boundary. Meant to sit UNDER the wall plan.
+export function renderTopoBase(
+  ctx: CanvasRenderingContext2D,
+  floor: Floor,
+  settings: RenderSettings,
+  gridAndContours: {
+    grid: Grid;
+    contours: ReturnType<typeof computeContours>;
+  } | null,
+) {
   const resolved = resolveSettings(settings);
   const g = gridAndContours?.grid ?? null;
   const paletteMin = resolved.minClamp ?? g?.minValue ?? 0;
   const paletteMax = resolved.maxClamp ?? g?.maxValue ?? 1;
 
-  // clip to boundary polygon
   if (floor.boundary.length >= 3) {
     ctx.save();
     ctx.beginPath();
@@ -324,17 +337,17 @@ export function renderTopo(
     ctx.clip();
 
     if (g && resolved.showContours && resolved.mode === "contour-cells") {
-        for (let r = 0; r < g.height; r++) {
-          for (let c = 0; c < g.width; c++) {
-            const idx = r * g.width + c;
-            if (!g.mask[idx]) continue;
-            const t = clampValue(g.values[idx], paletteMin, paletteMax);
-            ctx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
-            ctx.globalAlpha = resolved.contourOpacity;
-            ctx.fillRect(g.x0 + c * g.step, g.y0 + r * g.step, g.step + 0.5, g.step + 0.5);
-          }
+      for (let r = 0; r < g.height; r++) {
+        for (let c = 0; c < g.width; c++) {
+          const idx = r * g.width + c;
+          if (!g.mask[idx]) continue;
+          const t = clampValue(g.values[idx], paletteMin, paletteMax);
+          ctx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
+          ctx.globalAlpha = resolved.contourOpacity;
+          ctx.fillRect(g.x0 + c * g.step, g.y0 + r * g.step, g.step + 0.5, g.step + 0.5);
         }
-        ctx.globalAlpha = 1;
+      }
+      ctx.globalAlpha = 1;
     }
 
     // Contour polygons
@@ -379,137 +392,6 @@ export function renderTopo(
     ctx.restore();
   }
 
-  // Inline contour labels: placed by geometry with collision avoidance
-  if (
-    resolved.showLabels &&
-    gridAndContours?.contours &&
-    gridAndContours.grid &&
-    resolved.mode !== "points-only" &&
-    resolved.mode !== "contour-cells"
-  ) {
-    const g = gridAndContours.grid;
-    const fontPx = Math.max(9, 8 + resolved.lineThickness);
-    ctx.font = `bold ${fontPx}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    // Track placed label bounding boxes (axis-aligned, padded)
-    const placed: Array<{ x: number; y: number; w: number; h: number }> = [];
-    const overlaps = (a: typeof placed[0], b: typeof placed[0]) =>
-      Math.abs(a.x - b.x) * 2 < a.w + b.w && Math.abs(a.y - b.y) * 2 < a.h + b.h;
-
-    gridAndContours.contours.forEach((c) => {
-      for (const poly of c.coordinates) {
-        for (const ring of poly) {
-          if (ring.length < 6) continue;
-
-          const label = c.value.toFixed(resolved.decimalPlaces);
-          const tw = ctx.measureText(label).width;
-          const pad = 4;
-          const boxW = tw + pad * 2;
-          const boxH = fontPx + pad;
-
-          // Ring length in canvas px
-          let perimeter = 0;
-          for (let i = 1; i < ring.length; i++) {
-            const dx = (ring[i][0] - ring[i - 1][0]) * g.step;
-            const dy = (ring[i][1] - ring[i - 1][1]) * g.step;
-            perimeter += Math.hypot(dx, dy);
-          }
-          // Skip tiny rings entirely
-          if (perimeter < tw * 2.5) continue;
-
-          // Long rings get 2 labels, otherwise 1
-          const desired = perimeter > tw * 20 ? 2 : 1;
-
-          // Build candidate points: evenly spaced along the ring, offset per contour
-          // so neighbouring contours don't line up their labels.
-          const candidateCount = 12;
-          const phase = (c.value * 1000) % candidateCount;
-          type Cand = {
-            cx: number; cy: number; angle: number; straightness: number;
-          };
-          const cands: Cand[] = [];
-          for (let k = 0; k < candidateCount; k++) {
-            const t = ((k + phase / candidateCount) / candidateCount) * (ring.length - 1);
-            const i = Math.floor(t);
-            const a = ring[i];
-            const bIdx = Math.min(ring.length - 1, i + 1);
-            const b = ring[bIdx];
-            // Need a segment long enough to hold the text
-            let jFwd = bIdx;
-            let acc = 0;
-            while (jFwd < ring.length - 1 && acc < tw + 2) {
-              const dx = (ring[jFwd + 1][0] - ring[jFwd][0]) * g.step;
-              const dy = (ring[jFwd + 1][1] - ring[jFwd][1]) * g.step;
-              acc += Math.hypot(dx, dy);
-              jFwd++;
-            }
-            if (acc < tw + 2) continue;
-            const far = ring[jFwd];
-            const ax = g.x0 + a[0] * g.step;
-            const ay = g.y0 + a[1] * g.step;
-            const fx = g.x0 + far[0] * g.step;
-            const fy = g.y0 + far[1] * g.step;
-            // Straightness: chord vs. path length ratio
-            let pathLen = 0;
-            for (let m = i; m < jFwd; m++) {
-              const dx = (ring[m + 1][0] - ring[m][0]) * g.step;
-              const dy = (ring[m + 1][1] - ring[m][1]) * g.step;
-              pathLen += Math.hypot(dx, dy);
-            }
-            const chord = Math.hypot(fx - ax, fy - ay);
-            const straightness = pathLen > 0 ? chord / pathLen : 0;
-            if (straightness < 0.9) continue;
-
-            let angle = Math.atan2(fy - ay, fx - ax);
-            if (angle > Math.PI / 2) angle -= Math.PI;
-            if (angle < -Math.PI / 2) angle += Math.PI;
-
-            cands.push({
-              cx: (ax + fx) / 2,
-              cy: (ay + fy) / 2,
-              angle,
-              straightness,
-            });
-          }
-
-          // Prefer straighter segments
-          cands.sort((a, b) => b.straightness - a.straightness);
-
-          let placedForRing = 0;
-          const usedIdx: number[] = [];
-          for (let ci = 0; ci < cands.length && placedForRing < desired; ci++) {
-            const cand = cands[ci];
-            // Enforce spacing between the two labels on the same ring
-            const tooClose = usedIdx.some((ui) => {
-              const other = cands[ui];
-              return Math.hypot(cand.cx - other.cx, cand.cy - other.cy) < perimeter / 3;
-            });
-            if (tooClose) continue;
-
-            const box = { x: cand.cx, y: cand.cy, w: boxW, h: boxH };
-            if (placed.some((p) => overlaps(p, box))) continue;
-
-            ctx.save();
-            ctx.translate(cand.cx, cand.cy);
-            ctx.rotate(cand.angle);
-            ctx.fillStyle = "#17130e";
-            ctx.fillText(label, 0, 0);
-            ctx.restore();
-
-            placed.push(box);
-            usedIdx.push(ci);
-            placedForRing++;
-          }
-        }
-      }
-    });
-  }
-
-
-
-
   // Boundary line
   if (floor.boundary.length >= 3) {
     ctx.beginPath();
@@ -519,6 +401,21 @@ export function renderTopo(
     ctx.lineWidth = 2;
     ctx.stroke();
   }
+}
+
+// Top pass: points, point labels, high/low pins, legend. Meant to sit OVER the wall plan.
+export function renderTopoTop(
+  ctx: CanvasRenderingContext2D,
+  floor: Floor,
+  points: SurveyPoint[],
+  settings: RenderSettings,
+  gridAndContours: {
+    grid: Grid;
+    contours: ReturnType<typeof computeContours>;
+  } | null,
+) {
+  const resolved = resolveSettings(settings);
+  const g = gridAndContours?.grid ?? null;
 
   // Points
   if (resolved.showPoints) {
