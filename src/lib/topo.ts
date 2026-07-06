@@ -124,7 +124,7 @@ export function buildGrid(
   }
 
   return {
-    values,
+    values: smoothGrid(values, mask, cols, rows, 3),
     mask,
     width: cols,
     height: rows,
@@ -134,6 +134,42 @@ export function buildGrid(
     y0: minY,
     step,
   };
+}
+
+// Mask-aware box blur repeated N times ≈ Gaussian. Skips NaN cells outside boundary.
+function smoothGrid(
+  values: Float64Array,
+  mask: Uint8Array,
+  w: number,
+  h: number,
+  passes: number,
+): Float64Array {
+  let src: Float64Array = values;
+  let dst: Float64Array = new Float64Array(values.length);
+  for (let p = 0; p < passes; p++) {
+    for (let r = 0; r < h; r++) {
+      for (let c = 0; c < w; c++) {
+        const i = r * w + c;
+        if (!mask[i]) { dst[i] = NaN; continue; }
+        let sum = 0, n = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const rr = r + dr, cc = c + dc;
+            if (rr < 0 || rr >= h || cc < 0 || cc >= w) continue;
+            const j = rr * w + cc;
+            if (!mask[j]) continue;
+            sum += src[j];
+            n++;
+          }
+        }
+        dst[i] = n ? sum / n : src[i];
+      }
+    }
+    const tmp = src;
+    src = dst;
+    dst = tmp;
+  }
+  return src;
 }
 
 export function computeContours(grid: Grid, interval: number) {
