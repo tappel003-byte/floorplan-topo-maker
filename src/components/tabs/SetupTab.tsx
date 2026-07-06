@@ -75,15 +75,6 @@ export function SetupTab({
             }}
           />
         )}
-        {tab === "scale" && (
-          <ScalePanel
-            floor={activeFloor}
-            onChange={async (f) => {
-              await saveFloor(f);
-              onFloorsChange(await listFloors(project.id));
-            }}
-          />
-        )}
       </div>
     </div>
   );
