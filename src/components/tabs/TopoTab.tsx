@@ -208,6 +208,16 @@ export function TopoTab({ floor, points, settings, onSettingsChange }: Props) {
               <Label className="text-xs">High / low pins</Label>
               <Switch checked={resolved.showHighLow} onCheckedChange={(v) => update({ showHighLow: v })} />
             </div>
+            <details className="border-t pt-2">
+              <summary className="text-xs text-muted-foreground cursor-pointer select-none">Advanced</summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <NumberControl label="Color min" value={resolved.minClamp} placeholder="auto" onChange={(v) => update({ minClamp: v })} />
+                <NumberControl label="Color max" value={resolved.maxClamp} placeholder="auto" onChange={(v) => update({ maxClamp: v })} />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                Force the color scale to a fixed range. Leave auto for normal use.
+              </p>
+            </details>
           </div>
         )}
       </div>
