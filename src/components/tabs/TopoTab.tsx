@@ -350,13 +350,13 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
               <Label className="text-xs">Reverse palette</Label>
               <Switch checked={resolved.reversePalette} onCheckedChange={(v) => update({ reversePalette: v })} />
             </div>
-            <LayerRow
-              label="Points"
-              on={resolved.showPoints}
-              onToggle={(v) => update({ showPoints: v })}
-              opacity={resolved.pointsOpacity}
-              onOpacity={(v) => update({ pointsOpacity: v })}
-            />
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Points</Label>
+              <Switch
+                checked={resolved.showPoints}
+                onCheckedChange={(v) => update({ showPoints: v, pointsOpacity: 1 })}
+              />
+            </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs">Label background</Label>
               <Switch
