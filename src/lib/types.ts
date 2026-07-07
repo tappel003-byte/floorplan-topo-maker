@@ -34,6 +34,12 @@ export interface Floor {
   };
   createdAt: number;
   updatedAt: number;
+  // Topo presentation: user-nudged offsets for the High/Low pins.
+  // undefined = default position centered above the point.
+  highPinDx?: number;
+  highPinDy?: number;
+  lowPinDx?: number;
+  lowPinDy?: number;
 }
 
 export interface SurveyPoint {
