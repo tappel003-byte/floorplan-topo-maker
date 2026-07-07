@@ -858,8 +858,12 @@ export function renderTopoTop(
         if (p.value > hi.value) hi = p;
         if (p.value < lo.value) lo = p;
       }
-      drawPin(ctx, hi.x, hi.y, `H ${hi.value.toFixed(resolved.decimalPlaces)}`, "#b51d16");
-      drawPin(ctx, lo.x, lo.y, `L ${lo.value.toFixed(resolved.decimalPlaces)}`, "#1f5f9f");
+      const hDx = livePinHigh ? livePinHigh.dx : floor.highPinDx ?? 0;
+      const hDy = livePinHigh ? livePinHigh.dy : floor.highPinDy ?? 0;
+      const lDx = livePinLow ? livePinLow.dx : floor.lowPinDx ?? 0;
+      const lDy = livePinLow ? livePinLow.dy : floor.lowPinDy ?? 0;
+      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", highlightPin === "pin-high");
+      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", highlightPin === "pin-low");
     }
   }
 }
@@ -870,7 +874,23 @@ function drawPin(
   y: number,
   letter: string,
   color: string,
+  highlighted = false,
 ) {
+  ctx.font = "bold 11px sans-serif";
+  const w = Math.max(PIN_MIN_W, ctx.measureText(letter).width + 14);
+  ctx.beginPath();
+  roundRectPath(ctx, x - w / 2, y + PIN_TOP_OFFSET, w, PIN_H, 10);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = highlighted ? "#17130e" : "#fff";
+  ctx.lineWidth = highlighted ? 2.5 : 2;
+  ctx.stroke();
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(letter, x, y + PIN_TOP_OFFSET + PIN_H / 2);
+}
+
   const w = Math.max(24, ctx.measureText(letter).width + 14);
   ctx.beginPath();
   roundRectPath(ctx, x - w / 2, y - 28, w, 20, 10);
