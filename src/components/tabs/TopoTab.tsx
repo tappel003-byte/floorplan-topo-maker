@@ -9,12 +9,13 @@ import { Undo2 } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, clampValue, computeContours, contourThresholds, type Grid } from "@/lib/topo";
-import { savePoint } from "@/lib/db";
+import { savePoint, saveFloor } from "@/lib/db";
 
 interface Props {
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
+  onFloorChange: (floor: Floor) => void;
   settings: RenderSettings;
   onSettingsChange: (s: RenderSettings) => void;
 }
@@ -22,6 +23,12 @@ interface Props {
 const DEFAULT_LABEL_DX = 8;
 const DEFAULT_LABEL_DY = 6;
 const LONG_PRESS_MS = 350;
+
+// Pin geometry — matches drawPin(). Pin box is centered horizontally on the
+// point, sitting above it. These constants keep hit-testing and rendering aligned.
+const PIN_H = 20;
+const PIN_TOP_OFFSET = -28; // top of pin relative to point y
+const PIN_MIN_W = 40; // widened for "High"/"Low" text
 
 // Offscreen ctx for text width measurement in event handlers
 let measureCtx: CanvasRenderingContext2D | null = null;
@@ -35,6 +42,11 @@ function measureLabel(text: string, fontPx: number, weight: string) {
   return { w: measureCtx.measureText(text).width, h: fontPx };
 }
 
+function pinWidth(text: string) {
+  const { w } = measureLabel(text, 11, "bold");
+  return Math.max(PIN_MIN_W, w + 14);
+}
+
 // Where the label sits (top-left corner) for a given point in image coords.
 function labelAnchor(p: SurveyPoint) {
   return {
@@ -42,6 +54,7 @@ function labelAnchor(p: SurveyPoint) {
     y: p.y + (p.labelDy ?? DEFAULT_LABEL_DY),
   };
 }
+
 
 
 export function TopoTab({ floor, points, onPointsChange, settings, onSettingsChange }: Props) {
