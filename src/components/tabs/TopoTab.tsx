@@ -462,7 +462,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             </div>
             <div className="flex items-center justify-between gap-2 border-t pt-2">
               <span className="text-[11px] text-muted-foreground leading-tight">
-                Long-press a number on the map to move it.
+                Long-press a number or H/L pin on the map to move it.
               </span>
               <Button
                 size="sm"
