@@ -891,20 +891,7 @@ function drawPin(
   ctx.fillText(letter, x, y + PIN_TOP_OFFSET + PIN_H / 2);
 }
 
-  const w = Math.max(24, ctx.measureText(letter).width + 14);
-  ctx.beginPath();
-  roundRectPath(ctx, x - w / 2, y - 28, w, 20, 10);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 11px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(letter, x, y - 18);
-}
+
 
 export function resolveSettings(settings: RenderSettings): RenderSettings {
   const contourStep = settings.contourStep ?? settings.interval ?? defaultRenderSettings.contourStep;
