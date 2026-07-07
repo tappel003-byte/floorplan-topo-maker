@@ -313,28 +313,33 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                 return true;
               }
             }
-            // Long-press on a number label to pick it up
-            if (resolved.showPoints) {
-              const hit = hitLabel(x, y);
-              if (hit) {
-                const startDx = hit.labelDx ?? DEFAULT_LABEL_DX;
-                const startDy = hit.labelDy ?? DEFAULT_LABEL_DY;
-                setLabelDrag({
-                  id: hit.id,
-                  dx: startDx,
-                  dy: startDy,
-                  startPointerX: x,
-                  startPointerY: y,
-                  startDx,
-                  startDy,
-                  active: false,
-                });
-                clearLongPress();
-                longPressTimer.current = window.setTimeout(() => {
-                  setLabelDrag((d) => (d ? { ...d, active: true } : d));
-                }, LONG_PRESS_MS);
-                return true;
-              }
+            // Long-press on a label or a H/L pin to pick it up
+            const hit = hitDraggable(x, y);
+            if (hit) {
+              const startDx =
+                hit.kind === "label"
+                  ? hit.point.labelDx ?? DEFAULT_LABEL_DX
+                  : hit.dx;
+              const startDy =
+                hit.kind === "label"
+                  ? hit.point.labelDy ?? DEFAULT_LABEL_DY
+                  : hit.dy;
+              setDrag({
+                kind: hit.kind,
+                id: hit.kind === "label" ? hit.point.id : floor.id,
+                dx: startDx,
+                dy: startDy,
+                startPointerX: x,
+                startPointerY: y,
+                startDx,
+                startDy,
+                active: false,
+              });
+              clearLongPress();
+              longPressTimer.current = window.setTimeout(() => {
+                setDrag((d) => (d ? { ...d, active: true } : d));
+              }, LONG_PRESS_MS);
+              return true;
             }
             return false;
           }}
@@ -343,45 +348,57 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
               return;
             }
-            if (labelDrag) {
-              // If user moves before long-press fires, cancel the pickup
-              if (!labelDrag.active) {
-                const moved = Math.hypot(x - labelDrag.startPointerX, y - labelDrag.startPointerY);
+            if (drag) {
+              if (!drag.active) {
+                const moved = Math.hypot(x - drag.startPointerX, y - drag.startPointerY);
                 if (moved > 6) {
                   clearLongPress();
-                  setLabelDrag(null);
+                  setDrag(null);
                 }
                 return;
               }
-              setLabelDrag({
-                ...labelDrag,
-                dx: labelDrag.startDx + (x - labelDrag.startPointerX),
-                dy: labelDrag.startDy + (y - labelDrag.startPointerY),
+              setDrag({
+                ...drag,
+                dx: drag.startDx + (x - drag.startPointerX),
+                dy: drag.startDy + (y - drag.startPointerY),
               });
             }
           }}
           onImagePointerUp={() => {
             setLegendDrag(null);
             clearLongPress();
-            if (labelDrag && labelDrag.active) {
-              if (labelDrag.dx !== labelDrag.startDx || labelDrag.dy !== labelDrag.startDy) {
-                commitLabelMove(labelDrag.id, labelDrag.dx, labelDrag.dy);
+            if (drag && drag.active) {
+              const moved = drag.dx !== drag.startDx || drag.dy !== drag.startDy;
+              if (moved) {
+                if (drag.kind === "label") commitLabelMove(drag.id, drag.dx, drag.dy);
+                else commitPinMove(drag.kind, drag.dx, drag.dy);
               }
             }
-            setLabelDrag(null);
+            setDrag(null);
           }}
           drawOverlay={(ctx) => {
             renderTopoBase(ctx, floor, resolved, gridAndContours);
           }}
           drawOverlayTop={(ctx) => {
+            const activeLabel = drag && drag.active && drag.kind === "label"
+              ? { id: drag.id, dx: drag.dx, dy: drag.dy }
+              : null;
+            const activePinHigh = drag && drag.active && drag.kind === "pin-high"
+              ? { dx: drag.dx, dy: drag.dy }
+              : null;
+            const activePinLow = drag && drag.active && drag.kind === "pin-low"
+              ? { dx: drag.dx, dy: drag.dy }
+              : null;
             renderTopoTop(ctx, floor, points, resolved, gridAndContours, {
-              liveDrag: labelDrag && labelDrag.active
-                ? { id: labelDrag.id, dx: labelDrag.dx, dy: labelDrag.dy }
-                : null,
-              highlightId: labelDrag?.active ? labelDrag.id : null,
+              liveDrag: activeLabel,
+              highlightId: activeLabel?.id ?? null,
+              livePinHigh: activePinHigh,
+              livePinLow: activePinLow,
+              highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
             });
           }}
         />
+
         {panelOpen && (
           <div className="absolute top-2 right-14 rounded-xl border bg-card shadow-2xl p-3 w-72 max-h-[calc(100%-1rem)] overflow-auto space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-2">
