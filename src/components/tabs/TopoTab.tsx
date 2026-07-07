@@ -774,15 +774,22 @@ export function renderTopoTop(
   overlay?: {
     liveDrag?: { id: string; dx: number; dy: number } | null;
     highlightId?: string | null;
+    livePinHigh?: { dx: number; dy: number } | null;
+    livePinLow?: { dx: number; dy: number } | null;
+    highlightPin?: "pin-high" | "pin-low" | null;
   },
 ) {
   const resolved = resolveSettings(settings);
   const g = gridAndContours?.grid ?? null;
   const live = overlay?.liveDrag ?? null;
   const highlightId = overlay?.highlightId ?? null;
+  const livePinHigh = overlay?.livePinHigh ?? null;
+  const livePinLow = overlay?.livePinLow ?? null;
+  const highlightPin = overlay?.highlightPin ?? null;
   const fontPx = resolved.pointLabelFontSize;
   const weight = resolved.pointLabelWeight;
   const color = resolved.pointLabelColor;
+
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
