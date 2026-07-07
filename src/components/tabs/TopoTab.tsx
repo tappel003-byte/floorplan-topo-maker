@@ -57,14 +57,16 @@ function labelAnchor(p: SurveyPoint) {
 
 
 
-export function TopoTab({ floor, points, onPointsChange, settings, onSettingsChange }: Props) {
+export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange }: Props) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const resolved = resolveSettings(settings);
 
-  // Live label drag (long-press-and-drag on a number)
-  const [labelDrag, setLabelDrag] = useState<{
-    id: string;
+  // Live drag (long-press-and-drag). One kind at a time: a point label or a H/L pin.
+  type DragKind = "label" | "pin-high" | "pin-low";
+  const [drag, setDrag] = useState<{
+    kind: DragKind;
+    id: string; // point id for "label", floor id for pins
     dx: number;
     dy: number;
     startPointerX: number;
@@ -74,10 +76,10 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
     active: boolean; // true after long-press fires
   } | null>(null);
   const longPressTimer = useRef<number | null>(null);
-  const [lastMove, setLastMove] = useState<
-    | { id: string; prevDx: number | undefined; prevDy: number | undefined }
-    | null
-  >(null);
+  type LastMove =
+    | { kind: "label"; id: string; prevDx: number | undefined; prevDy: number | undefined }
+    | { kind: "pin-high" | "pin-low"; prevDx: number | undefined; prevDy: number | undefined };
+  const [lastMove, setLastMove] = useState<LastMove | null>(null);
 
   const canRender = points.length >= 3 && floor.boundary.length >= 3;
 
@@ -91,17 +93,50 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
 
   const update = (patch: Partial<RenderSettings>) => onSettingsChange(resolveSettings({ ...resolved, ...patch }));
 
-  function hitLabel(x: number, y: number): SurveyPoint | null {
-    const dec = resolved.decimalPlaces;
-    const fontPx = resolved.pointLabelFontSize;
-    const weight = resolved.pointLabelWeight;
-    const pad = 4;
+  // Compute current High / Low points (matches renderTopoTop logic).
+  const hiLo = useMemo(() => {
+    if (!points.length) return null;
+    let hi = points[0], lo = points[0];
     for (const p of points) {
-      const text = p.value.toFixed(dec);
-      const { w, h } = measureLabel(text, fontPx, weight);
-      const a = labelAnchor(p);
-      if (x >= a.x - pad && x <= a.x + w + pad && y >= a.y - pad && y <= a.y + h + pad) {
-        return p;
+      if (p.value > hi.value) hi = p;
+      if (p.value < lo.value) lo = p;
+    }
+    return { hi, lo };
+  }, [points]);
+
+  type Hit =
+    | { kind: "label"; point: SurveyPoint }
+    | { kind: "pin-high" | "pin-low"; point: SurveyPoint; dx: number; dy: number };
+
+  function hitDraggable(x: number, y: number): Hit | null {
+    // Pins first — they sit above the point dot and are visually on top.
+    if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
+      const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
+        const w = pinWidth(kind === "pin-high" ? "High" : "Low");
+        const cx = pt.x + dx;
+        const top = pt.y + PIN_TOP_OFFSET + dy;
+        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + PIN_H;
+      };
+      const hDx = floor.highPinDx ?? 0;
+      const hDy = floor.highPinDy ?? 0;
+      const lDx = floor.lowPinDx ?? 0;
+      const lDy = floor.lowPinDy ?? 0;
+      if (check("pin-high", hiLo.hi, hDx, hDy)) return { kind: "pin-high", point: hiLo.hi, dx: hDx, dy: hDy };
+      if (check("pin-low", hiLo.lo, lDx, lDy)) return { kind: "pin-low", point: hiLo.lo, dx: lDx, dy: lDy };
+    }
+    // Point-number labels
+    if (resolved.showPoints) {
+      const dec = resolved.decimalPlaces;
+      const fontPx = resolved.pointLabelFontSize;
+      const weight = resolved.pointLabelWeight;
+      const pad = 4;
+      for (const p of points) {
+        const text = p.value.toFixed(dec);
+        const { w, h } = measureLabel(text, fontPx, weight);
+        const a = labelAnchor(p);
+        if (x >= a.x - pad && x <= a.x + w + pad && y >= a.y - pad && y <= a.y + h + pad) {
+          return { kind: "label", point: p };
+        }
       }
     }
     return null;
@@ -117,19 +152,40 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
   function commitLabelMove(id: string, dx: number, dy: number) {
     const p = points.find((pt) => pt.id === id);
     if (!p) return;
-    setLastMove({ id, prevDx: p.labelDx, prevDy: p.labelDy });
+    setLastMove({ kind: "label", id, prevDx: p.labelDx, prevDy: p.labelDy });
     const updated: SurveyPoint = { ...p, labelDx: dx, labelDy: dy };
     onPointsChange(points.map((pt) => (pt.id === id ? updated : pt)));
     savePoint(updated).catch(() => {});
   }
 
+  function commitPinMove(kind: "pin-high" | "pin-low", dx: number, dy: number) {
+    const prevDx = kind === "pin-high" ? floor.highPinDx : floor.lowPinDx;
+    const prevDy = kind === "pin-high" ? floor.highPinDy : floor.lowPinDy;
+    setLastMove({ kind, prevDx, prevDy });
+    const updated: Floor =
+      kind === "pin-high"
+        ? { ...floor, highPinDx: dx, highPinDy: dy }
+        : { ...floor, lowPinDx: dx, lowPinDy: dy };
+    onFloorChange(updated);
+    saveFloor(updated).catch(() => {});
+  }
+
   function undoLastMove() {
     if (!lastMove) return;
-    const p = points.find((pt) => pt.id === lastMove.id);
-    if (!p) { setLastMove(null); return; }
-    const updated: SurveyPoint = { ...p, labelDx: lastMove.prevDx, labelDy: lastMove.prevDy };
-    onPointsChange(points.map((pt) => (pt.id === lastMove.id ? updated : pt)));
-    savePoint(updated).catch(() => {});
+    if (lastMove.kind === "label") {
+      const p = points.find((pt) => pt.id === lastMove.id);
+      if (!p) { setLastMove(null); return; }
+      const updated: SurveyPoint = { ...p, labelDx: lastMove.prevDx, labelDy: lastMove.prevDy };
+      onPointsChange(points.map((pt) => (pt.id === lastMove.id ? updated : pt)));
+      savePoint(updated).catch(() => {});
+    } else {
+      const updated: Floor =
+        lastMove.kind === "pin-high"
+          ? { ...floor, highPinDx: lastMove.prevDx, highPinDy: lastMove.prevDy }
+          : { ...floor, lowPinDx: lastMove.prevDx, lowPinDy: lastMove.prevDy };
+      onFloorChange(updated);
+      saveFloor(updated).catch(() => {});
+    }
     setLastMove(null);
   }
 
@@ -137,12 +193,28 @@ export function TopoTab({ floor, points, onPointsChange, settings, onSettingsCha
     const updates = points
       .filter((p) => p.labelDx !== undefined || p.labelDy !== undefined)
       .map((p) => ({ ...p, labelDx: undefined, labelDy: undefined }));
-    if (!updates.length) return;
-    const map = new Map(updates.map((u) => [u.id, u]));
-    onPointsChange(points.map((p) => map.get(p.id) ?? p));
-    updates.forEach((u) => savePoint(u).catch(() => {}));
+    if (updates.length) {
+      const map = new Map(updates.map((u) => [u.id, u]));
+      onPointsChange(points.map((p) => map.get(p.id) ?? p));
+      updates.forEach((u) => savePoint(u).catch(() => {}));
+    }
+    // Also clear pin offsets on this floor.
+    if (
+      floor.highPinDx !== undefined || floor.highPinDy !== undefined ||
+      floor.lowPinDx !== undefined || floor.lowPinDy !== undefined
+    ) {
+      const cleared: Floor = {
+        ...floor,
+        highPinDx: undefined, highPinDy: undefined,
+        lowPinDx: undefined, lowPinDy: undefined,
+      };
+      onFloorChange(cleared);
+      saveFloor(cleared).catch(() => {});
+    }
     setLastMove(null);
   }
+
+
 
   return (
     <div className="flex flex-col h-full">
