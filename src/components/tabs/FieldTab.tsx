@@ -199,6 +199,22 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
         }}
       />
 
+      {dragging && (
+        <button
+          ref={trashRef}
+          type="button"
+          aria-label="Delete point"
+          className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 rounded-full shadow-lg flex items-center justify-center transition-all ${
+            trashHover
+              ? "bg-destructive text-destructive-foreground scale-110 h-20 w-20"
+              : "bg-background text-destructive border-2 border-destructive h-16 w-16"
+          }`}
+        >
+          <Trash2 className={trashHover ? "h-9 w-9" : "h-7 w-7"} />
+        </button>
+      )}
+
+
       <NumericKeypad
         open={(!!pending && !bpPromptOpen) || !!editingPoint}
         initialValue={editingPoint?.value ?? (isBasePointCapture ? 9.0 : undefined)}
