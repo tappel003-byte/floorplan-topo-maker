@@ -257,6 +257,33 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
         </div>
       )}
 
+      {/* Legend size slider (appears when legend is tapped) */}
+      {legendSelected && resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only" && (
+        <div className="absolute top-14 right-2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Legend size</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground tabular-nums">{(resolved.legendScale ?? 1).toFixed(2)}×</span>
+              <button
+                onClick={() => setLegendSelected(false)}
+                aria-label="Close"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          <Slider
+            min={0.4}
+            max={4}
+            step={0.05}
+            value={[resolved.legendScale ?? 1]}
+            onValueChange={([v]) => update({ legendScale: v })}
+          />
+          <p className="text-[10px] text-muted-foreground">Drag the legend to move it.</p>
+        </div>
+      )}
+
       <div className="flex-1 relative min-h-0 flex flex-col">
         <PlanCanvas
           planDataUrl={floor.planDataUrl}
