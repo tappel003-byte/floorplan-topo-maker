@@ -61,7 +61,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
   const [panelOpen, setPanelOpen] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
-  const [legendResize, setLegendResize] = useState<{ startX: number; startY: number; startScale: number } | null>(null);
+  const [legendSelected, setLegendSelected] = useState(false);
   const resolved = resolveSettings(settings);
 
   // Live drag (long-press-and-drag). One kind at a time: a point label or a H/L pin.
@@ -257,6 +257,33 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
         </div>
       )}
 
+      {/* Legend size slider (appears when legend is tapped) */}
+      {legendSelected && resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only" && (
+        <div className="absolute top-14 right-2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Legend size</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground tabular-nums">{(resolved.legendScale ?? 1).toFixed(2)}×</span>
+              <button
+                onClick={() => setLegendSelected(false)}
+                aria-label="Close"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          <Slider
+            min={0.4}
+            max={4}
+            step={0.05}
+            value={[resolved.legendScale ?? 1]}
+            onValueChange={([v]) => update({ legendScale: v })}
+          />
+          <p className="text-[10px] text-muted-foreground">Drag the legend to move it.</p>
+        </div>
+      )}
+
       <div className="flex-1 relative min-h-0 flex flex-col">
         <PlanCanvas
           planDataUrl={floor.planDataUrl}
@@ -266,21 +293,18 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           planOnTop
 
           onImagePointerDown={(x, y) => {
-            // Legend drag first
+            // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
               const box = legendBox(resolved);
               const inBox = x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
               if (inBox) {
-                const inHandle =
-                  x >= box.x + box.w - LEGEND_HANDLE && y >= box.y + box.h - LEGEND_HANDLE;
-                if (inHandle) {
-                  setLegendResize({ startX: x, startY: y, startScale: box.scale });
-                } else {
-                  setLegendDrag({ dx: x - box.x, dy: y - box.y });
-                }
+                setLegendSelected(true);
+                setLegendDrag({ dx: x - box.x, dy: y - box.y });
                 return true;
               }
             }
+            // Tap elsewhere on the canvas deselects the legend.
+            if (legendSelected) setLegendSelected(false);
             // Long-press on a label or a H/L pin to pick it up
             const hit = hitDraggable(x, y);
             if (hit) {
@@ -312,14 +336,6 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             return false;
           }}
           onImagePointerMove={(x, y) => {
-            if (legendResize) {
-              const dx = x - legendResize.startX;
-              const dy = y - legendResize.startY;
-              const delta = Math.max(dx / LEGEND_BASE_W, dy / LEGEND_BASE_H);
-              const next = Math.max(0.4, Math.min(4, legendResize.startScale + delta));
-              update({ legendScale: next });
-              return;
-            }
             if (legendDrag) {
               update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
               return;
@@ -342,7 +358,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           }}
           onImagePointerUp={() => {
             setLegendDrag(null);
-            setLegendResize(null);
+            setLegendDrag(null);
             clearLongPress();
             if (drag && drag.active) {
               const moved = drag.dx !== drag.startDx || drag.dy !== drag.startDy;
@@ -372,6 +388,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               livePinHigh: activePinHigh,
               livePinLow: activePinLow,
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
+              legendSelected,
             });
           }}
         />
@@ -782,6 +799,7 @@ export function renderTopoTop(
     livePinHigh?: { dx: number; dy: number } | null;
     livePinLow?: { dx: number; dy: number } | null;
     highlightPin?: "pin-high" | "pin-low" | null;
+    legendSelected?: boolean;
   },
 ) {
   const resolved = resolveSettings(settings);
@@ -856,7 +874,7 @@ export function renderTopoTop(
 
   // Legend + High/Low pins
   if (g && resolved.mode !== "points-only") {
-    if (resolved.showLegend) drawLegend(ctx, resolved, g, gridAndContours?.contours ?? null);
+    if (resolved.showLegend) drawLegend(ctx, resolved, g, gridAndContours?.contours ?? null, overlay?.legendSelected ?? false);
     if (resolved.showHighLow && points.length) {
       let hi = points[0], lo = points[0];
       for (const p of points) {
@@ -942,7 +960,7 @@ export function paletteColor(input: number, palette: RenderSettings["palette"], 
 
 const LEGEND_BASE_W = 82;
 const LEGEND_BASE_H = 226;
-const LEGEND_HANDLE = 16;
+
 
 function legendBox(settings: RenderSettings) {
   const s = settings.legendScale ?? 1;
@@ -954,6 +972,7 @@ function drawLegend(
   settings: RenderSettings,
   grid: Grid,
   _contours: ReturnType<typeof computeContours> | null,
+  selected: boolean,
 ) {
   const box = legendBox(settings);
   const s = box.scale;
@@ -1018,16 +1037,11 @@ function drawLegend(
   ctx.textAlign = "center";
   ctx.fillText("ELEV.", box.x + box.w / 2, box.y + box.h - 12 * s);
 
-  // Resize handle (bottom-right corner)
-  const hx = box.x + box.w - LEGEND_HANDLE;
-  const hy = box.y + box.h - LEGEND_HANDLE;
-  ctx.strokeStyle = "rgba(23,19,14,0.55)";
-  ctx.lineWidth = 1.25;
-  for (let i = 1; i <= 3; i++) {
-    const off = i * 4;
-    ctx.beginPath();
-    ctx.moveTo(hx + LEGEND_HANDLE - off, hy + LEGEND_HANDLE - 2);
-    ctx.lineTo(hx + LEGEND_HANDLE - 2, hy + LEGEND_HANDLE - off);
+  // Selection outline (indicates the legend is tappable / size slider is open)
+  if (selected) {
+    ctx.strokeStyle = "hsl(var(--primary))";
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, box.x - 2, box.y - 2, box.w + 4, box.h + 4, 8 * s);
     ctx.stroke();
   }
   ctx.restore();
