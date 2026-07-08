@@ -972,6 +972,7 @@ function drawLegend(
   settings: RenderSettings,
   grid: Grid,
   _contours: ReturnType<typeof computeContours> | null,
+  selected: boolean,
 ) {
   const box = legendBox(settings);
   const s = box.scale;
