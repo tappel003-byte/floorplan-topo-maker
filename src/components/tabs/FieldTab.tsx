@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { Button } from "@/components/ui/button";
-import { Undo2 } from "lucide-react";
+import { Trash2, Undo2 } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { savePoint, deletePoint, uid } from "@/lib/db";
 
@@ -17,6 +17,26 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
   const [dragging, setDragging] = useState<{ id: string; moved: boolean } | null>(null);
+  const [trashHover, setTrashHover] = useState(false);
+  const trashRef = useRef<HTMLButtonElement | null>(null);
+  const pointerScreenRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!dragging) {
+      setTrashHover(false);
+      return;
+    }
+    function onMove(e: PointerEvent) {
+      pointerScreenRef.current = { x: e.clientX, y: e.clientY };
+      const el = trashRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      setTrashHover(over);
+    }
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, [dragging]);
 
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
@@ -118,8 +138,16 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
         onImagePointerUp={async (x, y) => {
           if (!dragging) return;
           const point = points.find((p) => p.id === dragging.id);
+          const wasOverTrash = trashHover;
+          const dragId = dragging.id;
           setDragging(null);
+          setTrashHover(false);
           if (!point) return;
+          if (wasOverTrash) {
+            await deletePoint(dragId);
+            onPointsChange(points.filter((p) => p.id !== dragId));
+            return;
+          }
           if (!dragging.moved) {
             setEditingPoint(point);
             return;
@@ -170,6 +198,22 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
           }
         }}
       />
+
+      {dragging && (
+        <button
+          ref={trashRef}
+          type="button"
+          aria-label="Delete point"
+          className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 rounded-full shadow-lg flex items-center justify-center transition-all ${
+            trashHover
+              ? "bg-destructive text-destructive-foreground scale-110 h-20 w-20"
+              : "bg-background text-destructive border-2 border-destructive h-16 w-16"
+          }`}
+        >
+          <Trash2 className={trashHover ? "h-9 w-9" : "h-7 w-7"} />
+        </button>
+      )}
+
 
       <NumericKeypad
         open={(!!pending && !bpPromptOpen) || !!editingPoint}
