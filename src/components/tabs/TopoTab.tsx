@@ -309,14 +309,6 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             return false;
           }}
           onImagePointerMove={(x, y) => {
-            if (legendResize) {
-              const dx = x - legendResize.startX;
-              const dy = y - legendResize.startY;
-              const delta = Math.max(dx / LEGEND_BASE_W, dy / LEGEND_BASE_H);
-              const next = Math.max(0.4, Math.min(4, legendResize.startScale + delta));
-              update({ legendScale: next });
-              return;
-            }
             if (legendDrag) {
               update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
               return;
