@@ -61,7 +61,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
   const [panelOpen, setPanelOpen] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
-  const [legendResize, setLegendResize] = useState<{ startX: number; startY: number; startScale: number } | null>(null);
+  const [legendSelected, setLegendSelected] = useState(false);
   const resolved = resolveSettings(settings);
 
   // Live drag (long-press-and-drag). One kind at a time: a point label or a H/L pin.
