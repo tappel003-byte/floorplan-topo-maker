@@ -138,8 +138,16 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
         onImagePointerUp={async (x, y) => {
           if (!dragging) return;
           const point = points.find((p) => p.id === dragging.id);
+          const wasOverTrash = trashHover;
+          const dragId = dragging.id;
           setDragging(null);
+          setTrashHover(false);
           if (!point) return;
+          if (wasOverTrash) {
+            await deletePoint(dragId);
+            onPointsChange(points.filter((p) => p.id !== dragId));
+            return;
+          }
           if (!dragging.moved) {
             setEditingPoint(point);
             return;
