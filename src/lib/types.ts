@@ -85,6 +85,7 @@ export interface RenderSettings {
   showLegend: boolean;
   legendX: number;
   legendY: number;
+  legendScale: number;
   showHighLow: boolean;
   exaggeration: number;
 }
@@ -115,6 +116,7 @@ export const defaultRenderSettings: RenderSettings = {
   showLegend: true,
   legendX: 24,
   legendY: 24,
+  legendScale: 1,
   showHighLow: true,
   exaggeration: 1,
 };

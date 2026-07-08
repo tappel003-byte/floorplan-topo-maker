@@ -60,6 +60,7 @@ function labelAnchor(p: SurveyPoint) {
 export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange }: Props) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const [legendResize, setLegendResize] = useState<{ startX: number; startY: number; startScale: number } | null>(null);
   const resolved = resolveSettings(settings);
 
   // Live drag (long-press-and-drag). One kind at a time: a point label or a H/L pin.
@@ -308,8 +309,15 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             // Legend drag first
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
               const box = legendBox(resolved);
-              if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
-                setLegendDrag({ dx: x - box.x, dy: y - box.y });
+              const inBox = x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
+              if (inBox) {
+                const inHandle =
+                  x >= box.x + box.w - LEGEND_HANDLE && y >= box.y + box.h - LEGEND_HANDLE;
+                if (inHandle) {
+                  setLegendResize({ startX: x, startY: y, startScale: box.scale });
+                } else {
+                  setLegendDrag({ dx: x - box.x, dy: y - box.y });
+                }
                 return true;
               }
             }
@@ -344,6 +352,14 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             return false;
           }}
           onImagePointerMove={(x, y) => {
+            if (legendResize) {
+              const dx = x - legendResize.startX;
+              const dy = y - legendResize.startY;
+              const delta = Math.max(dx / LEGEND_BASE_W, dy / LEGEND_BASE_H);
+              const next = Math.max(0.4, Math.min(4, legendResize.startScale + delta));
+              update({ legendScale: next });
+              return;
+            }
             if (legendDrag) {
               update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
               return;
@@ -366,6 +382,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           }}
           onImagePointerUp={() => {
             setLegendDrag(null);
+            setLegendResize(null);
             clearLongPress();
             if (drag && drag.active) {
               const moved = drag.dx !== drag.startDx || drag.dy !== drag.startDy;
@@ -901,8 +918,13 @@ export function paletteColor(input: number, palette: RenderSettings["palette"], 
   return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
 }
 
+const LEGEND_BASE_W = 82;
+const LEGEND_BASE_H = 226;
+const LEGEND_HANDLE = 16;
+
 function legendBox(settings: RenderSettings) {
-  return { x: settings.legendX, y: settings.legendY, w: 82, h: 226 };
+  const s = settings.legendScale ?? 1;
+  return { x: settings.legendX, y: settings.legendY, w: LEGEND_BASE_W * s, h: LEGEND_BASE_H * s, scale: s };
 }
 
 function drawLegend(
@@ -912,32 +934,30 @@ function drawLegend(
   _contours: ReturnType<typeof computeContours> | null,
 ) {
   const box = legendBox(settings);
+  const s = box.scale;
   const min = settings.minClamp ?? grid.minValue;
   const max = settings.maxClamp ?? grid.maxValue;
   const span = Math.max(1e-6, max - min);
 
-  // Contour thresholds — the same values used to draw bands on the map.
   const thresholds = contourThresholds(grid, contourOptions(grid, settings));
 
   ctx.save();
   ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.strokeStyle = "rgba(23,19,14,0.85)";
   ctx.lineWidth = 1;
-  roundRectPath(ctx, box.x, box.y, box.w, box.h, 6);
+  roundRectPath(ctx, box.x, box.y, box.w, box.h, 6 * s);
   ctx.fill();
   ctx.stroke();
 
-  const barX = box.x + 14;
-  const barY = box.y + 18;
-  const barW = 18;
-  const barH = box.h - 42;
+  const barX = box.x + 14 * s;
+  const barY = box.y + 18 * s;
+  const barW = 18 * s;
+  const barH = box.h - 42 * s;
 
-  // Build band edges from min → thresholds → max so the swatches match the map fill.
   const edges = [min, ...thresholds.filter((t) => t > min && t < max), max];
   for (let i = 0; i < edges.length - 1; i++) {
     const lo = edges[i];
     const hi = edges[i + 1];
-    // Sample color at the band midpoint, same as color-fill-contours mode.
     const mid = (lo + hi) / 2;
     const t = (mid - min) / span;
     const yTop = barY + barH - ((hi - min) / span) * barH;
@@ -948,9 +968,8 @@ function drawLegend(
   ctx.strokeStyle = "#17130e";
   ctx.strokeRect(barX, barY, barW, barH);
 
-  // Tick labels on actual contour thresholds, subsampled to ~5–7 across the bar.
   ctx.fillStyle = "#17130e";
-  ctx.font = "bold 10px sans-serif";
+  ctx.font = `bold ${10 * s}px sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   const labels: number[] = [];
@@ -967,15 +986,28 @@ function drawLegend(
     const y = barY + barH - ((value - min) / span) * barH;
     ctx.beginPath();
     ctx.moveTo(barX + barW, y);
-    ctx.lineTo(barX + barW + 5, y);
+    ctx.lineTo(barX + barW + 5 * s, y);
     ctx.stroke();
-    ctx.fillText(value.toFixed(settings.decimalPlaces), barX + barW + 8, y);
+    ctx.fillText(value.toFixed(settings.decimalPlaces), barX + barW + 8 * s, y);
   }
 
   ctx.fillStyle = "rgba(23,19,14,0.7)";
-  ctx.font = "bold 9px sans-serif";
+  ctx.font = `bold ${9 * s}px sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText("ELEV.", box.x + box.w / 2, box.y + box.h - 12);
+  ctx.fillText("ELEV.", box.x + box.w / 2, box.y + box.h - 12 * s);
+
+  // Resize handle (bottom-right corner)
+  const hx = box.x + box.w - LEGEND_HANDLE;
+  const hy = box.y + box.h - LEGEND_HANDLE;
+  ctx.strokeStyle = "rgba(23,19,14,0.55)";
+  ctx.lineWidth = 1.25;
+  for (let i = 1; i <= 3; i++) {
+    const off = i * 4;
+    ctx.beginPath();
+    ctx.moveTo(hx + LEGEND_HANDLE - off, hy + LEGEND_HANDLE - 2);
+    ctx.lineTo(hx + LEGEND_HANDLE - 2, hy + LEGEND_HANDLE - off);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
