@@ -22,6 +22,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
   const [dragging, setDragging] = useState<{ id: string; moved: boolean } | null>(null);
   const [trashHover, setTrashHover] = useState(false);
+  const [warningDismissed, setWarningDismissed] = useState(false);
   const trashRef = useRef<HTMLButtonElement | null>(null);
   const pointerScreenRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -96,32 +97,44 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b px-3 py-2 flex items-center gap-3 text-sm">
-        <div>
-          <span className="font-medium">{points.length}</span>
-          <span className="text-muted-foreground"> points</span>
-        </div>
+    <div className="flex flex-col h-full relative">
+      {/* Floating status chip (top-left) */}
+      <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs">
+        <span className="font-medium">{points.length}</span>
+        <span className="text-muted-foreground">pts</span>
         {points.length > 0 && (
           <>
-            <span className="text-muted-foreground">·</span>
-            <div>
-              Next: <span className="font-mono font-medium">#{nextIndex}</span>
-            </div>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="text-muted-foreground">next</span>
+            <span className="font-mono font-medium">#{nextIndex}</span>
           </>
         )}
-        <div className="ml-auto">
-          <Button size="sm" variant="outline" onClick={undoLast} disabled={points.length === 0}>
-            <Undo2 className="h-4 w-4 mr-1" /> Undo
-          </Button>
-        </div>
       </div>
 
-      {floor.boundary.length < 3 && (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 text-xs px-3 py-2">
-          Draw a boundary in Setup → Boundary before collecting points.
+      {/* Floating Undo (top-right, offset from data-panel default position) */}
+      <button
+        onClick={undoLast}
+        disabled={points.length === 0}
+        aria-label="Undo last point"
+        className="absolute top-2 right-2 z-30 h-9 w-9 rounded-full bg-background/90 backdrop-blur border shadow-sm flex items-center justify-center disabled:opacity-40 hover:bg-background"
+      >
+        <Undo2 className="h-4 w-4" />
+      </button>
+
+      {/* Dismissible boundary warning */}
+      {floor.boundary.length < 3 && !warningDismissed && (
+        <div className="absolute top-14 left-2 right-2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
+          <span className="flex-1">Draw a boundary in Setup → Boundary before collecting points.</span>
+          <button
+            onClick={() => setWarningDismissed(true)}
+            className="text-amber-700 hover:text-amber-900 shrink-0"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
+
 
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
@@ -212,7 +225,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           ref={trashRef}
           type="button"
           aria-label="Delete point"
-          className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 rounded-full shadow-lg flex items-center justify-center transition-all ${
+          className={`fixed left-1/2 -translate-x-1/2 bottom-24 z-50 rounded-full shadow-lg flex items-center justify-center transition-all ${
             trashHover
               ? "bg-destructive text-destructive-foreground scale-110 h-20 w-20"
               : "bg-background text-destructive border-2 border-destructive h-16 w-16"
