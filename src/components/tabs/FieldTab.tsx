@@ -185,22 +185,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.lineWidth = 2;
             ctx.stroke();
           }
-          // points
+          // points — pinprick dot + offset value (matches paper method)
           for (const p of points) {
             const sel = selectedIds.has(p.id);
-            const color = p.isBasePoint ? "#16a34a" : "#111827";
-            const r = 5;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
+            const color = p.isBasePoint ? "#16a34a" : "#dc2626";
             ctx.beginPath();
-            ctx.moveTo(p.x - r, p.y - r);
-            ctx.lineTo(p.x + r, p.y + r);
-            ctx.moveTo(p.x + r, p.y - r);
-            ctx.lineTo(p.x - r, p.y + r);
-            ctx.stroke();
+            ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
             if (sel) {
               ctx.beginPath();
-              ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
               ctx.strokeStyle = "#2563eb";
               ctx.lineWidth = 2;
               ctx.stroke();
@@ -210,7 +205,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.font = "bold 12px sans-serif";
             ctx.textAlign = "left";
             ctx.textBaseline = "top";
-            ctx.fillText(p.value.toFixed(2), p.x + 7, p.y + 5);
+            ctx.fillText(p.value.toFixed(2), p.x + 5, p.y + 4);
           }
           // pending marker
           if (pending) {
