@@ -266,21 +266,18 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           planOnTop
 
           onImagePointerDown={(x, y) => {
-            // Legend drag first
+            // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
               const box = legendBox(resolved);
               const inBox = x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
               if (inBox) {
-                const inHandle =
-                  x >= box.x + box.w - LEGEND_HANDLE && y >= box.y + box.h - LEGEND_HANDLE;
-                if (inHandle) {
-                  setLegendResize({ startX: x, startY: y, startScale: box.scale });
-                } else {
-                  setLegendDrag({ dx: x - box.x, dy: y - box.y });
-                }
+                setLegendSelected(true);
+                setLegendDrag({ dx: x - box.x, dy: y - box.y });
                 return true;
               }
             }
+            // Tap elsewhere on the canvas deselects the legend.
+            if (legendSelected) setLegendSelected(false);
             // Long-press on a label or a H/L pin to pick it up
             const hit = hitDraggable(x, y);
             if (hit) {
