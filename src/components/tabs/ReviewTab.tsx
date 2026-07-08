@@ -10,9 +10,11 @@ interface Props {
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
+  selectedIds: Set<string>;
+  setSelectedIds: (ids: Set<string>) => void;
 }
 
-export function ReviewTab({ points, onPointsChange }: Props) {
+export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
   const [noteId, setNoteId] = useState<string | null>(null);
@@ -88,7 +90,22 @@ export function ReviewTab({ points, onPointsChange }: Props) {
             </thead>
             <tbody>
               {points.map((p) => (
-                <tr key={p.id} className="border-t">
+                <tr
+                  key={p.id}
+                  onClick={(e) => {
+                    if (e.shiftKey || e.metaKey) {
+                      const next = new Set(selectedIds);
+                      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                      setSelectedIds(next);
+                    } else {
+                      setSelectedIds(new Set([p.id]));
+                    }
+                  }}
+                  className={
+                    "border-t cursor-pointer " +
+                    (selectedIds.has(p.id) ? "bg-primary/10" : "hover:bg-muted/30")
+                  }
+                >
                   <td className="px-3 py-2 font-mono">{p.index}</td>
                   <td className="px-3 py-2">
                     {p.isBasePoint ? (
