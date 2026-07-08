@@ -567,6 +567,16 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                 Force the color scale to a fixed range. Leave auto for normal use.
               </p>
             </details>
+            <div className="border-t pt-3">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onSettingsChange(defaultRenderSettings)}
+                className="w-full h-8"
+              >
+                Reset all settings
+              </Button>
+            </div>
           </div>
         )}
       </div>
