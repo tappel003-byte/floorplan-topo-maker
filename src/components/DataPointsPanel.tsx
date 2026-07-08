@@ -7,7 +7,10 @@ interface Props {
   points: SurveyPoint[];
   selectedIds: Set<string>;
   onSelect: (id: string, additive?: boolean) => void;
+  pointSize: number;
+  onPointSizeChange: (n: number) => void;
 }
+
 
 interface PanelState {
   x: number;
