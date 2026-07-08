@@ -17,6 +17,26 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
   const [dragging, setDragging] = useState<{ id: string; moved: boolean } | null>(null);
+  const [trashHover, setTrashHover] = useState(false);
+  const trashRef = useRef<HTMLButtonElement | null>(null);
+  const pointerScreenRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!dragging) {
+      setTrashHover(false);
+      return;
+    }
+    function onMove(e: PointerEvent) {
+      pointerScreenRef.current = { x: e.clientX, y: e.clientY };
+      const el = trashRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      setTrashHover(over);
+    }
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, [dragging]);
 
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
