@@ -201,12 +201,12 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             const sel = selectedIds.has(p.id);
             const color = p.isBasePoint ? "#16a34a" : "#dc2626";
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, pointSize, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.fill();
             if (sel) {
               ctx.beginPath();
-              ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, Math.max(10, pointSize + 6), 0, Math.PI * 2);
               ctx.strokeStyle = "#2563eb";
               ctx.lineWidth = 2;
               ctx.stroke();
@@ -216,7 +216,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.font = "bold 12px sans-serif";
             ctx.textAlign = "left";
             ctx.textBaseline = "top";
-            ctx.fillText(p.value.toFixed(2), p.x + 5, p.y + 4);
+            ctx.fillText(p.value.toFixed(2), p.x + pointSize + 3, p.y + pointSize + 2);
+
           }
           // pending marker
           if (pending) {
