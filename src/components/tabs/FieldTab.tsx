@@ -225,7 +225,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           ref={trashRef}
           type="button"
           aria-label="Delete point"
-          className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 rounded-full shadow-lg flex items-center justify-center transition-all ${
+          className={`fixed left-1/2 -translate-x-1/2 bottom-24 z-50 rounded-full shadow-lg flex items-center justify-center transition-all ${
             trashHover
               ? "bg-destructive text-destructive-foreground scale-110 h-20 w-20"
               : "bg-background text-destructive border-2 border-destructive h-16 w-16"
