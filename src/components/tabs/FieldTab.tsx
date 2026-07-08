@@ -188,26 +188,29 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           // points
           for (const p of points) {
             const sel = selectedIds.has(p.id);
+            const color = p.isBasePoint ? "#16a34a" : "#111827";
+            const r = 5;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
-            ctx.fillStyle = p.isBasePoint ? "#16a34a" : "#111827";
-            ctx.fill();
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 2;
+            ctx.moveTo(p.x - r, p.y - r);
+            ctx.lineTo(p.x + r, p.y + r);
+            ctx.moveTo(p.x + r, p.y - r);
+            ctx.lineTo(p.x - r, p.y + r);
             ctx.stroke();
             if (sel) {
               ctx.beginPath();
-              ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
               ctx.strokeStyle = "#2563eb";
-              ctx.lineWidth = 3;
+              ctx.lineWidth = 2;
               ctx.stroke();
             }
             // value label
             ctx.fillStyle = "#111827";
-            ctx.font = "bold 13px sans-serif";
+            ctx.font = "bold 12px sans-serif";
             ctx.textAlign = "left";
             ctx.textBaseline = "top";
-            ctx.fillText(p.value.toFixed(2), p.x + 12, p.y + 8);
+            ctx.fillText(p.value.toFixed(2), p.x + 7, p.y + 5);
           }
           // pending marker
           if (pending) {
