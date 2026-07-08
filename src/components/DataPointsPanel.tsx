@@ -7,7 +7,10 @@ interface Props {
   points: SurveyPoint[];
   selectedIds: Set<string>;
   onSelect: (id: string, additive?: boolean) => void;
+  pointSize: number;
+  onPointSizeChange: (n: number) => void;
 }
+
 
 interface PanelState {
   x: number;
@@ -25,7 +28,7 @@ function loadState(projectId: string): PanelState {
   return { x: 16, y: 16, collapsed: false, hidden: false, expanded: false };
 }
 
-export function DataPointsPanel({ projectId, points, selectedIds, onSelect }: Props) {
+export function DataPointsPanel({ projectId, points, selectedIds, onSelect, pointSize, onPointSizeChange }: Props) {
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
   const dragRef = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null);
   const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -113,6 +116,20 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect }: Pr
       </div>
       {!state.collapsed && (
         <>
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b bg-muted/20">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">Dot</span>
+            <input
+              type="range"
+              min={1}
+              max={8}
+              step={1}
+              value={pointSize}
+              onChange={(e) => onPointSizeChange(Number(e.target.value))}
+              className="flex-1 accent-primary"
+              aria-label="Point marker size"
+            />
+            <span className="text-[10px] font-mono w-6 text-right text-muted-foreground">{pointSize}px</span>
+          </div>
           <div className="flex items-center px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-b bg-muted/30">
             <span className="w-8">#</span>
             <span className="flex-1">Value</span>
@@ -123,6 +140,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect }: Pr
               {state.expanded ? "Less" : "More"}
             </button>
           </div>
+
           <div className="overflow-auto flex-1">
             {points.length === 0 ? (
               <div className="p-3 text-xs text-muted-foreground text-center">No points yet</div>
