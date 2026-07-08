@@ -388,6 +388,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               livePinHigh: activePinHigh,
               livePinLow: activePinLow,
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
+              legendSelected,
             });
           }}
         />
