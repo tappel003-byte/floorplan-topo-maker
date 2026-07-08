@@ -25,6 +25,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [warningDismissed, setWarningDismissed] = useState(false);
   const trashRef = useRef<HTMLButtonElement | null>(null);
   const pointerScreenRef = useRef<{ x: number; y: number } | null>(null);
+  const [pointSize, setPointSize] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(`dpp-size:${projectId}`);
+      const n = raw ? Number(raw) : 2;
+      return Number.isFinite(n) && n >= 1 && n <= 8 ? n : 2;
+    } catch { return 2; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(`dpp-size:${projectId}`, String(pointSize)); } catch {}
+  }, [pointSize, projectId]);
+
 
   useEffect(() => {
     if (!dragging) {
