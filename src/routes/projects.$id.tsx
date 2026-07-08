@@ -78,26 +78,25 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh]">
-      <header className="border-b bg-background">
-        <div className="flex items-center gap-3 px-3 h-12">
+    <div className="flex flex-col h-[100dvh] relative">
+      <header className="bg-background/85 backdrop-blur border-b">
+        <div className="flex items-center gap-2 px-2 h-8 text-xs">
           <Link
             to="/"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center text-muted-foreground hover:text-foreground shrink-0"
+            aria-label="Back to projects"
           >
-            <ArrowLeft className="h-4 w-4" /> Projects
+            <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium truncate">{project.name}</div>
-            <div className="text-xs text-muted-foreground truncate">
-              {activeFloor.name} · {project.inspectionDate}
-            </div>
+          <div className="flex-1 min-w-0 truncate">
+            <span className="font-medium">{project.name}</span>
+            <span className="text-muted-foreground"> · {activeFloor.name}</span>
           </div>
           {floors.length > 1 && (
             <select
               value={activeFloor.id}
               onChange={(e) => setActiveFloorId(e.target.value)}
-              className="rounded-md border px-2 py-1 text-sm bg-background"
+              className="rounded border px-1.5 py-0.5 text-xs bg-background max-w-[8rem] truncate"
             >
               {floors.map((f) => (
                 <option key={f.id} value={f.id}>
@@ -109,7 +108,7 @@ function ProjectWorkspace() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-hidden">
+      <main className="flex-1 min-h-0 overflow-hidden relative">
         {mode === "setup" && (
           <SetupTab
             project={project}
@@ -157,37 +156,15 @@ function ProjectWorkspace() {
         )}
       </main>
 
-      <nav className="border-t bg-background grid grid-cols-5 shrink-0">
-        <ModeBtn
-          active={mode === "setup"}
-          onClick={() => setMode("setup")}
-          icon={<Settings2 className="h-5 w-5" />}
-          label="Setup"
-        />
-        <ModeBtn
-          active={mode === "field"}
-          onClick={() => setMode("field")}
-          icon={<Pointer className="h-5 w-5" />}
-          label="Field"
-        />
-        <ModeBtn
-          active={mode === "review"}
-          onClick={() => setMode("review")}
-          icon={<ListChecks className="h-5 w-5" />}
-          label="Review"
-        />
-        <ModeBtn
-          active={mode === "topo"}
-          onClick={() => setMode("topo")}
-          icon={<Layers3 className="h-5 w-5" />}
-          label="Topo"
-        />
-        <ModeBtn
-          active={mode === "export"}
-          onClick={() => setMode("export")}
-          icon={<Share2 className="h-5 w-5" />}
-          label="Export"
-        />
+      <nav
+        className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur border shadow-lg px-1 py-1"
+        aria-label="Sections"
+      >
+        <ModeBtn active={mode === "setup"} onClick={() => setMode("setup")} icon={<Settings2 className="h-4 w-4" />} label="Setup" />
+        <ModeBtn active={mode === "field"} onClick={() => setMode("field")} icon={<Pointer className="h-4 w-4" />} label="Field" />
+        <ModeBtn active={mode === "review"} onClick={() => setMode("review")} icon={<ListChecks className="h-4 w-4" />} label="Review" />
+        <ModeBtn active={mode === "topo"} onClick={() => setMode("topo")} icon={<Layers3 className="h-4 w-4" />} label="Topo" />
+        <ModeBtn active={mode === "export"} onClick={() => setMode("export")} icon={<Share2 className="h-4 w-4" />} label="Export" />
       </nav>
     </div>
   );
@@ -208,12 +185,15 @@ function ModeBtn({
     <button
       onClick={onClick}
       className={
-        "flex flex-col items-center justify-center py-2 gap-0.5 text-xs " +
-        (active ? "text-primary" : "text-muted-foreground")
+        "flex items-center gap-1.5 h-9 px-3 rounded-full text-xs transition-colors " +
+        (active
+          ? "bg-primary text-primary-foreground font-medium"
+          : "text-muted-foreground hover:text-foreground")
       }
+      aria-label={label}
     >
       {icon}
-      <span className={active ? "font-medium" : ""}>{label}</span>
+      <span className={active ? "" : "hidden sm:inline"}>{label}</span>
     </button>
   );
 }
