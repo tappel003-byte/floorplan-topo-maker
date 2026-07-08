@@ -32,6 +32,7 @@ function ProjectWorkspace() {
   const [settings, setSettings] = useState<RenderSettings>(defaultRenderSettings);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -77,7 +78,7 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-[100dvh]">
       <header className="border-b bg-background">
         <div className="flex items-center gap-3 px-3 h-12">
           <Link
@@ -123,10 +124,23 @@ function ProjectWorkspace() {
           />
         )}
         {mode === "field" && (
-          <FieldTab floor={activeFloor} points={points} onPointsChange={setPoints} />
+          <FieldTab
+            projectId={project.id}
+            floor={activeFloor}
+            points={points}
+            onPointsChange={setPoints}
+            selectedIds={selectedIds}
+            setSelectedIds={setSelectedIds}
+          />
         )}
         {mode === "review" && (
-          <ReviewTab floor={activeFloor} points={points} onPointsChange={setPoints} />
+          <ReviewTab
+            floor={activeFloor}
+            points={points}
+            onPointsChange={setPoints}
+            selectedIds={selectedIds}
+            setSelectedIds={setSelectedIds}
+          />
         )}
         {mode === "topo" && (
           <TopoTab

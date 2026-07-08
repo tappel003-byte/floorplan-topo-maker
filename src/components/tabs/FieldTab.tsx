@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
+import { DataPointsPanel } from "../DataPointsPanel";
 import { Button } from "@/components/ui/button";
 import { Trash2, Undo2 } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { savePoint, deletePoint, uid } from "@/lib/db";
 
 interface Props {
+  projectId: string;
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
+  selectedIds: Set<string>;
+  setSelectedIds: (ids: Set<string>) => void;
 }
 
-export function FieldTab({ floor, points, onPointsChange }: Props) {
+export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds }: Props) {
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
@@ -127,6 +131,7 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
         onImagePointerDown={(x, y) => {
           const hit = hitPoint(x, y);
           if (!hit) return false;
+          setSelectedIds(new Set([hit.id]));
           setDragging({ id: hit.id, moved: false });
           return true;
         }}
@@ -169,6 +174,7 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
           }
           // points
           for (const p of points) {
+            const sel = selectedIds.has(p.id);
             ctx.beginPath();
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
             ctx.fillStyle = p.isBasePoint ? "#16a34a" : "#111827";
@@ -176,11 +182,13 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
             ctx.stroke();
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 11px sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(String(p.index), p.x, p.y);
+            if (sel) {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+              ctx.strokeStyle = "#2563eb";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
             // value label
             ctx.fillStyle = "#111827";
             ctx.font = "bold 13px sans-serif";
@@ -243,6 +251,21 @@ export function FieldTab({ floor, points, onPointsChange }: Props) {
           </div>
         </div>
       )}
+
+      <DataPointsPanel
+        projectId={projectId}
+        points={points}
+        selectedIds={selectedIds}
+        onSelect={(id, additive) => {
+          if (additive) {
+            const next = new Set(selectedIds);
+            next.has(id) ? next.delete(id) : next.add(id);
+            setSelectedIds(next);
+          } else {
+            setSelectedIds(new Set([id]));
+          }
+        }}
+      />
     </div>
   );
 }
