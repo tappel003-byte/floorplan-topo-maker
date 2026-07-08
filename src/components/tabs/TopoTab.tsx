@@ -377,8 +377,60 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
         />
 
         {panelOpen && (
-          <div className="absolute top-2 right-14 rounded-xl border bg-card shadow-2xl p-3 w-72 max-h-[calc(100%-1rem)] overflow-auto space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="absolute top-12 right-2 rounded-xl border bg-card/95 backdrop-blur shadow-2xl p-3 w-72 max-h-[calc(100%-4rem)] overflow-auto space-y-4 text-sm z-30">
+            <div>
+              <Label className="text-xs">Mode</Label>
+              <select
+                value={resolved.mode}
+                onChange={(e) => update({ mode: e.target.value as RenderSettings["mode"] })}
+                className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
+              >
+                <option value="contour-fill">Color fill contours</option>
+                <option value="contour-cells">Color cells</option>
+                <option value="contour-bw">Simple B&W contours</option>
+                <option value="points-only">Points only</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">First</Label>
+                <Input
+                  type="number"
+                  step="0.05"
+                  value={resolved.firstContour ?? ""}
+                  placeholder="auto"
+                  onChange={(e) => update({ firstContour: e.target.value === "" ? null : parseFloat(e.target.value) })}
+                  className="mt-1 h-9 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Step</Label>
+                <StepInput
+                  value={resolved.contourStep}
+                  onCommit={(step) => update({ contourStep: step, interval: step })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Count</Label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={resolved.contourCount ?? ""}
+                  placeholder="auto"
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    if (raw === "" || raw.toLowerCase() === "auto") {
+                      update({ contourCount: null });
+                    } else {
+                      const n = parseInt(raw, 10);
+                      update({ contourCount: isFinite(n) ? Math.max(2, n) : null });
+                    }
+                  }}
+                  className="mt-1 h-9 text-xs"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 border-t pt-3">
               <NumberControl label="Decimals" value={resolved.decimalPlaces} min={0} max={3} step={1} onChange={(v) => update({ decimalPlaces: Math.max(0, Math.min(3, Math.round(v ?? 2))) })} />
               <div>
                 <Label className="text-xs">Palette</Label>
