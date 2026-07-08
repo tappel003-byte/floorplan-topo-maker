@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Undo2 } from "lucide-react";
+import { Undo2, SlidersHorizontal, X } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, clampValue, computeContours, contourThresholds, type Grid } from "@/lib/topo";
@@ -58,7 +58,8 @@ function labelAnchor(p: SurveyPoint) {
 
 
 export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange }: Props) {
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [legendResize, setLegendResize] = useState<{ startX: number; startY: number; startScale: number } | null>(null);
   const resolved = resolveSettings(settings);
@@ -218,82 +219,41 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
 
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b p-2 flex items-end gap-2 text-sm flex-wrap">
-        <select
-          value={resolved.mode}
-          onChange={(e) =>
-            update({ mode: e.target.value as RenderSettings["mode"] })
-          }
-          className="rounded-md border px-2 py-2 text-sm bg-background h-10"
-        >
-          <option value="contour-fill">Color fill contours</option>
-          <option value="contour-cells">Color cells</option>
-          <option value="contour-bw">Simple B&W contours</option>
-          <option value="points-only">Points only</option>
-        </select>
-        <div className="flex items-center gap-1">
-          <Label className="text-xs text-muted-foreground">First</Label>
-          <Input
-            type="number"
-            step="0.05"
-            value={resolved.firstContour ?? ""}
-            placeholder="auto"
-            onChange={(e) => update({ firstContour: e.target.value === "" ? null : parseFloat(e.target.value) })}
-            className="w-20 h-10"
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <Label className="text-xs text-muted-foreground">Step</Label>
-          <StepInput
-            value={resolved.contourStep}
-            onCommit={(step) => update({ contourStep: step, interval: step })}
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <Label className="text-xs text-muted-foreground">Count</Label>
-          <Input
-            type="text"
-            inputMode="numeric"
-            value={resolved.contourCount ?? ""}
-            placeholder="auto"
-            onChange={(e) => {
-              const raw = e.target.value.trim();
-              if (raw === "" || raw.toLowerCase() === "auto") {
-                update({ contourCount: null });
-              } else {
-                const n = parseInt(raw, 10);
-                update({ contourCount: isFinite(n) ? Math.max(2, n) : null });
-              }
-            }}
-            className="w-20 h-10"
-          />
-        </div>
+    <div className="flex flex-col h-full relative">
+      {/* Floating status chip (top-left): mode + range */}
+      <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs max-w-[calc(100%-4.5rem)]">
+        <span className="font-medium capitalize truncate">
+          {resolved.mode === "contour-fill" ? "Fill" : resolved.mode === "contour-cells" ? "Cells" : resolved.mode === "contour-bw" ? "B&W" : "Points"}
+        </span>
         {gridAndContours?.grid && (
-          <div className="text-xs text-muted-foreground tabular-nums px-2 py-2">
-            Range {gridAndContours.grid.minValue.toFixed(2)}" to {gridAndContours.grid.maxValue.toFixed(2)}" · {points.length} points
-          </div>
+          <>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="text-muted-foreground tabular-nums truncate">
+              {gridAndContours.grid.minValue.toFixed(2)}"–{gridAndContours.grid.maxValue.toFixed(2)}"
+            </span>
+          </>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          className="ml-auto"
-          onClick={() => setPanelOpen((v) => !v)}
-        >
-          {panelOpen ? "Hide controls" : "Controls"}
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onSettingsChange(defaultRenderSettings)}
-        >
-          Reset
-        </Button>
       </div>
 
-      {!canRender && (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 text-xs px-3 py-2">
-          Need at least 3 points and a closed boundary to generate a topo.
+      {/* Floating settings toggle (top-right) */}
+      <button
+        onClick={() => setPanelOpen((v) => !v)}
+        aria-label={panelOpen ? "Hide controls" : "Show controls"}
+        className={
+          "absolute top-2 right-2 z-30 h-9 w-9 rounded-full backdrop-blur border shadow-sm flex items-center justify-center " +
+          (panelOpen ? "bg-primary text-primary-foreground border-primary" : "bg-background/90 hover:bg-background")
+        }
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+      </button>
+
+      {/* Dismissible warning */}
+      {!canRender && !warningDismissed && (
+        <div className="absolute top-14 left-2 right-2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
+          <span className="flex-1">Need at least 3 points and a closed boundary to generate a topo.</span>
+          <button onClick={() => setWarningDismissed(true)} aria-label="Dismiss" className="text-amber-700 shrink-0">
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
 
