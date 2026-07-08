@@ -1037,16 +1037,11 @@ function drawLegend(
   ctx.textAlign = "center";
   ctx.fillText("ELEV.", box.x + box.w / 2, box.y + box.h - 12 * s);
 
-  // Resize handle (bottom-right corner)
-  const hx = box.x + box.w - LEGEND_HANDLE;
-  const hy = box.y + box.h - LEGEND_HANDLE;
-  ctx.strokeStyle = "rgba(23,19,14,0.55)";
-  ctx.lineWidth = 1.25;
-  for (let i = 1; i <= 3; i++) {
-    const off = i * 4;
-    ctx.beginPath();
-    ctx.moveTo(hx + LEGEND_HANDLE - off, hy + LEGEND_HANDLE - 2);
-    ctx.lineTo(hx + LEGEND_HANDLE - 2, hy + LEGEND_HANDLE - off);
+  // Selection outline (indicates the legend is tappable / size slider is open)
+  if (selected) {
+    ctx.strokeStyle = "hsl(var(--primary))";
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, box.x - 2, box.y - 2, box.w + 4, box.h + 4, 8 * s);
     ctx.stroke();
   }
   ctx.restore();
