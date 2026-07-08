@@ -331,7 +331,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           }}
           onImagePointerUp={() => {
             setLegendDrag(null);
-            setLegendResize(null);
+            setLegendDrag(null);
             clearLongPress();
             if (drag && drag.active) {
               const moved = drag.dx !== drag.startDx || drag.dy !== drag.startDy;
