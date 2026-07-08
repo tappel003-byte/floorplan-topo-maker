@@ -421,13 +421,10 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               <Label className="text-xs">Show floor plan</Label>
               <Switch checked={resolved.showPlan} onCheckedChange={(v) => update({ showPlan: v })} />
             </div>
-            <LayerRow
-              label="Contours"
-              on={resolved.showContours}
-              onToggle={(v) => update({ showContours: v })}
-              opacity={resolved.contourOpacity}
-              onOpacity={(v) => update({ contourOpacity: v })}
-            />
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Contours</Label>
+              <Switch checked={resolved.showContours} onCheckedChange={(v) => update({ showContours: v })} />
+            </div>
             <div>
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Line thickness</Label>
@@ -625,37 +622,6 @@ function NumberControl({
   );
 }
 
-function LayerRow({
-  label,
-  on,
-  onToggle,
-  opacity,
-  onOpacity,
-}: {
-  label: string;
-  on: boolean;
-  onToggle: (v: boolean) => void;
-  opacity: number;
-  onOpacity: (v: number) => void;
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <Label className="text-xs">{label}</Label>
-        <Switch checked={on} onCheckedChange={onToggle} />
-      </div>
-      <Slider
-        min={0}
-        max={1}
-        step={0.05}
-        value={[opacity]}
-        onValueChange={(v) => onOpacity(v[0])}
-        className="mt-1"
-        disabled={!on}
-      />
-    </div>
-  );
-}
 
 // Exported so ExportTab can reuse the exact rendering pipeline.
 export function renderTopo(
