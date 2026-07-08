@@ -78,8 +78,8 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] relative">
-      <header className="bg-background/85 backdrop-blur border-b">
+    <div className="flex flex-col h-[100dvh] relative bg-white">
+      <header className="bg-white/85 backdrop-blur border-b">
         <div className="flex items-center gap-2 px-2 h-8 text-xs">
           <Link
             to="/"
