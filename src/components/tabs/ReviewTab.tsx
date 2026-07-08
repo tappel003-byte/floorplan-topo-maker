@@ -78,14 +78,21 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
             No points captured yet. Switch to Field mode.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-10" />
+              <col className="w-16" />
+              <col />
+              <col />
+              <col className="w-20" />
+            </colgroup>
             <thead className="text-xs text-muted-foreground bg-muted/40 sticky top-0">
               <tr>
-                <th className="text-left px-3 py-2">#</th>
-                <th className="text-left px-3 py-2">Label</th>
-                <th className="text-right px-3 py-2">Value (in)</th>
-                <th className="text-left px-3 py-2">Notes</th>
-                <th className="text-right px-3 py-2 w-24"></th>
+                <th className="text-left px-2 py-2">#</th>
+                <th className="text-left px-2 py-2">Label</th>
+                <th className="text-right px-2 py-2">Value (in)</th>
+                <th className="text-left px-2 py-2">Notes</th>
+                <th className="text-right px-2 py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -106,22 +113,21 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
                     (selectedIds.has(p.id) ? "bg-primary/10" : "hover:bg-muted/30")
                   }
                 >
-                  <td className="px-3 py-2 font-mono">{p.index}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-2 py-1.5 font-mono">{p.index}</td>
+                  <td className="px-2 py-1.5">
                     {p.isBasePoint ? (
                       <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-xs font-medium">
                         {p.label ?? "BP1"}
                       </span>
+                    ) : outliers.has(p.id) ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-xs">
+                        <AlertTriangle className="h-3 w-3" />
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                    {outliers.has(p.id) && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-xs">
-                        <AlertTriangle className="h-3 w-3" /> outlier
-                      </span>
-                    )}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono tabular-nums">
+                  <td className="px-2 py-1.5 text-right font-mono tabular-nums">
                     {editingId === p.id ? (
                       <Input
                         autoFocus
@@ -137,7 +143,7 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
                       p.value.toFixed(2)
                     )}
                   </td>
-                  <td className="px-3 py-2 min-w-56">
+                  <td className="px-2 py-1.5">
                     {noteId === p.id ? (
                       <Textarea
                         autoFocus
@@ -152,8 +158,9 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
                       />
                     ) : (
                       <button
-                        className="text-left text-xs text-muted-foreground hover:text-foreground w-full"
-                        onClick={() => {
+                        className="text-left text-xs text-muted-foreground hover:text-foreground w-full truncate"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setNoteId(p.id);
                           setNoteVal(p.notes ?? "");
                         }}
@@ -162,23 +169,34 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
                       </button>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-1 py-1.5 text-right whitespace-nowrap">
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => {
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingId(p.id);
                         setEditVal(String(p.value));
                       }}
                     >
                       <Edit3 className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => remove(p)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        remove(p);
+                      }}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </td>
                 </tr>
               ))}
+              <tr><td colSpan={5} className="h-24" /></tr>
             </tbody>
           </table>
         )}

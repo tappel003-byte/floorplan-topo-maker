@@ -119,7 +119,7 @@ export function PlanCanvas({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
     // Background
-    ctx.fillStyle = "#f7f5f0";
+    ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, cw, ch);
 
     ctx.save();
