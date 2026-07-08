@@ -960,7 +960,7 @@ export function paletteColor(input: number, palette: RenderSettings["palette"], 
 
 const LEGEND_BASE_W = 82;
 const LEGEND_BASE_H = 226;
-const LEGEND_HANDLE = 16;
+
 
 function legendBox(settings: RenderSettings) {
   const s = settings.legendScale ?? 1;
