@@ -131,6 +131,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onImagePointerDown={(x, y) => {
           const hit = hitPoint(x, y);
           if (!hit) return false;
+          setSelectedIds(new Set([hit.id]));
           setDragging({ id: hit.id, moved: false });
           return true;
         }}
@@ -173,6 +174,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           }
           // points
           for (const p of points) {
+            const sel = selectedIds.has(p.id);
             ctx.beginPath();
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
             ctx.fillStyle = p.isBasePoint ? "#16a34a" : "#111827";
@@ -180,11 +182,13 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
             ctx.stroke();
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 11px sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(String(p.index), p.x, p.y);
+            if (sel) {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+              ctx.strokeStyle = "#2563eb";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
             // value label
             ctx.fillStyle = "#111827";
             ctx.font = "bold 13px sans-serif";
