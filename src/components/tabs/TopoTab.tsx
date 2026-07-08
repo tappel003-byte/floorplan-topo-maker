@@ -901,8 +901,13 @@ export function paletteColor(input: number, palette: RenderSettings["palette"], 
   return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
 }
 
+const LEGEND_BASE_W = 82;
+const LEGEND_BASE_H = 226;
+const LEGEND_HANDLE = 16;
+
 function legendBox(settings: RenderSettings) {
-  return { x: settings.legendX, y: settings.legendY, w: 82, h: 226 };
+  const s = settings.legendScale ?? 1;
+  return { x: settings.legendX, y: settings.legendY, w: LEGEND_BASE_W * s, h: LEGEND_BASE_H * s, scale: s };
 }
 
 function drawLegend(
