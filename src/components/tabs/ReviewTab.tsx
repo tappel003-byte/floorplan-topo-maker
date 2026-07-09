@@ -101,13 +101,6 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
               {points.map((p) => {
                 const raw = p.raw ?? p.value;
                 const offset = p.offset ?? 0;
-                const kind = p.isBasePoint
-                  ? "BP"
-                  : p.isTransitionAnchor
-                    ? "anchor"
-                    : p.transitionId
-                      ? "normalized"
-                      : null;
                 return (
                 <tr
                   key={p.id}
