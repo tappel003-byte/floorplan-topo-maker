@@ -523,6 +523,11 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           setDragging({ ...dragging, moved: true });
           onPointsChange(points.map((p) => (p.id === dragging.id ? { ...p, x, y } : p)));
         }}
+        onImagePointerCancel={() => {
+          // Pinch/zoom took over — abandon any in-progress point drag without deleting.
+          setDragging(null);
+          setTrashHover(false);
+        }}
         onImagePointerUp={async (x, y) => {
           if (!dragging) return;
           const point = points.find((p) => p.id === dragging.id);
