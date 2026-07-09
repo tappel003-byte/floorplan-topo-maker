@@ -54,16 +54,15 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, poin
     dragRef.current = { ox: e.clientX, oy: e.clientY, sx: state.x, sy: state.y };
   }
   function onHeaderMove(e: ReactPointerEvent<HTMLDivElement>) {
-    if (!dragRef.current) return;
-    const dx = e.clientX - dragRef.current.ox;
-    const dy = e.clientY - dragRef.current.oy;
-    const maxX = window.innerWidth - 220;
-    const maxY = window.innerHeight - 60;
-    setState((s) => ({
-      ...s,
-      x: Math.max(0, Math.min(maxX, dragRef.current!.sx + dx)),
-      y: Math.max(0, Math.min(maxY, dragRef.current!.sy + dy)),
-    }));
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.ox;
+    const dy = e.clientY - d.oy;
+    const maxX = Math.max(0, window.innerWidth - 220);
+    const maxY = Math.max(0, window.innerHeight - 60);
+    const nx = Math.max(0, Math.min(maxX, d.sx + dx));
+    const ny = Math.max(0, Math.min(maxY, d.sy + dy));
+    setState((s) => ({ ...s, x: nx, y: ny }));
   }
   function onHeaderUp() { dragRef.current = null; }
 
