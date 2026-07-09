@@ -574,7 +574,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             setEditingPoint(point);
             return;
           }
-          const updated = { ...point, x: drag.lastX || x, y: drag.lastY || y };
+          const updated = { ...point, x: drag.lastX ?? x, y: drag.lastY ?? y };
           await savePoint(updated);
         }}
         drawOverlay={(ctx) => {
