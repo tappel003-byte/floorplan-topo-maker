@@ -490,11 +490,15 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const hit = hitPoint(x, y);
           if (!hit) return false;
           setSelectedIds(new Set([hit.id]));
-          setDragging({ id: hit.id, moved: false });
+          setDragging({ id: hit.id, moved: false, startX: x, startY: y });
           return true;
         }}
         onImagePointerMove={(x, y) => {
           if (!dragging) return;
+          const dist = Math.hypot(x - dragging.startX, y - dragging.startY);
+          // Require ~6px of movement before treating this as a real drag —
+          // stops accidental taps from triggering the trash overlay.
+          if (!dragging.moved && dist < 6) return;
           setDragging({ ...dragging, moved: true });
           onPointsChange(points.map((p) => (p.id === dragging.id ? { ...p, x, y } : p)));
         }}
