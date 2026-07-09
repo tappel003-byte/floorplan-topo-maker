@@ -34,7 +34,12 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [pending, setPending] = useState<PendingKind | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
-  const [dragging, setDragging] = useState<{ id: string; moved: boolean; startX: number; startY: number } | null>(null);
+  const [dragging, setDragging] = useState<{
+    id: string;
+    moved: boolean;
+    startClientX: number;
+    startClientY: number;
+  } | null>(null);
   const [trashHover, setTrashHover] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const trashRef = useRef<HTMLButtonElement | null>(null);
@@ -487,7 +492,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         planHeight={floor.planHeight}
         onTap={handleTap}
         onTransform={(t) => { scaleRef.current = t.scale; }}
-        onImagePointerDown={(x, y) => {
+        onImagePointerDown={(x, y, event) => {
           const hit = hitPoint(x, y);
           if (!hit) return false;
           const { point: hp, on } = hit;
@@ -499,15 +504,20 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             setAwaitingAdjacent(null);
             return true;
           }
-          setDragging({ id: hp.id, moved: false, startX: x, startY: y });
+          setDragging({
+            id: hp.id,
+            moved: false,
+            startClientX: event.clientX,
+            startClientY: event.clientY,
+          });
           return true;
         }}
-        onImagePointerMove={(x, y) => {
+        onImagePointerMove={(x, y, event) => {
           if (!dragging) return;
-          const dist = Math.hypot(x - dragging.startX, y - dragging.startY);
-          // Require ~6px of movement before treating this as a real drag —
-          // stops accidental taps from triggering the trash overlay.
-          if (!dragging.moved && dist < 6) return;
+          const screenDist = Math.hypot(event.clientX - dragging.startClientX, event.clientY - dragging.startClientY);
+          // Require deliberate finger movement in screen pixels before treating this as a drag —
+          // stops normal taps / keypad touches from triggering the trash overlay.
+          if (!dragging.moved && screenDist < 18) return;
           setDragging({ ...dragging, moved: true });
           onPointsChange(points.map((p) => (p.id === dragging.id ? { ...p, x, y } : p)));
         }}
