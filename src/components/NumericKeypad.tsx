@@ -11,6 +11,9 @@ interface Props {
   subtitle?: string;
   onSubmit: (value: number) => void;
   onClose: () => void;
+  /** Optional secondary action rendered as a full-width button under the display,
+   * e.g. "Add transition" or "Save as adjacent reading". */
+  secondaryAction?: { label: string; onClick: (value: number) => void; disabled?: boolean };
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
