@@ -155,6 +155,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
         onTap={handleTap}
+        onTransform={(t) => { scaleRef.current = t.scale; }}
         onImagePointerDown={(x, y) => {
           const hit = hitPoint(x, y);
           if (!hit) return false;
