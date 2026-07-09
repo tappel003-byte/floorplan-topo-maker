@@ -115,6 +115,18 @@ export function NumericKeypad({
             <Repeat2 className="h-4 w-4" /> Repeat last ({repeatValue.toFixed(2)})
           </button>
         )}
+        {secondaryAction && (
+          <button
+            onClick={() => {
+              const n = parseFloat(text);
+              if (isFinite(n)) secondaryAction.onClick(n);
+            }}
+            disabled={secondaryAction.disabled || !text || !isFinite(parseFloat(text))}
+            className="mb-3 w-full h-11 rounded-lg border border-dashed border-amber-500/60 bg-amber-50 text-amber-900 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-40"
+          >
+            {secondaryAction.label}
+          </button>
+        )}
         <div className="grid grid-cols-3 gap-2">
           {keys.map((k) => (
             <KeyBtn key={k} onClick={() => push(k)}>{k}</KeyBtn>
