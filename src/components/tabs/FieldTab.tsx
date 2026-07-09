@@ -29,21 +29,25 @@ type PendingKind =
   | { kind: "anchor-first"; x: number; y: number } // capturing the transition anchor
   | { kind: "adjacent"; x: number; y: number; anchor: SurveyPoint }; // capturing the adjacent surface reading
 
+type DragState = {
+  id: string;
+  moved: boolean;
+  startClientX: number;
+  startClientY: number;
+  lastX: number;
+  lastY: number;
+};
+
 export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds }: Props) {
   const scaleRef = useRef(1);
   const [pending, setPending] = useState<PendingKind | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
-  const [dragging, setDragging] = useState<{
-    id: string;
-    moved: boolean;
-    startClientX: number;
-    startClientY: number;
-  } | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const [dragging, setDragging] = useState<DragState | null>(null);
   const [trashHover, setTrashHover] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const trashRef = useRef<HTMLButtonElement | null>(null);
-  const pointerScreenRef = useRef<{ x: number; y: number } | null>(null);
 
   // Transitions on this floor + which one is currently applied to new points.
   const [transitions, setTransitions] = useState<Transition[]>([]);
@@ -83,7 +87,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       return;
     }
     function onMove(e: PointerEvent) {
-      pointerScreenRef.current = { x: e.clientX, y: e.clientY };
+      if (!dragRef.current?.moved) return;
       const el = trashRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
@@ -506,33 +510,43 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             setAwaitingAdjacent(null);
             return true;
           }
-          setDragging({
+          const drag: DragState = {
             id: hp.id,
             moved: false,
             startClientX: event.clientX,
             startClientY: event.clientY,
-          });
+            lastX: hp.x,
+            lastY: hp.y,
+          };
+          dragRef.current = drag;
+          setDragging(drag);
           return true;
         }}
         onImagePointerMove={(x, y, event) => {
-          if (!dragging) return;
-          const screenDist = Math.hypot(event.clientX - dragging.startClientX, event.clientY - dragging.startClientY);
+          const drag = dragRef.current;
+          if (!drag) return;
+          const screenDist = Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY);
           // Require deliberate finger movement in screen pixels before treating this as a drag —
           // stops normal taps / keypad touches from triggering the trash overlay.
-          if (!dragging.moved && screenDist < 18) return;
-          setDragging({ ...dragging, moved: true });
-          onPointsChange(points.map((p) => (p.id === dragging.id ? { ...p, x, y } : p)));
+          if (!drag.moved && screenDist < 18) return;
+          const nextDrag = { ...drag, moved: true, lastX: x, lastY: y };
+          dragRef.current = nextDrag;
+          setDragging(nextDrag);
+          onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x, y } : p)));
         }}
         onImagePointerCancel={() => {
           // Pinch/zoom took over — abandon any in-progress point drag without deleting.
+          dragRef.current = null;
           setDragging(null);
           setTrashHover(false);
         }}
         onImagePointerUp={async (x, y) => {
-          if (!dragging) return;
-          const point = points.find((p) => p.id === dragging.id);
+          const drag = dragRef.current;
+          if (!drag) return;
+          const point = points.find((p) => p.id === drag.id);
           const wasOverTrash = trashHover;
-          const dragId = dragging.id;
+          const dragId = drag.id;
+          dragRef.current = null;
           setDragging(null);
           setTrashHover(false);
           if (!point) return;
@@ -545,11 +559,11 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             onPointsChange(points.filter((p) => p.id !== dragId));
             return;
           }
-          if (!dragging.moved) {
+          if (!drag.moved) {
             setEditingPoint(point);
             return;
           }
-          const updated = { ...point, x, y };
+          const updated = { ...point, x: drag.lastX || x, y: drag.lastY || y };
           await savePoint(updated);
         }}
         drawOverlay={(ctx) => {
