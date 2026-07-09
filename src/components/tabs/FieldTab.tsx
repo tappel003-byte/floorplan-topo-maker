@@ -602,7 +602,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         }}
       />
 
-      {dragging && (
+      {dragging?.moved && (
         <button
           ref={trashRef}
           type="button"
