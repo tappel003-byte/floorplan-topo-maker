@@ -220,17 +220,28 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     setBpPromptOpen(false);
   }
 
-  /** Handler for the keypad's "Add transition" button in normal-entry mode.
-   * Converts the pending point into a transition anchor. */
-  function convertPendingToAnchor(v: number) {
+  /** "Add transition" from a plain-entry keypad: save this pending point as the anchor
+   * with the entered value, then prompt for the adjacent-surface reading. */
+  async function convertPendingToAnchor(v: number) {
     if (!pending || pending.kind !== "normal") return;
-    setPending({ kind: "anchor-first", x: pending.x, y: pending.y });
-    // Immediately submit so anchor is stored with value v.
-    // Use setTimeout to let state settle first.
-    setTimeout(() => {
-      // Re-run through submit path with anchor-first kind.
-      submitValue(v);
-    }, 0);
+    const now = Date.now();
+    const anchor: SurveyPoint = {
+      id: uid(),
+      floorId: floor.id,
+      index: nextIndex,
+      x: pending.x,
+      y: pending.y,
+      raw: v,
+      offset: 0,
+      value: v,
+      isTransitionAnchor: true,
+      createdAt: now,
+    };
+    await savePoint(anchor);
+    onPointsChange([...points, anchor]);
+    setPending(null);
+    setAwaitingAnchor(false);
+    setAwaitingAdjacent(anchor);
   }
 
   function hitPoint(x: number, y: number) {
