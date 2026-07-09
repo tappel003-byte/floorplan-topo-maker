@@ -48,7 +48,17 @@ export interface SurveyPoint {
   index: number; // display number, 1..n
   x: number; // image coords
   y: number;
+  /** Corrected/effective elevation. For normalized points this = raw + offset.
+   * All downstream rendering (topo, stats, export) reads this. */
   value: number; // elevation in inches (BP default 9.0)
+  /** As-measured reading. Undefined for legacy points and equals value. */
+  raw?: number;
+  /** Offset applied from a transition. 0 or undefined for plain points. */
+  offset?: number;
+  /** Which transition this point is normalized against. */
+  transitionId?: string;
+  /** True when this point IS the reference anchor for a transition (diamond marker). */
+  isTransitionAnchor?: boolean;
   isBasePoint?: boolean;
   label?: string; // BP1, BP2, etc.
   notes?: string;
@@ -57,6 +67,23 @@ export interface SurveyPoint {
   // undefined = use default offset (+8, +6).
   labelDx?: number;
   labelDy?: number;
+}
+
+/**
+ * Transition: measured offset between two surfaces (e.g. tile → carpet) captured
+ * at a doorway. The anchor point keeps its true reading; the offset gets applied
+ * to any point tagged with this transition, so topo renders the slab, not the finish.
+ */
+export interface Transition {
+  id: string;
+  floorId: string;
+  /** SurveyPoint id of the anchor (diamond marker). */
+  anchorId: string;
+  /** anchor.value - adjacent.raw. Add to raw readings on the other surface. */
+  offset: number;
+  /** Optional human label, e.g. "Kitchen doorway". */
+  label?: string;
+  createdAt: number;
 }
 
 export interface RenderSettings {
