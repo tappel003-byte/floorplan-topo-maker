@@ -29,8 +29,6 @@ export function NumericKeypad({
     if (open) setText(initialValue != null ? String(initialValue) : "");
   }, [open, initialValue]);
 
-  if (!open) return null;
-
   function push(ch: string) {
     setText((cur) => {
       if (ch === ".") {
@@ -53,6 +51,33 @@ export function NumericKeypad({
   function repeatLast() {
     if (repeatValue != null && isFinite(repeatValue)) onSubmit(repeatValue);
   }
+
+  // Hardware keyboard support (desktop numpad + main row)
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      const k = e.key;
+      if (k >= "0" && k <= "9") { e.preventDefault(); push(k); return; }
+      if (k === "." || k === ",") { e.preventDefault(); push("."); return; }
+      if (k === "Backspace") { e.preventDefault(); backspace(); return; }
+      if (k === "-") { e.preventDefault(); toggleSign(); return; }
+      if (k === "Enter" || k === "=") {
+        e.preventDefault();
+        const n = parseFloat(text);
+        if (isFinite(n)) onSubmit(n);
+        else if (repeatValue != null && isFinite(repeatValue)) onSubmit(repeatValue);
+        return;
+      }
+      if (k === "Escape") { e.preventDefault(); onClose(); return; }
+      if (k === "r" || k === "R") {
+        if (repeatValue != null && isFinite(repeatValue)) { e.preventDefault(); onSubmit(repeatValue); }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, text, repeatValue, onSubmit, onClose]);
+
+  if (!open) return null;
 
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
 
