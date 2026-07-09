@@ -25,6 +25,7 @@ export function NumericKeypad({
   subtitle,
   onSubmit,
   onClose,
+  secondaryAction,
 }: Props) {
   const [text, setText] = useState<string>("");
 
