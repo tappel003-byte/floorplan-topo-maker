@@ -183,6 +183,21 @@ export function PlanCanvas({
 
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     (e.target as Element).setPointerCapture?.(e.pointerId);
+    // If a second finger arrives while a custom (point-drag) gesture is active,
+    // cancel the custom drag and hand ALL pointers over to pinch/pan so the
+    // user can always zoom regardless of where their first finger landed.
+    if (customPointer.current !== null && pointers.current.size >= 1) {
+      const img = toImage(e.clientX, e.clientY);
+      onImagePointerCancel?.(img.x, img.y, e);
+      customPointer.current = null;
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const [a, b] = Array.from(pointers.current.values());
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      gestureStart.current = { dist, mid, transform: transformRef.current };
+      singleStart.current = null;
+      return;
+    }
     if (onImagePointerDown) {
       const img = toImage(e.clientX, e.clientY);
       if (onImagePointerDown(img.x, img.y, e)) {
