@@ -34,7 +34,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [pending, setPending] = useState<PendingKind | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
-  const [dragging, setDragging] = useState<{ id: string; moved: boolean } | null>(null);
+  const [dragging, setDragging] = useState<{ id: string; moved: boolean; startX: number; startY: number } | null>(null);
   const [trashHover, setTrashHover] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const trashRef = useRef<HTMLButtonElement | null>(null);
