@@ -250,14 +250,16 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   }
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
-    // Dot hit — tight radius so accidental near-taps don't trigger drag.
-    const r = Math.max(10, 16 / scaleRef.current);
+    // Convert a fixed screen-pixel touch budget (finger-tip size) into image units,
+    // so hits stay tight regardless of zoom and don't swallow empty-area taps/pinches.
+    const s = scaleRef.current || 1;
+    const dotHit = 14 / s; // ~28px screen diameter
     for (const p of points) {
-      if (Math.hypot(p.x - x, p.y - y) < r) return { point: p, on: "dot" };
+      if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
-    // Label hit — the value number acts as a grab handle since the dot is under the finger.
+    // Label hit — the value number is a grab handle since the dot is under the finger.
     const fontPx = 12;
-    const pad = 4 / scaleRef.current;
+    const pad = 4 / s;
     for (const p of points) {
       const text = p.value.toFixed(2);
       const w = text.length * fontPx * 0.62;
