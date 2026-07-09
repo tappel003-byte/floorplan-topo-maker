@@ -157,7 +157,7 @@ function ProjectWorkspace() {
       </main>
 
       <nav
-        className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur border shadow-lg px-1 py-1"
+        className="fixed z-40 flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur border shadow-lg px-1 py-1 bottom-3 left-1/2 -translate-x-1/2 landscape:bottom-auto landscape:left-3 landscape:top-1/2 landscape:translate-x-0 landscape:-translate-y-1/2 landscape:flex-col"
         aria-label="Sections"
       >
         <ModeBtn active={mode === "setup"} onClick={() => setMode("setup")} icon={<Settings2 className="h-4 w-4" />} label="Setup" />
