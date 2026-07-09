@@ -245,8 +245,27 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   }
 
   function hitPoint(x: number, y: number) {
-    const r = Math.max(14, 22 / scaleRef.current);
-    return points.find((p) => Math.hypot(p.x - x, p.y - y) < r) ?? null;
+    // Dot hit — tight radius so accidental near-taps don't trigger drag.
+    const r = Math.max(10, 16 / scaleRef.current);
+    for (const p of points) {
+      if (Math.hypot(p.x - x, p.y - y) < r) return p;
+    }
+    // Label hit — the value number acts as a grab handle since the dot is under the finger.
+    // Label is drawn at (p.x + pointSize + 4, p.y + pointSize + 3), bold 12px sans.
+    const fontPx = 12;
+    // Approximate width per char (bold sans): 0.62 * fontPx works for digits/period.
+    const pad = 4 / scaleRef.current;
+    for (const p of points) {
+      const text = p.value.toFixed(2);
+      const w = text.length * fontPx * 0.62;
+      const h = fontPx + 2;
+      const lx = p.x + pointSize + 4;
+      const ly = p.y + pointSize + 3;
+      if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
+        return p;
+      }
+    }
+    return null;
   }
 
   async function undoLast() {
