@@ -157,7 +157,7 @@ function ProjectWorkspace() {
       </main>
 
       <nav
-        className="fixed z-40 flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur border shadow-lg px-1 py-1 bottom-3 left-1/2 -translate-x-1/2 landscape:bottom-auto landscape:left-3 landscape:top-1/2 landscape:translate-x-0 landscape:-translate-y-1/2 landscape:flex-col"
+        className="fixed z-40 flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur border shadow-lg px-1 py-1 landscape:px-1 landscape:py-2 bottom-3 left-1/2 -translate-x-1/2 landscape:bottom-auto landscape:left-3 landscape:top-1/2 landscape:translate-x-0 landscape:-translate-y-1/2 landscape:flex-col"
         aria-label="Sections"
       >
         <ModeBtn active={mode === "setup"} onClick={() => setMode("setup")} icon={<Settings2 className="h-4 w-4" />} label="Setup" />
@@ -185,7 +185,7 @@ function ModeBtn({
     <button
       onClick={onClick}
       className={
-        "flex items-center gap-1.5 h-9 px-3 rounded-full text-xs transition-colors " +
+        "flex items-center justify-center gap-1.5 h-9 w-9 landscape:w-8 landscape:h-8 landscape:px-1 rounded-full text-xs transition-colors " +
         (active
           ? "bg-primary text-primary-foreground font-medium"
           : "text-muted-foreground hover:text-foreground")
@@ -193,7 +193,7 @@ function ModeBtn({
       aria-label={label}
     >
       {icon}
-      <span className={active ? "" : "hidden sm:inline"}>{label}</span>
+      <span className={active ? "landscape:hidden" : "hidden sm:inline landscape:hidden"}>{label}</span>
     </button>
   );
 }
