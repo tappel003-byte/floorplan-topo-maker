@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Floor, ProjectMeta, SurveyPoint } from "./types";
+import type { Floor, ProjectMeta, SurveyPoint, Transition } from "./types";
 
 interface FloorSurveyDB extends DBSchema {
   projects: {
@@ -17,6 +17,11 @@ interface FloorSurveyDB extends DBSchema {
     value: SurveyPoint;
     indexes: { floorId: string };
   };
+  transitions: {
+    key: string;
+    value: Transition;
+    indexes: { floorId: string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<FloorSurveyDB>> | null = null;
@@ -26,14 +31,20 @@ function getDB() {
     throw new Error("IndexedDB not available");
   }
   if (!dbPromise) {
-    dbPromise = openDB<FloorSurveyDB>("floor-survey", 1, {
-      upgrade(db) {
-        const p = db.createObjectStore("projects", { keyPath: "id" });
-        p.createIndex("updatedAt", "updatedAt");
-        const f = db.createObjectStore("floors", { keyPath: "id" });
-        f.createIndex("projectId", "projectId");
-        const pt = db.createObjectStore("points", { keyPath: "id" });
-        pt.createIndex("floorId", "floorId");
+    dbPromise = openDB<FloorSurveyDB>("floor-survey", 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const p = db.createObjectStore("projects", { keyPath: "id" });
+          p.createIndex("updatedAt", "updatedAt");
+          const f = db.createObjectStore("floors", { keyPath: "id" });
+          f.createIndex("projectId", "projectId");
+          const pt = db.createObjectStore("points", { keyPath: "id" });
+          pt.createIndex("floorId", "floorId");
+        }
+        if (oldVersion < 2) {
+          const t = db.createObjectStore("transitions", { keyPath: "id" });
+          t.createIndex("floorId", "floorId");
+        }
       },
     });
   }
@@ -79,6 +90,8 @@ export async function deleteFloor(id: string) {
   const db = await getDB();
   const points = await listPoints(id);
   for (const p of points) await db.delete("points", p.id);
+  const transitions = await listTransitions(id);
+  for (const t of transitions) await db.delete("transitions", t.id);
   await db.delete("floors", id);
 }
 
@@ -95,6 +108,21 @@ export async function savePoint(p: SurveyPoint) {
 export async function deletePoint(id: string) {
   const db = await getDB();
   await db.delete("points", id);
+}
+
+// Transitions
+export async function listTransitions(floorId: string): Promise<Transition[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("transitions", "floorId", floorId);
+  return all.sort((a, b) => a.createdAt - b.createdAt);
+}
+export async function saveTransition(t: Transition) {
+  const db = await getDB();
+  await db.put("transitions", t);
+}
+export async function deleteTransition(id: string) {
+  const db = await getDB();
+  await db.delete("transitions", id);
 }
 
 export function uid() {
