@@ -185,7 +185,7 @@ function ModeBtn({
     <button
       onClick={onClick}
       className={
-        "flex items-center gap-1.5 h-9 px-3 rounded-full text-xs transition-colors " +
+        "flex items-center justify-center gap-1.5 h-9 w-9 landscape:w-8 landscape:h-8 landscape:px-1 rounded-full text-xs transition-colors " +
         (active
           ? "bg-primary text-primary-foreground font-medium"
           : "text-muted-foreground hover:text-foreground")
