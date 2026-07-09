@@ -23,9 +23,9 @@ interface Props {
   /** Called on transform change */
   onTransform?: (t: CanvasTransform) => void;
   /** Optional image-space pointer hooks. Return true from down to consume pan/tap. */
-  onImagePointerDown?: (x: number, y: number) => boolean;
-  onImagePointerMove?: (x: number, y: number) => void;
-  onImagePointerUp?: (x: number, y: number) => void;
+  onImagePointerDown?: (x: number, y: number, event: ReactPointerEvent<HTMLDivElement>) => boolean;
+  onImagePointerMove?: (x: number, y: number, event: ReactPointerEvent<HTMLDivElement>) => void;
+  onImagePointerUp?: (x: number, y: number, event: ReactPointerEvent<HTMLDivElement>) => void;
   /** Plan opacity (only used when planOnTop is false) */
   planOpacity?: number;
   /** Suppress rendering the plan raster (still keeps size) */
@@ -185,7 +185,7 @@ export function PlanCanvas({
     (e.target as Element).setPointerCapture?.(e.pointerId);
     if (onImagePointerDown) {
       const img = toImage(e.clientX, e.clientY);
-      if (onImagePointerDown(img.x, img.y)) {
+      if (onImagePointerDown(img.x, img.y, e)) {
         customPointer.current = e.pointerId;
         pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
         return;
@@ -208,7 +208,7 @@ export function PlanCanvas({
     if (customPointer.current === e.pointerId) {
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const img = toImage(e.clientX, e.clientY);
-      onImagePointerMove?.(img.x, img.y);
+      onImagePointerMove?.(img.x, img.y, e);
       return;
     }
     const prev = pointers.current.get(e.pointerId)!;
@@ -250,7 +250,7 @@ export function PlanCanvas({
   function onPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
     if (customPointer.current === e.pointerId) {
       const img = toImage(e.clientX, e.clientY);
-      onImagePointerUp?.(img.x, img.y);
+      onImagePointerUp?.(img.x, img.y, e);
       customPointer.current = null;
       pointers.current.delete(e.pointerId);
       singleStart.current = null;
