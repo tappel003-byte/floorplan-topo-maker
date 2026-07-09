@@ -194,7 +194,7 @@ function ModeBtn({
         aria-label={label}
       >
         {icon}
-        <span className={active ? "landscape:hidden" : "hidden sm:inline landscape:hidden"}>{label}</span>
+        <span className={active ? "whitespace-nowrap landscape:hidden" : "hidden sm:inline whitespace-nowrap landscape:hidden"}>{label}</span>
       </button>
   );
 }
