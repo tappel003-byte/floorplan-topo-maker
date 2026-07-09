@@ -193,7 +193,7 @@ function ModeBtn({
       aria-label={label}
     >
       {icon}
-      <span className={active ? "" : "hidden sm:inline"}>{label}</span>
+      <span className={active ? "landscape:hidden" : "hidden sm:inline landscape:hidden"}>{label}</span>
     </button>
   );
 }
