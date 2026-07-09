@@ -64,6 +64,8 @@ export function PlanCanvas({
   const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
   const transformRef = useRef(transform);
   transformRef.current = transform;
+  const onTransformRef = useRef(onTransform);
+  onTransformRef.current = onTransform;
 
   const imgW = planWidth ?? IMPLIED_W;
   const imgH = planHeight ?? IMPLIED_H;
@@ -93,8 +95,8 @@ export function PlanCanvas({
     const ty = (ch - imgH * s) / 2;
     const t = { scale: s, tx, ty };
     setTransform(t);
-    onTransform?.(t);
-  }, [imgW, imgH, onTransform]);
+    onTransformRef.current?.(t);
+  }, [imgW, imgH]);
 
   useEffect(() => {
     fit();
