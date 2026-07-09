@@ -29,6 +29,11 @@ export function NumericKeypad({
 }: Props) {
   const [text, setText] = useState<string>("");
 
+  const parsedText = parseFloat(text);
+  const hasTypedValue = text.trim() !== "" && isFinite(parsedText);
+  const canUseRepeatValue = repeatValue != null && isFinite(repeatValue);
+  const actionableValue = hasTypedValue ? parsedText : canUseRepeatValue ? repeatValue : undefined;
+
   useEffect(() => {
     if (open) setText(initialValue != null ? String(initialValue) : "");
   }, [open, initialValue]);
@@ -118,10 +123,9 @@ export function NumericKeypad({
         {secondaryAction && (
           <button
             onClick={() => {
-              const n = parseFloat(text);
-              if (isFinite(n)) secondaryAction.onClick(n);
+              if (actionableValue != null) secondaryAction.onClick(actionableValue);
             }}
-            disabled={secondaryAction.disabled || !text || !isFinite(parseFloat(text))}
+            disabled={secondaryAction.disabled || actionableValue == null}
             className="mb-3 w-full h-11 rounded-lg border border-dashed border-amber-500/60 bg-amber-50 text-amber-900 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-40"
           >
             {secondaryAction.label}
