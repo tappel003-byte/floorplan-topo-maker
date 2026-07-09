@@ -219,8 +219,9 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
                     </Button>
                   </td>
                 </tr>
-              ))}
-              <tr><td colSpan={5} className="h-24" /></tr>
+                );
+              })}
+              <tr><td colSpan={6} className="h-24" /></tr>
             </tbody>
           </table>
         )}
