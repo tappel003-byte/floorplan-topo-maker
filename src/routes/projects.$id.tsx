@@ -184,16 +184,17 @@ function ModeBtn({
   return (
     <button
       onClick={onClick}
-      className={
-        "flex items-center justify-center gap-1.5 h-9 w-9 landscape:w-8 landscape:h-8 landscape:px-1 rounded-full text-xs transition-colors " +
-        (active
-          ? "bg-primary text-primary-foreground font-medium"
-          : "text-muted-foreground hover:text-foreground")
-      }
-      aria-label={label}
-    >
-      {icon}
-      <span className={active ? "landscape:hidden" : "hidden sm:inline landscape:hidden"}>{label}</span>
-    </button>
+        className={
+          "flex items-center gap-1.5 h-9 px-3 rounded-full text-xs transition-colors " +
+          "landscape:w-8 landscape:h-8 landscape:px-1 landscape:justify-center " +
+          (active
+            ? "bg-primary text-primary-foreground font-medium"
+            : "text-muted-foreground hover:text-foreground")
+        }
+        aria-label={label}
+      >
+        {icon}
+        <span className={active ? "landscape:hidden" : "hidden sm:inline landscape:hidden"}>{label}</span>
+      </button>
   );
 }
