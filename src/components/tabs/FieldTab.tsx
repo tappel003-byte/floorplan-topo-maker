@@ -37,8 +37,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [dragging, setDragging] = useState<{
     id: string;
     moved: boolean;
-    startX: number;
-    startY: number;
     startClientX: number;
     startClientY: number;
   } | null>(null);
@@ -509,8 +507,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           setDragging({
             id: hp.id,
             moved: false,
-            startX: x,
-            startY: y,
             startClientX: event.clientX,
             startClientY: event.clientY,
           });
