@@ -11,6 +11,9 @@ interface Props {
   subtitle?: string;
   onSubmit: (value: number) => void;
   onClose: () => void;
+  /** Optional secondary action rendered as a full-width button under the display,
+   * e.g. "Add transition" or "Save as adjacent reading". */
+  secondaryAction?: { label: string; onClick: (value: number) => void; disabled?: boolean };
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
@@ -22,6 +25,7 @@ export function NumericKeypad({
   subtitle,
   onSubmit,
   onClose,
+  secondaryAction,
 }: Props) {
   const [text, setText] = useState<string>("");
 
@@ -109,6 +113,18 @@ export function NumericKeypad({
             className="mb-3 w-full h-11 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99]"
           >
             <Repeat2 className="h-4 w-4" /> Repeat last ({repeatValue.toFixed(2)})
+          </button>
+        )}
+        {secondaryAction && (
+          <button
+            onClick={() => {
+              const n = parseFloat(text);
+              if (isFinite(n)) secondaryAction.onClick(n);
+            }}
+            disabled={secondaryAction.disabled || !text || !isFinite(parseFloat(text))}
+            className="mb-3 w-full h-11 rounded-lg border border-dashed border-amber-500/60 bg-amber-50 text-amber-900 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-40"
+          >
+            {secondaryAction.label}
           </button>
         )}
         <div className="grid grid-cols-3 gap-2">
