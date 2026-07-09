@@ -532,6 +532,11 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const nextDrag = { ...drag, moved: true, lastX: x, lastY: y };
           dragRef.current = nextDrag;
           setDragging(nextDrag);
+          const trashEl = trashRef.current;
+          if (trashEl) {
+            const r = trashEl.getBoundingClientRect();
+            setTrashHover(event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom);
+          }
           onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x, y } : p)));
         }}
         onImagePointerCancel={() => {
@@ -540,11 +545,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           setDragging(null);
           setTrashHover(false);
         }}
-        onImagePointerUp={async (x, y) => {
+        onImagePointerUp={async (x, y, event) => {
           const drag = dragRef.current;
           if (!drag) return;
           const point = points.find((p) => p.id === drag.id);
-          const wasOverTrash = trashHover;
+          const trashEl = trashRef.current;
+          const wasOverTrash = trashEl
+            ? (() => {
+                const r = trashEl.getBoundingClientRect();
+                return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
+              })()
+            : trashHover;
           const dragId = drag.id;
           dragRef.current = null;
           setDragging(null);
