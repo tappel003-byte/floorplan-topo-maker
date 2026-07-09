@@ -17,6 +17,7 @@ interface Props {
 }
 
 export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds }: Props) {
+  const scaleRef = useRef(1);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
@@ -97,7 +98,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   }
 
   function hitPoint(x: number, y: number) {
-    return points.find((p) => Math.hypot(p.x - x, p.y - y) < 18) ?? null;
+    // ~22 screen px hit radius regardless of zoom, so tapping a tiny dot still works
+    const r = Math.max(14, 22 / scaleRef.current);
+    return points.find((p) => Math.hypot(p.x - x, p.y - y) < r) ?? null;
   }
 
   async function undoLast() {
@@ -152,6 +155,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
         onTap={handleTap}
+        onTransform={(t) => { scaleRef.current = t.scale; }}
         onImagePointerDown={(x, y) => {
           const hit = hitPoint(x, y);
           if (!hit) return false;
