@@ -85,7 +85,7 @@ export function PlanCanvas({
     if (!wrap) return;
     const cw = wrap.clientWidth;
     const ch = wrap.clientHeight;
-    const s = Math.min(cw / imgW, ch / imgH) * 0.95;
+    const s = Math.min(cw / imgW, ch / imgH);
     const tx = (cw - imgW * s) / 2;
     const ty = (ch - imgH * s) / 2;
     const t = { scale: s, tx, ty };
