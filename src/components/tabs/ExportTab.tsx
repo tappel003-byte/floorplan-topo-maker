@@ -88,7 +88,59 @@ export function ExportTab({ project, floor, points, settings }: Props) {
     }
   }
 
+  function downloadCsv() {
+    const safe = project.name.replace(/[^a-z0-9-]+/gi, "_");
+    const rows: string[] = [];
+    rows.push([
+      "index", "label", "x", "y", "raw", "offset", "corrected",
+      "normalized", "role", "transition_id", "transition_offset", "notes",
+    ].join(","));
+    for (const p of points) {
+      const raw = p.raw ?? p.value;
+      const offset = p.offset ?? 0;
+      const role = p.isBasePoint
+        ? "base-point"
+        : p.isTransitionAnchor
+          ? "transition-anchor"
+          : p.transitionId
+            ? "normalized"
+            : "normal";
+      const t = transitions.find((tr) => tr.id === p.transitionId);
+      const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+      rows.push([
+        p.index,
+        esc(p.label ?? ""),
+        p.x.toFixed(2),
+        p.y.toFixed(2),
+        raw.toFixed(3),
+        offset.toFixed(3),
+        p.value.toFixed(3),
+        p.transitionId ? "yes" : "no",
+        role,
+        esc(p.transitionId ?? ""),
+        t ? t.offset.toFixed(3) : "",
+        esc(p.notes ?? ""),
+      ].join(","));
+    }
+    if (transitions.length) {
+      rows.push("");
+      rows.push("# Transitions");
+      rows.push(["transition_id", "anchor_point_id", "offset", "label"].join(","));
+      for (const t of transitions) {
+        rows.push([t.id, t.anchorId, t.offset.toFixed(3), `"${(t.label ?? "").replace(/"/g, '""')}"`].join(","));
+      }
+    }
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safe}_${floor.name.replace(/\s+/g, "_")}_points.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    setStatus("CSV exported.");
+  }
+
   async function doExport() {
+    if (format === "csv") { downloadCsv(); return; }
     setStatus("Rendering…");
     const canvas = document.createElement("canvas");
     await renderTo(canvas, dpi);
