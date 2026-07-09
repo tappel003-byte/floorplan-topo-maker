@@ -52,6 +52,7 @@ export function PlanCanvas({
   onImagePointerDown,
   onImagePointerMove,
   onImagePointerUp,
+  onImagePointerCancel,
   planOpacity = 1,
   hidePlan = false,
   planOnTop = false,
