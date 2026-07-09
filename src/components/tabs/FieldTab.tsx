@@ -352,53 +352,50 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         <Undo2 className="h-4 w-4" />
       </button>
 
-      {/* Transition chip (top-left, below status). Always visible so it's discoverable. */}
-      <div className="absolute top-11 left-2 z-30 flex items-center gap-1">
-        <button
-          onClick={() => {
-            // If no transitions exist and we're not mid-flow, tapping starts a new one immediately.
-            if (!activeTransition && !awaitingAnchor && !awaitingAdjacent && transitions.length === 0) {
-              setAwaitingAnchor(true);
-              return;
-            }
-            setTransitionMenuOpen((v) => !v);
-          }}
-          className={
-            "flex items-center gap-1.5 rounded-full backdrop-blur border shadow-sm px-2.5 py-1 text-xs " +
-            (awaitingAnchor || awaitingAdjacent
-              ? "bg-amber-100 border-amber-300 text-amber-900"
-              : activeTransition
-                ? "bg-blue-50 border-blue-300 text-blue-900"
-                : "bg-background/90")
-          }
-        >
-          <span className="inline-block w-2 h-2 rotate-45 bg-current" />
-          {awaitingAnchor ? (
-            <span>Tap anchor point…</span>
-          ) : awaitingAdjacent ? (
-            <span>Tap adjacent surface…</span>
-          ) : activeTransition ? (
-            <span className="font-mono tabular-nums">
-              {activeTransition.offset >= 0 ? "+" : ""}{activeTransition.offset.toFixed(2)}"
-            </span>
-          ) : (
-            <span>Transition</span>
-          )}
-        </button>
-        {(activeTransition || awaitingAnchor || awaitingAdjacent) && (
+      {/* Transition chip — only when mid-flow or transitions exist on this floor. */}
+      {(awaitingAnchor || awaitingAdjacent || activeTransition || transitions.length > 0) && (
+        <div className="absolute top-11 left-2 z-30 flex items-center gap-1">
           <button
-            onClick={() => {
-              setActiveTransitionId(null);
-              setAwaitingAnchor(false);
-              setAwaitingAdjacent(null);
-            }}
-            aria-label="Clear active transition"
-            className="rounded-full bg-background/90 backdrop-blur border shadow-sm h-6 w-6 flex items-center justify-center"
+            type="button"
+            onClick={() => setTransitionMenuOpen((v) => !v)}
+            className={
+              "flex items-center gap-1.5 rounded-full backdrop-blur border shadow-sm px-2.5 py-1 text-xs " +
+              (awaitingAnchor || awaitingAdjacent
+                ? "bg-amber-100 border-amber-300 text-amber-900"
+                : activeTransition
+                  ? "bg-blue-50 border-blue-300 text-blue-900"
+                  : "bg-background/90")
+            }
           >
-            <X className="h-3 w-3" />
+            <span className="inline-block w-2 h-2 rotate-45 bg-current" />
+            {awaitingAnchor ? (
+              <span>Tap anchor point…</span>
+            ) : awaitingAdjacent ? (
+              <span>Tap adjacent surface…</span>
+            ) : activeTransition ? (
+              <span className="font-mono tabular-nums">
+                {activeTransition.offset >= 0 ? "+" : ""}{activeTransition.offset.toFixed(2)}"
+              </span>
+            ) : (
+              <span>Transitions ({transitions.length})</span>
+            )}
           </button>
-        )}
-      </div>
+          {(activeTransition || awaitingAnchor || awaitingAdjacent) && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTransitionId(null);
+                setAwaitingAnchor(false);
+                setAwaitingAdjacent(null);
+              }}
+              aria-label="Clear active transition"
+              className="rounded-full bg-background/90 backdrop-blur border shadow-sm h-6 w-6 flex items-center justify-center"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
 
 
       {/* Transitions menu */}
