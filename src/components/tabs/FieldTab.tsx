@@ -34,7 +34,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [pending, setPending] = useState<PendingKind | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
-  const [dragging, setDragging] = useState<{ id: string; moved: boolean } | null>(null);
+  const [dragging, setDragging] = useState<{ id: string; moved: boolean; startX: number; startY: number } | null>(null);
   const [trashHover, setTrashHover] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const trashRef = useRef<HTMLButtonElement | null>(null);
@@ -245,8 +245,27 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   }
 
   function hitPoint(x: number, y: number) {
-    const r = Math.max(14, 22 / scaleRef.current);
-    return points.find((p) => Math.hypot(p.x - x, p.y - y) < r) ?? null;
+    // Dot hit — tight radius so accidental near-taps don't trigger drag.
+    const r = Math.max(10, 16 / scaleRef.current);
+    for (const p of points) {
+      if (Math.hypot(p.x - x, p.y - y) < r) return p;
+    }
+    // Label hit — the value number acts as a grab handle since the dot is under the finger.
+    // Label is drawn at (p.x + pointSize + 4, p.y + pointSize + 3), bold 12px sans.
+    const fontPx = 12;
+    // Approximate width per char (bold sans): 0.62 * fontPx works for digits/period.
+    const pad = 4 / scaleRef.current;
+    for (const p of points) {
+      const text = p.value.toFixed(2);
+      const w = text.length * fontPx * 0.62;
+      const h = fontPx + 2;
+      const lx = p.x + pointSize + 4;
+      const ly = p.y + pointSize + 3;
+      if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
+        return p;
+      }
+    }
+    return null;
   }
 
   async function undoLast() {
@@ -333,48 +352,54 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         <Undo2 className="h-4 w-4" />
       </button>
 
-      {/* Active transition chip (top-left, below status). Only shows when one is loaded or in-flow. */}
-      {(activeTransition || awaitingAnchor || awaitingAdjacent || transitions.length > 0) && (
-        <div className="absolute top-11 left-2 z-30 flex items-center gap-1">
-          <button
-            onClick={() => setTransitionMenuOpen((v) => !v)}
-            className={
-              "flex items-center gap-1.5 rounded-full backdrop-blur border shadow-sm px-2.5 py-1 text-xs " +
-              (awaitingAnchor || awaitingAdjacent
-                ? "bg-amber-100 border-amber-300 text-amber-900"
-                : activeTransition
-                  ? "bg-blue-50 border-blue-300 text-blue-900"
-                  : "bg-background/90 text-muted-foreground")
+      {/* Transition chip (top-left, below status). Always visible so it's discoverable. */}
+      <div className="absolute top-11 left-2 z-30 flex items-center gap-1">
+        <button
+          onClick={() => {
+            // If no transitions exist and we're not mid-flow, tapping starts a new one immediately.
+            if (!activeTransition && !awaitingAnchor && !awaitingAdjacent && transitions.length === 0) {
+              setAwaitingAnchor(true);
+              return;
             }
-          >
-            <span className="inline-block w-2 h-2 rotate-45 bg-current" />
-            {awaitingAnchor ? (
-              <span>Tap anchor point…</span>
-            ) : awaitingAdjacent ? (
-              <span>Tap adjacent surface…</span>
-            ) : activeTransition ? (
-              <span className="font-mono tabular-nums">
-                {activeTransition.offset >= 0 ? "+" : ""}{activeTransition.offset.toFixed(2)}"
-              </span>
-            ) : (
-              <span>No transition</span>
-            )}
-          </button>
-          {(activeTransition || awaitingAnchor || awaitingAdjacent) && (
-            <button
-              onClick={() => {
-                setActiveTransitionId(null);
-                setAwaitingAnchor(false);
-                setAwaitingAdjacent(null);
-              }}
-              aria-label="Clear active transition"
-              className="rounded-full bg-background/90 backdrop-blur border shadow-sm h-6 w-6 flex items-center justify-center"
-            >
-              <X className="h-3 w-3" />
-            </button>
+            setTransitionMenuOpen((v) => !v);
+          }}
+          className={
+            "flex items-center gap-1.5 rounded-full backdrop-blur border shadow-sm px-2.5 py-1 text-xs " +
+            (awaitingAnchor || awaitingAdjacent
+              ? "bg-amber-100 border-amber-300 text-amber-900"
+              : activeTransition
+                ? "bg-blue-50 border-blue-300 text-blue-900"
+                : "bg-background/90")
+          }
+        >
+          <span className="inline-block w-2 h-2 rotate-45 bg-current" />
+          {awaitingAnchor ? (
+            <span>Tap anchor point…</span>
+          ) : awaitingAdjacent ? (
+            <span>Tap adjacent surface…</span>
+          ) : activeTransition ? (
+            <span className="font-mono tabular-nums">
+              {activeTransition.offset >= 0 ? "+" : ""}{activeTransition.offset.toFixed(2)}"
+            </span>
+          ) : (
+            <span>Transition</span>
           )}
-        </div>
-      )}
+        </button>
+        {(activeTransition || awaitingAnchor || awaitingAdjacent) && (
+          <button
+            onClick={() => {
+              setActiveTransitionId(null);
+              setAwaitingAnchor(false);
+              setAwaitingAdjacent(null);
+            }}
+            aria-label="Clear active transition"
+            className="rounded-full bg-background/90 backdrop-blur border shadow-sm h-6 w-6 flex items-center justify-center"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
 
       {/* Transitions menu */}
       {transitionMenuOpen && (
@@ -471,11 +496,15 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const hit = hitPoint(x, y);
           if (!hit) return false;
           setSelectedIds(new Set([hit.id]));
-          setDragging({ id: hit.id, moved: false });
+          setDragging({ id: hit.id, moved: false, startX: x, startY: y });
           return true;
         }}
         onImagePointerMove={(x, y) => {
           if (!dragging) return;
+          const dist = Math.hypot(x - dragging.startX, y - dragging.startY);
+          // Require ~6px of movement before treating this as a real drag —
+          // stops accidental taps from triggering the trash overlay.
+          if (!dragging.moved && dist < 6) return;
           setDragging({ ...dragging, moved: true });
           onPointsChange(points.map((p) => (p.id === dragging.id ? { ...p, x, y } : p)));
         }}
@@ -579,7 +608,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         }}
       />
 
-      {dragging && (
+      {dragging?.moved && (
         <button
           ref={trashRef}
           type="button"
