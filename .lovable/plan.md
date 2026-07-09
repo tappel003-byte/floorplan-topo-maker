@@ -1,73 +1,52 @@
-## Two things in this build
+## Transitions — per-room datum correction
 
-### 1. Save a permanent rule to memory (do this first)
+### Concept (in your words)
 
-New memory file `mem://preferences/no-rehashing`:
+- Drop a **tile anchor** at 9.0 → plotted as a diamond, stays 9.0.
+- Step onto the wood, take a reading of 9.2 → plotted as a normal point, **displays 9.0**. Offset −0.2 is locked in for this transition.
+- Every subsequent wood reading in that room gets −0.2 applied and displays the corrected value (8.8 → 8.6).
+- The plan and topo only ever show corrected values. Raw is remembered for editing/export.
+- Many transitions per floor. Each has its own anchor location so you can see where it starts.
 
-```
----
-name: Do not re-ask or re-litigate settled points
-description: Prevent wasting the user's credits by re-asking answered questions or re-opening decided design points
-type: preference
----
-The user pays per message. Re-asking something they already answered, or re-opening
-a decision they already made, wastes their money. This has happened and they called it out.
+### Data entry flow
 
-Never:
-- Ask a clarifying question about something the user has already stated in this
-  conversation or in memory. Re-read the thread before asking.
-- Re-open a decision the user already made. If they decided, it's decided.
-- Play back the concept twice for confirmation. Once is enough.
-- Batch 3–4 clarifying questions at once. One at a time, only when genuinely ambiguous.
-- Ask about implementation details after the user has described the workflow that answers them.
+1. Tap **Transition** on the keypad → prompt: "Tap the plan to place the tile anchor."
+2. Tap the plan → keypad opens with **9.0** pre-filled (or type your own anchor value). Confirm → anchor is plotted as a diamond. This transition is now **active**.
+3. Next tap on the plan opens the keypad with two extra buttons: **+Trans** and **−Trans** (alongside the normal ✓).
+   - Type the raw reading (9.2), tap **−Trans** → point plotted, displayed as 9.0. Offset for this transition is now locked at −0.2.
+   - Once the offset is locked, subsequent points in this transition apply it automatically on ✓ — the +/− buttons stay available for manual override.
+4. Switch transitions by tapping another anchor diamond, or by picking from a small **active transition** chip near the status area. Tap the chip's × to clear (new points become plain again).
 
-Do:
-- Before asking anything, scan the thread and memory for the answer. If it's there, use it.
-- When genuinely ambiguous, ask ONE specific question with concrete options.
-- When corrected, apply the correction silently and move on.
-- Trust the user's stated experience. Act as a builder, not a gatekeeper.
+### Visuals
 
-How to apply: Before every question or playback, ask "did they already tell me this?"
-If yes, don't send it.
-```
+- **Data entry view:** diamond = anchor, plain dot = normalized wood point. Point label always shows the corrected value. A subtle color tint per active transition helps you see which room's points belong to which transition.
+- **Topo view:** unchanged. Contours read the corrected value. No diamonds, no markers, no toggles.
 
-Add to `mem://index.md` Core section:
-> Never re-ask what the user already answered or re-open decided points. Wastes their credits. See [no-rehashing](mem://preferences/no-rehashing).
+### Data model (already in place)
 
-### 2. Transition normalization feature
+`SurveyPoint`, `Transition` types and IDB store already exist from earlier work:
+- `SurveyPoint.raw` (as-measured), `.value` (corrected = raw + offset), `.offset`, `.transitionId`, `.isTransitionAnchor`
+- `Transition.anchorId`, `.offset`, `.label`
 
-Capture surface-to-surface offsets on the data entry side so the topo renders the true slab.
+Signed offset (−0.2 for wood-higher, +0.2 for wood-lower) locks on the first normalized point after the anchor. No separate setup dialog — the offset is discovered from the first real reading, which matches how you work.
 
-**Concept**
-- A **transition point** is an anchor on the reference surface (e.g. tile at 9.0). Keeps its true reading. Shown as a **diamond** on data entry.
-- The adjacent reading on the other surface (e.g. carpet at 8.6) establishes the **offset** for that transition (+0.4).
-- Following readings on that surface/zone get the offset applied. The corrected value drives the topo.
-- Buildings have many transitions; each has its own local offset governing its own points.
+### Editing
 
-**Data entry flow**
-1. In the point entry box, user taps **Add transition**.
-2. User places the anchor point on the reference surface → stored as anchor, shown as diamond.
-3. User records the adjacent point on the other surface → app computes offset = anchor − adjacent.
-4. Following points on that surface/zone are tagged to that transition and normalized automatically.
-5. Normalized points show a **box around the dot** on data entry.
+- Edit a normalized point's value → edits its `raw`, offset stays, displayed value recomputes.
+- Edit the anchor → all points in that transition shift with it.
+- Delete the anchor → prompt: "Unlink 4 points from this transition?" → points revert to their raw as their displayed value.
 
-**Data model**
-Each point stores: `raw`, `transitionId` (nullable), `offset`, `value` (raw + offset), `role` (`normal` | `transition-anchor` | `normalized` | `base-point`).
-Transitions are their own list: id, anchor point id, offset, optional label.
+### Files to change
 
-**Two views, one dataset**
-- **Data entry view** — diamonds, boxes, plain dots, base points. Full complexity. Legend in corner.
-- **Topo view** — contours and color only, driven by corrected `value`. No markers, no diamonds, no boxes, no toggles. Doorways render continuous.
+- `src/components/NumericKeypad.tsx` — add +Trans / −Trans buttons; handle Transition mode entry.
+- `src/components/tabs/FieldTab.tsx` — active-transition state, anchor placement flow, diamond rendering, active-transition chip, tap-anchor-to-activate.
+- `src/routes/projects.$id.tsx` — hold active transitionId in project-level state so it survives keypad open/close.
+- `src/lib/db.ts` — already has `saveTransition` / `listTransitions`; wire them into FieldTab.
+- `src/components/tabs/ReviewTab.tsx` — show raw, corrected, offset, transition label per row.
+- `src/components/tabs/ExportTab.tsx` — CSV gets raw, corrected, offset, transitionId, role columns.
 
-**Editing**
-- Editing a normalized point edits its `raw`; offset stays, value recomputes.
-- Editing a transition's offset recomputes every point tagged to it.
-- Deleting a transition unlinks its points; they revert to raw.
+### Out of scope for this pass
 
-**Export**
-CSV columns: raw, corrected, offset, transitionId, normalized flag, role.
-
-**Out of scope**
-- Auto-detecting which points belong to which transition — manual assignment for now.
-- Desktop cleanup / bulk reassignment.
-- Any topo-side toggle to show markers.
+- Auto-detecting which surface a point is on (you assign by picking the active transition).
+- Renaming / labeling transitions beyond an auto-name like "T1, T2" — can add later.
+- Topo-side visualization of transitions.

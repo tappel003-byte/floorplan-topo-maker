@@ -244,16 +244,14 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     setAwaitingAdjacent(anchor);
   }
 
-  function hitPoint(x: number, y: number) {
+  function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
     // Dot hit — tight radius so accidental near-taps don't trigger drag.
     const r = Math.max(10, 16 / scaleRef.current);
     for (const p of points) {
-      if (Math.hypot(p.x - x, p.y - y) < r) return p;
+      if (Math.hypot(p.x - x, p.y - y) < r) return { point: p, on: "dot" };
     }
     // Label hit — the value number acts as a grab handle since the dot is under the finger.
-    // Label is drawn at (p.x + pointSize + 4, p.y + pointSize + 3), bold 12px sans.
     const fontPx = 12;
-    // Approximate width per char (bold sans): 0.62 * fontPx works for digits/period.
     const pad = 4 / scaleRef.current;
     for (const p of points) {
       const text = p.value.toFixed(2);
@@ -262,7 +260,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       const lx = p.x + pointSize + 4;
       const ly = p.y + pointSize + 3;
       if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
-        return p;
+        return { point: p, on: "label" };
       }
     }
     return null;
@@ -492,8 +490,16 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onImagePointerDown={(x, y) => {
           const hit = hitPoint(x, y);
           if (!hit) return false;
-          setSelectedIds(new Set([hit.id]));
-          setDragging({ id: hit.id, moved: false, startX: x, startY: y });
+          const { point: hp, on } = hit;
+          setSelectedIds(new Set([hp.id]));
+          // Tap on an anchor's dot → activate its transition (and don't start a drag).
+          if (on === "dot" && hp.isTransitionAnchor && hp.transitionId) {
+            setActiveTransitionId(hp.transitionId);
+            setAwaitingAnchor(false);
+            setAwaitingAdjacent(null);
+            return true;
+          }
+          setDragging({ id: hp.id, moved: false, startX: x, startY: y });
           return true;
         }}
         onImagePointerMove={(x, y) => {
