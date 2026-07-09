@@ -26,6 +26,8 @@ interface Props {
   onImagePointerDown?: (x: number, y: number, event: ReactPointerEvent<HTMLDivElement>) => boolean;
   onImagePointerMove?: (x: number, y: number, event: ReactPointerEvent<HTMLDivElement>) => void;
   onImagePointerUp?: (x: number, y: number, event: ReactPointerEvent<HTMLDivElement>) => void;
+  /** Fired when a custom-drag gesture is preempted (e.g. pinch takes over). Consumer should discard drag state without deleting anything. */
+  onImagePointerCancel?: (x: number, y: number, event: ReactPointerEvent<HTMLDivElement>) => void;
   /** Plan opacity (only used when planOnTop is false) */
   planOpacity?: number;
   /** Suppress rendering the plan raster (still keeps size) */
