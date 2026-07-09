@@ -490,8 +490,16 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onImagePointerDown={(x, y) => {
           const hit = hitPoint(x, y);
           if (!hit) return false;
-          setSelectedIds(new Set([hit.id]));
-          setDragging({ id: hit.id, moved: false, startX: x, startY: y });
+          const { point: hp, on } = hit;
+          setSelectedIds(new Set([hp.id]));
+          // Tap on an anchor's dot → activate its transition (and don't start a drag).
+          if (on === "dot" && hp.isTransitionAnchor && hp.transitionId) {
+            setActiveTransitionId(hp.transitionId);
+            setAwaitingAnchor(false);
+            setAwaitingAdjacent(null);
+            return true;
+          }
+          setDragging({ id: hp.id, moved: false, startX: x, startY: y });
           return true;
         }}
         onImagePointerMove={(x, y) => {
