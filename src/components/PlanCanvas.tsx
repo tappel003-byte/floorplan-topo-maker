@@ -62,6 +62,7 @@ export function PlanCanvas({
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
+  const [canvasSizeTick, setCanvasSizeTick] = useState(0);
   const transformRef = useRef(transform);
   transformRef.current = transform;
   const onTransformRef = useRef(onTransform);
@@ -84,7 +85,13 @@ export function PlanCanvas({
     img.src = planDataUrl;
   }, [planDataUrl]);
 
-  // Fit-to-view whenever image or wrapper size changes
+  const applyTransform = useCallback((t: CanvasTransform) => {
+    transformRef.current = t;
+    setTransform(t);
+    onTransformRef.current?.(t);
+  }, []);
+
+  // Fit-to-view only on first load/new plan, or when the user taps Fit.
   const fit = useCallback(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
@@ -94,16 +101,20 @@ export function PlanCanvas({
     const tx = (cw - imgW * s) / 2;
     const ty = (ch - imgH * s) / 2;
     const t = { scale: s, tx, ty };
-    setTransform(t);
-    onTransformRef.current?.(t);
-  }, [imgW, imgH]);
+    applyTransform(t);
+  }, [imgW, imgH, applyTransform]);
 
   useEffect(() => {
     fit();
-    const ro = new ResizeObserver(fit);
+  }, [fit, planDataUrl, imgLoaded]);
+
+  useEffect(() => {
+    const ro = new ResizeObserver(() => {
+      setCanvasSizeTick((tick) => tick + 1);
+    });
     if (wrapRef.current) ro.observe(wrapRef.current);
     return () => ro.disconnect();
-  }, [fit]);
+  }, []);
 
   // Render
   const render = useCallback(() => {
@@ -162,7 +173,7 @@ export function PlanCanvas({
     if (drawOverlayTop) drawOverlayTop(ctx);
 
     ctx.restore();
-  }, [transform, imgLoaded, imgW, imgH, drawOverlay, drawOverlayTop, planOpacity, hidePlan, planOnTop]);
+  }, [transform, canvasSizeTick, imgLoaded, imgW, imgH, drawOverlay, drawOverlayTop, planOpacity, hidePlan, planOnTop]);
 
   useEffect(() => {
     render();
@@ -248,8 +259,7 @@ export function PlanCanvas({
       const tx = newMidLocal.x - imgX * scale;
       const ty = newMidLocal.y - imgY * scale;
       const t = { scale: Math.max(0.05, Math.min(20, scale)), tx, ty };
-      setTransform(t);
-      onTransform?.(t);
+      applyTransform(t);
     } else if (pointers.current.size === 1 && singleStart.current) {
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
@@ -261,8 +271,7 @@ export function PlanCanvas({
           tx: transformRef.current.tx + dx,
           ty: transformRef.current.ty + dy,
         };
-        setTransform(t);
-        onTransform?.(t);
+        applyTransform(t);
       }
     }
   }
@@ -291,6 +300,17 @@ export function PlanCanvas({
     singleStart.current = null;
   }
 
+  function onPointerCancel(e: ReactPointerEvent<HTMLDivElement>) {
+    if (customPointer.current === e.pointerId) {
+      const img = toImage(e.clientX, e.clientY);
+      onImagePointerCancel?.(img.x, img.y, e);
+      customPointer.current = null;
+    }
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) gestureStart.current = null;
+    singleStart.current = null;
+  }
+
   // wheel zoom for desktop
   function onWheel(e: React.WheelEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -303,8 +323,7 @@ export function PlanCanvas({
     const imgX = (localX - t.tx) / t.scale;
     const imgY = (localY - t.ty) / t.scale;
     const nt = { scale: newScale, tx: localX - imgX * newScale, ty: localY - imgY * newScale };
-    setTransform(nt);
-    onTransform?.(nt);
+    applyTransform(nt);
   }
 
   return (
@@ -316,7 +335,7 @@ export function PlanCanvas({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onWheel={onWheel}
         style={{ cursor: "crosshair" }}
       >
