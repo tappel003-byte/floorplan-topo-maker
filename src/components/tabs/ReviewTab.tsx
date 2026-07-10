@@ -4,7 +4,6 @@ import type { Floor, SurveyPoint } from "@/lib/types";
 import { deletePoint, reindexFloorPoints, savePoint } from "@/lib/db";
 import { PointDetail } from "@/components/PointDetail";
 
-
 interface Props {
   floor: Floor;
   points: SurveyPoint[];
@@ -15,7 +14,14 @@ interface Props {
   onCommit?: (points: SurveyPoint[]) => void;
 }
 
-export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds, onClose, onCommit }: Props) {
+export function ReviewTab({
+  points,
+  onPointsChange,
+  selectedIds,
+  setSelectedIds,
+  onClose,
+  onCommit,
+}: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
@@ -38,7 +44,7 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds,
     return set;
   }, [points, stats]);
 
-  const detail = detailId ? points.find((p) => p.id === detailId) ?? null : null;
+  const detail = detailId ? (points.find((p) => p.id === detailId) ?? null) : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -78,7 +84,8 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds,
                   onClick={(e) => {
                     if (e.shiftKey || e.metaKey) {
                       const next = new Set(selectedIds);
-                      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                      if (next.has(p.id)) next.delete(p.id);
+                      else next.add(p.id);
                       setSelectedIds(next);
                       return;
                     }
@@ -149,7 +156,6 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds,
     </div>
   );
 }
-
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (

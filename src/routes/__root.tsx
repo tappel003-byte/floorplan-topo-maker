@@ -80,8 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Floor Survey — Foundation topo mapping" },
       {
         name: "description",
-        content:
-          "Offline-first floor elevation survey app for foundation inspectors.",
+        content: "Offline-first floor elevation survey app for foundation inspectors.",
       },
       { property: "og:title", content: "Floor Survey" },
       {

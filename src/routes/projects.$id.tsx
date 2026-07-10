@@ -13,15 +13,11 @@ import { ModeToggle } from "@/components/chrome/ModeToggle";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 
-
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({
-    meta: [
-      { title: "Project · Floor Survey" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Project · Floor Survey" }, { name: "robots", content: "noindex" }],
   }),
   component: ProjectWorkspace,
 });
@@ -37,27 +33,39 @@ function ProjectWorkspace() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [focusRequest, setFocusRequest] = useState<{ x: number; y: number; nonce: number } | undefined>(undefined);
+  const [focusRequest, setFocusRequest] = useState<
+    { x: number; y: number; nonce: number } | undefined
+  >(undefined);
   const [pointSize, setPointSize] = useState<number>(() => {
     try {
       const raw = localStorage.getItem(`dpp-size:${id}`);
       const n = raw ? Number(raw) : 2;
       return Number.isFinite(n) && n >= 1 && n <= 8 ? n : 2;
-    } catch { return 2; }
+    } catch {
+      return 2;
+    }
   });
   useEffect(() => {
-    try { localStorage.setItem(`dpp-size:${id}`, String(pointSize)); } catch {}
+    try {
+      localStorage.setItem(`dpp-size:${id}`, String(pointSize));
+    } catch {
+      /* ignore */
+    }
   }, [pointSize, id]);
   const [pointColor, setPointColor] = useState<string>(() => {
     try {
       return localStorage.getItem(`dpp-color:${id}`) || "#dc2626";
-    } catch { return "#dc2626"; }
+    } catch {
+      return "#dc2626";
+    }
   });
   useEffect(() => {
-    try { localStorage.setItem(`dpp-color:${id}`, pointColor); } catch {}
+    try {
+      localStorage.setItem(`dpp-color:${id}`, pointColor);
+    } catch {
+      /* ignore */
+    }
   }, [pointColor, id]);
-
-
 
   useEffect(() => {
     (async () => {
@@ -184,7 +192,6 @@ function ProjectWorkspace() {
             points={points}
             onPointsChange={setPoints}
             onFloorChange={(f) => setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)))}
-
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             pointSize={pointSize}
@@ -201,9 +208,7 @@ function ProjectWorkspace() {
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             onClose={() => setMode("field")}
-            onCommit={(pts) =>
-              history.commit({ points: pts })
-            }
+            onCommit={(pts) => history.commit({ points: pts })}
           />
         )}
         {mode === "topo" && (
@@ -238,13 +243,12 @@ function ProjectWorkspace() {
           pointColor={pointColor}
           onPointColorChange={setPointColor}
           onPointsChange={setPoints}
-          onCommit={(pts) =>
-            history.commit({ points: pts })
-          }
+          onCommit={(pts) => history.commit({ points: pts })}
           onSelect={(pid, additive) => {
             if (additive) {
               const next = new Set(selectedIds);
-              next.has(pid) ? next.delete(pid) : next.add(pid);
+              if (next.has(pid)) next.delete(pid);
+              else next.add(pid);
               setSelectedIds(next);
             } else {
               setSelectedIds(new Set([pid]));
@@ -254,7 +258,6 @@ function ProjectWorkspace() {
           }}
         />
       )}
-
     </div>
   );
 }

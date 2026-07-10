@@ -51,9 +51,6 @@ export interface NotePin {
   text: string;
 }
 
-
-
-
 export interface SurveyPoint {
   id: string;
   floorId: string;

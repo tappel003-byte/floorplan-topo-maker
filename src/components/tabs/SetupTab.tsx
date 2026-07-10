@@ -54,9 +54,7 @@ export function SetupTab({
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto">
-        {tab === "details" && (
-          <DetailsPanel project={project} onChange={onProjectChange} />
-        )}
+        {tab === "details" && <DetailsPanel project={project} onChange={onProjectChange} />}
         {tab === "plan" && (
           <PlanPanel
             projectId={project.id}
@@ -267,19 +265,15 @@ function PlanPanel({
   );
 }
 
-function BoundaryPanel({
-  floor,
-  onChange,
-}: {
-  floor: Floor;
-  onChange: (f: Floor) => void;
-}) {
+function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) => void }) {
   const boundary = floor.boundary;
 
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-2 flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">Tap to add vertices, tap the first vertex to close.</span>
+        <span className="text-muted-foreground">
+          Tap to add vertices, tap the first vertex to close.
+        </span>
         <div className="ml-auto flex gap-2">
           <Button
             size="sm"
@@ -334,4 +328,3 @@ function BoundaryPanel({
     </div>
   );
 }
-

@@ -44,8 +44,7 @@ export function AppTopBar({
     };
   }, [menuOpen]);
 
-  const fire = (name: "app:undo" | "app:redo") =>
-    window.dispatchEvent(new CustomEvent(name));
+  const fire = (name: "app:undo" | "app:redo") => window.dispatchEvent(new CustomEvent(name));
 
   return (
     <header className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b pt-[env(safe-area-inset-top)]">
@@ -138,8 +137,7 @@ function MenuItem({
       role="menuitem"
       onClick={onClick}
       className={
-        "w-full text-left px-3 py-1.5 hover:bg-accent " +
-        (destructive ? "text-destructive" : "")
+        "w-full text-left px-3 py-1.5 hover:bg-accent " + (destructive ? "text-destructive" : "")
       }
     >
       {label}

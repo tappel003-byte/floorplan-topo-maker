@@ -14,7 +14,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { listProjects, saveProject, deleteProject, uid, listFloors, listPoints, saveFloor } from "@/lib/db";
+import {
+  listProjects,
+  saveProject,
+  deleteProject,
+  uid,
+  listFloors,
+  listPoints,
+  saveFloor,
+} from "@/lib/db";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -101,11 +109,7 @@ export function ProjectList() {
         <div className="grid gap-3">
           {projects.map((p) => (
             <Card key={p.id} className="flex items-center justify-between p-4">
-              <Link
-                to="/projects/$id"
-                params={{ id: p.id }}
-                className="flex-1 min-w-0"
-              >
+              <Link to="/projects/$id" params={{ id: p.id }} className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground break-words">
                   {p.address || "No address"}
@@ -113,7 +117,6 @@ export function ProjectList() {
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {p.inspectionDate || "no date"}
                 </div>
-
               </Link>
               <Button
                 variant="ghost"
@@ -150,11 +153,15 @@ function NewProjectDialog({
       </DialogHeader>
       <div className="grid gap-3">
         <div>
-          <Label htmlFor="np-date" className="label-micro">Inspection date</Label>
+          <Label htmlFor="np-date" className="label-micro">
+            Inspection date
+          </Label>
           <Input id="np-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <div>
-          <Label htmlFor="np-name" className="label-micro">Project name</Label>
+          <Label htmlFor="np-name" className="label-micro">
+            Project name
+          </Label>
           <Input
             id="np-name"
             value={name}
@@ -163,22 +170,35 @@ function NewProjectDialog({
           />
         </div>
         <div>
-          <Label htmlFor="np-addr" className="label-micro">Address</Label>
+          <Label htmlFor="np-addr" className="label-micro">
+            Address
+          </Label>
           <Input id="np-addr" value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="np-client" className="label-micro">Client</Label>
+            <Label htmlFor="np-client" className="label-micro">
+              Client
+            </Label>
             <Input id="np-client" value={client} onChange={(e) => setClient(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="np-insp" className="label-micro">Inspector</Label>
+            <Label htmlFor="np-insp" className="label-micro">
+              Inspector
+            </Label>
             <Input id="np-insp" value={inspector} onChange={(e) => setInspector(e.target.value)} />
           </div>
         </div>
         <div>
-          <Label htmlFor="np-notes" className="label-micro">Notes</Label>
-          <Textarea id="np-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <Label htmlFor="np-notes" className="label-micro">
+            Notes
+          </Label>
+          <Textarea
+            id="np-notes"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
         </div>
       </div>
       <DialogFooter>

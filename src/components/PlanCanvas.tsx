@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, useCallback, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 export interface CanvasTransform {
   scale: number;
@@ -131,7 +137,6 @@ export function PlanCanvas({
     applyTransform({ scale, tx, ty });
   }, [focusRequest, applyTransform, imgW, imgH]);
 
-
   useEffect(() => {
     const ro = new ResizeObserver(() => {
       setCanvasSizeTick((tick) => tick + 1);
@@ -197,7 +202,18 @@ export function PlanCanvas({
     if (drawOverlayTop) drawOverlayTop(ctx);
 
     ctx.restore();
-  }, [transform, canvasSizeTick, imgLoaded, imgW, imgH, drawOverlay, drawOverlayTop, planOpacity, hidePlan, planOnTop]);
+  }, [
+    transform,
+    canvasSizeTick,
+    imgLoaded,
+    imgW,
+    imgH,
+    drawOverlay,
+    drawOverlayTop,
+    planOpacity,
+    hidePlan,
+    planOnTop,
+  ]);
 
   useEffect(() => {
     render();
@@ -287,7 +303,10 @@ export function PlanCanvas({
     } else if (pointers.current.size === 1 && singleStart.current) {
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
-      const total = Math.hypot(e.clientX - singleStart.current.x, e.clientY - singleStart.current.y);
+      const total = Math.hypot(
+        e.clientX - singleStart.current.x,
+        e.clientY - singleStart.current.y,
+      );
       if (total > 6) singleStart.current.moved = true;
       if (singleStart.current.moved) {
         const t = {

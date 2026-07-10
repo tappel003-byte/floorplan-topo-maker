@@ -23,7 +23,6 @@ interface Props {
   onCommit?: (snap: FloorSnapshot) => void;
 }
 
-
 type DragState = {
   id: string;
   moved: boolean;
@@ -54,7 +53,19 @@ const NOTE_RADIUS = 11; // image-space radius for note pin hit / draw
 const NOTE_COLOR = "#f97316"; // orange-500
 const LONG_PRESS_MS = 380;
 
-export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest, onCommit }: Props) {
+export function FieldTab({
+  projectId,
+  floor,
+  points,
+  onPointsChange,
+  onFloorChange,
+  selectedIds,
+  setSelectedIds,
+  pointSize,
+  pointColor,
+  focusRequest,
+  onCommit,
+}: Props) {
   void projectId;
   const scaleRef = useRef(1);
   const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
@@ -70,7 +81,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
   const [notesListOpen, setNotesListOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
-  const [noteFocusReq, setNoteFocusReq] = useState<{ x: number; y: number; nonce: number } | undefined>(undefined);
+  const [noteFocusReq, setNoteFocusReq] = useState<
+    { x: number; y: number; nonce: number } | undefined
+  >(undefined);
   const noteDragRef = useRef<NoteDragState | null>(null);
   const lastNoteTapRef = useRef<{ id: string; at: number } | null>(null);
   const [, setNoteDragTick] = useState(0);
@@ -200,7 +213,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
   // Editor screen position (from image coords → wrapper coords)
   const editingNote = editingNoteId ? notes.find((n) => n.id === editingNoteId) : null;
   const editorScreen = editingNote
-    ? { x: editingNote.x * transform.scale + transform.tx, y: editingNote.y * transform.scale + transform.ty }
+    ? {
+        x: editingNote.x * transform.scale + transform.tx,
+        y: editingNote.y * transform.scale + transform.ty,
+      }
     : null;
 
   async function saveNoteEditor() {
@@ -218,11 +234,12 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
 
   return (
     <div className="flex flex-col h-full relative">
-
       {/* Dismissible boundary warning */}
       {floor.boundary.length < 3 && !warningDismissed && (
         <div className="absolute top-2 left-2 right-2 z-20 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
-          <span className="flex-1">Draw a boundary in Setup → Boundary before collecting points.</span>
+          <span className="flex-1">
+            Draw a boundary in Setup → Boundary before collecting points.
+          </span>
           <button
             onClick={() => setWarningDismissed(true)}
             className="text-amber-700 hover:text-amber-900 shrink-0"
@@ -236,7 +253,11 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
       <div className="absolute z-20 top-2 right-2 h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
         <button
-          onClick={() => { setNoteMode((v) => !v); setEditingNoteId(null); setNotesListOpen(false); }}
+          onClick={() => {
+            setNoteMode((v) => !v);
+            setEditingNoteId(null);
+            setNotesListOpen(false);
+          }}
           className={`px-3 py-2 flex items-center gap-1.5 transition-colors ${
             noteMode ? "bg-orange-500 text-white" : "text-gray-700 hover:bg-gray-50"
           }`}
@@ -247,7 +268,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
           {noteMode ? "Notes on" : "Note"}
         </button>
         <button
-          onClick={() => { setNotesListOpen((v) => !v); setEditingNoteId(null); }}
+          onClick={() => {
+            setNotesListOpen((v) => !v);
+            setEditingNoteId(null);
+          }}
           className={`px-3 py-2 flex items-center gap-1.5 border-l border-gray-200 transition-colors ${
             notesListOpen ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-50"
           }`}
@@ -266,7 +290,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">All Notes</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              All Notes
+            </span>
             <button
               onClick={() => setNotesListOpen(false)}
               className="text-gray-400 hover:text-gray-700 text-sm px-1"
@@ -276,7 +302,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
             </button>
           </div>
           {notes.length === 0 ? (
-            <div className="p-4 text-xs text-gray-500 text-center">No notes yet. Turn on Note mode and tap the plan to drop one.</div>
+            <div className="p-4 text-xs text-gray-500 text-center">
+              No notes yet. Turn on Note mode and tap the plan to drop one.
+            </div>
           ) : (
             <ul className="divide-y divide-gray-100">
               {notes.map((n, i) => (
@@ -292,10 +320,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
                     {i + 1}
                   </button>
                   <button
-                    onClick={() => { openNoteEditor(n); setNotesListOpen(false); }}
+                    onClick={() => {
+                      openNoteEditor(n);
+                      setNotesListOpen(false);
+                    }}
                     className="flex-1 min-w-0 text-left text-xs text-gray-700"
                   >
-                    {n.text.trim() ? <span className="line-clamp-3 whitespace-pre-wrap">{n.text}</span> : <span className="italic text-gray-400">(empty)</span>}
+                    {n.text.trim() ? (
+                      <span className="line-clamp-3 whitespace-pre-wrap">{n.text}</span>
+                    ) : (
+                      <span className="italic text-gray-400">(empty)</span>
+                    )}
                   </button>
                   <button
                     onClick={() => deleteNote(n.id)}
@@ -315,9 +350,16 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
         planDataUrl={floor.planDataUrl}
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
-        focusRequest={noteFocusReq && (!focusRequest || noteFocusReq.nonce > focusRequest.nonce) ? noteFocusReq : focusRequest}
+        focusRequest={
+          noteFocusReq && (!focusRequest || noteFocusReq.nonce > focusRequest.nonce)
+            ? noteFocusReq
+            : focusRequest
+        }
         onTap={handleTap}
-        onTransform={(t) => { scaleRef.current = t.scale; setTransform(t); }}
+        onTransform={(t) => {
+          scaleRef.current = t.scale;
+          setTransform(t);
+        }}
         onImagePointerDown={(x, y, event) => {
           // Note pin takes priority (both modes) — supports long-press-drag and tap-to-open
           const note = hitNote(x, y);
@@ -370,7 +412,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
         onImagePointerMove={(x, y, event) => {
           const nd = noteDragRef.current;
           if (nd) {
-            const screenDist = Math.hypot(event.clientX - nd.startClientX, event.clientY - nd.startClientY);
+            const screenDist = Math.hypot(
+              event.clientX - nd.startClientX,
+              event.clientY - nd.startClientY,
+            );
             if (screenDist > 8) nd.moved = true;
             if (!nd.active) return; // must long-press first to start moving
             const nx = nd.origX + (x - nd.startImgX);
@@ -382,7 +427,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
           }
           const drag = dragRef.current;
           if (!drag) return;
-          const screenDist = Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY);
+          const screenDist = Math.hypot(
+            event.clientX - drag.startClientX,
+            event.clientY - drag.startClientY,
+          );
           if (!drag.moved && screenDist < 18) return;
           const nx = drag.origX + (x - drag.startImgX);
           const ny = drag.origY + (y - drag.startImgY);
@@ -394,19 +442,29 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
         onImagePointerCancel={() => {
           dragRef.current = null;
           setDragging(null);
-          if (longPressTimerRef.current) { window.clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+          if (longPressTimerRef.current) {
+            window.clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+          }
           noteDragRef.current = null;
           setNoteDragTick((t) => t + 1);
         }}
         onImagePointerUp={async (x, y, _event) => {
           const nd = noteDragRef.current;
           if (nd) {
-            if (longPressTimerRef.current) { window.clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+            if (longPressTimerRef.current) {
+              window.clearTimeout(longPressTimerRef.current);
+              longPressTimerRef.current = null;
+            }
             noteDragRef.current = null;
             setNoteDragTick((t) => t + 1);
             if (nd.active) {
               // committed a move — persist
-              const moved = notes.map((n) => (n.id === nd.id ? { ...n, x: nd.origX + (x - nd.startImgX), y: nd.origY + (y - nd.startImgY) } : n));
+              const moved = notes.map((n) =>
+                n.id === nd.id
+                  ? { ...n, x: nd.origX + (x - nd.startImgX), y: nd.origY + (y - nd.startImgY) }
+                  : n,
+              );
               await persistNotes(moved);
             } else if (!nd.moved) {
               // Double-tap on pin → open editor. Single tap does nothing so
@@ -531,38 +589,41 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
             className="w-full min-h-[90px] text-base border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-y"
           />
           <div className="flex justify-end gap-2 mt-2">
-            <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(null)}>Cancel</Button>
-            <Button size="sm" onClick={saveNoteEditor}>Save</Button>
+            <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(null)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={saveNoteEditor}>
+              Save
+            </Button>
           </div>
         </div>
       )}
 
       <NumericKeypad
         open={(!!pending && !bpPromptOpen) || !!editingPoint}
-        initialValue={
-          editingPoint
-            ? editingPoint.value
-            : isBasePointCapture
-              ? 9.0
-              : undefined
-        }
+        initialValue={editingPoint ? editingPoint.value : isBasePointCapture ? 9.0 : undefined}
         repeatValue={
-          !editingPoint && !isBasePointCapture
-            ? points[points.length - 1]?.value
-            : undefined
+          !editingPoint && !isBasePointCapture ? points[points.length - 1]?.value : undefined
         }
         title={keypadTitle}
         subtitle="Inches. Positive = higher, negative = lower."
-        onClose={() => { setPending(null); setEditingPoint(null); }}
-        onSubmit={submitValue}
-        onDelete={editingPoint ? async () => {
-          const p = editingPoint;
+        onClose={() => {
+          setPending(null);
           setEditingPoint(null);
-          await deletePoint(p.id);
-          const reindexed = await reindexFloorPoints(floor.id);
-          onPointsChange(reindexed);
-          commitSnap(reindexed);
-        } : undefined}
+        }}
+        onSubmit={submitValue}
+        onDelete={
+          editingPoint
+            ? async () => {
+                const p = editingPoint;
+                setEditingPoint(null);
+                await deletePoint(p.id);
+                const reindexed = await reindexFloorPoints(floor.id);
+                onPointsChange(reindexed);
+                commitSnap(reindexed);
+              }
+            : undefined
+        }
       />
 
       {bpPromptOpen && pending && (
@@ -574,7 +635,13 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
               reference elevation. Default is 9.0". Tap Continue to enter its value.
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => { setPending(null); setBpPromptOpen(false); }}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setPending(null);
+                  setBpPromptOpen(false);
+                }}
+              >
                 Cancel
               </Button>
               <Button onClick={() => setBpPromptOpen(false)}>Continue</Button>
@@ -582,7 +649,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
           </div>
         </div>
       )}
-
     </div>
   );
 }
