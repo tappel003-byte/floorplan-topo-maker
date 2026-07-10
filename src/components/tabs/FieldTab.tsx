@@ -652,6 +652,15 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onClose={() => { setPending(null); setEditingPoint(null); }}
         onSubmit={submitValue}
         secondaryAction={secondaryAction}
+        onDelete={editingPoint ? async () => {
+          const p = editingPoint;
+          setEditingPoint(null);
+          if (p.isTransitionAnchor && p.transitionId) {
+            await removeTransition(p.transitionId);
+          }
+          await deletePoint(p.id);
+          onPointsChange(points.filter((x) => x.id !== p.id));
+        } : undefined}
       />
 
       {/* Base Point confirmation prompt */}
