@@ -126,6 +126,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
       const pin: NotePin = { id: uid(), x, y, text: "" };
       const next = [...notes, pin];
       await persistNotes(next);
+      openNoteEditor(pin);
       return;
     }
     // Normal mode: place a survey point (ignore taps on note pins so they don't collide)
