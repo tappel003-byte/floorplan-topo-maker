@@ -18,6 +18,7 @@ interface Props {
   onFloorChange: (floor: Floor) => void;
   settings: RenderSettings;
   onSettingsChange: (s: RenderSettings) => void;
+  selectedIds?: Set<string>;
 }
 
 const DEFAULT_LABEL_DX = 8;
