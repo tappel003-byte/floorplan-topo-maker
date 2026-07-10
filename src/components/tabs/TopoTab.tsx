@@ -245,7 +245,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
       )}
       {openCorner !== "labels" && (
         <CornerIcon
-          pos="bottom-2 right-2"
+          pos="bottom-3 right-3"
           active={false}
           onClick={() => setOpenCorner("labels")}
           label="Labels & layers"
@@ -499,7 +499,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
 
         {/* Labels & layers popover — lower right */}
         {openCorner === "labels" && (
-          <CornerPanel pos="bottom-14 right-2" onClose={() => setOpenCorner(null)} title="Labels & layers">
+          <CornerPanel pos="bottom-14 right-3" onClose={() => setOpenCorner(null)} title="Labels & layers">
             <div className="grid grid-cols-2 gap-2">
               <SwitchRow label="Labels" checked={resolved.showLabels} onChange={(v) => update({ showLabels: v })} />
               <NumberControl
