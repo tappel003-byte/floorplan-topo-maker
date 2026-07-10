@@ -94,7 +94,6 @@ function ProjectWorkspace() {
   const applySnapshot = useCallback(
     async (snap: FloorSnapshot) => {
       if (!activeFloor) return;
-      const floorId = activeFloor.id;
       // Diff points
       const nextIds = new Set(snap.points.map((p) => p.id));
       for (const p of points) {
