@@ -23,7 +23,7 @@ let dbPromise: Promise<IDBPDatabase<FloorSurveyDB>> | null = null;
 
 const REQUIRED_STORES = ["projects", "floors", "points"] as const;
 
-function hasRequiredStores(db: IDBPDatabase) {
+function hasRequiredStores(db: { objectStoreNames: DOMStringList }) {
   return REQUIRED_STORES.every((name) => db.objectStoreNames.contains(name));
 }
 
