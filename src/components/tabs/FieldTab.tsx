@@ -140,6 +140,7 @@ export function FieldTab({
       const next = [...notes, pin];
       await persistNotes(next);
       openNoteEditor(pin);
+      setNoteMode(false);
       return;
     }
     // Normal mode: place a survey point (ignore taps on note pins so they don't collide)
@@ -546,9 +547,9 @@ export function FieldTab({
             ctx.stroke();
 
             ctx.fillStyle = "#111827";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "top";
-            ctx.fillText(label, lx, ly);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(label, lx + tm.width / 2, ly - padY + (12 + padY * 2) / 2);
           }
           // Note pins (drawn on top of points visually is fine; they're field-only)
           for (let i = 0; i < notes.length; i++) {
