@@ -200,8 +200,27 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       ? "Base Point value (BP1)"
       : `Point #${nextIndex}`;
 
+  const openNote = notePins.find((p) => p.id === openNoteId) || null;
+
   return (
-    <div className="flex flex-col h-full relative">
+    <div ref={containerRef} className="flex flex-col h-full relative">
+
+      {/* Note-mode toggle pill */}
+      <button
+        type="button"
+        onClick={() => setNoteMode((v) => !v)}
+        aria-pressed={noteMode}
+        className={
+          "absolute top-2 right-2 z-20 h-9 px-3 rounded-full text-xs font-semibold shadow-sm border flex items-center gap-1.5 " +
+          (noteMode
+            ? "bg-amber-500 text-white border-amber-600"
+            : "bg-white/90 backdrop-blur text-amber-900 border-amber-300")
+        }
+      >
+        <StickyNote className="w-3.5 h-3.5" />
+        {noteMode ? "Placing note" : "Note"}
+      </button>
+
 
       {/* Dismissible boundary warning */}
       {floor.boundary.length < 3 && !warningDismissed && (
