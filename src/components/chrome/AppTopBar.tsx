@@ -8,6 +8,8 @@ type Props = {
   onOpenSetup: () => void;
   onOpenReview: () => void;
   onOpenExport: () => void;
+  undoEnabled?: boolean;
+  redoEnabled?: boolean;
 };
 
 /**
