@@ -47,6 +47,15 @@ function ProjectWorkspace() {
   useEffect(() => {
     try { localStorage.setItem(`dpp-size:${id}`, String(pointSize)); } catch {}
   }, [pointSize, id]);
+  const [pointColor, setPointColor] = useState<string>(() => {
+    try {
+      return localStorage.getItem(`dpp-color:${id}`) || "#dc2626";
+    } catch { return "#dc2626"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(`dpp-color:${id}`, pointColor); } catch {}
+  }, [pointColor, id]);
+
 
 
   useEffect(() => {
@@ -144,6 +153,8 @@ function ProjectWorkspace() {
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             pointSize={pointSize}
+            pointColor={pointColor}
+
           />
         )}
         {mode === "review" && (
@@ -185,7 +196,10 @@ function ProjectWorkspace() {
           selectedIds={selectedIds}
           pointSize={pointSize}
           onPointSizeChange={setPointSize}
+          pointColor={pointColor}
+          onPointColorChange={setPointColor}
           onPointsChange={setPoints}
+
           onSelect={(pid, additive) => {
             if (additive) {
               const next = new Set(selectedIds);
