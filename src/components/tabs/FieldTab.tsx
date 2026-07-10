@@ -329,7 +329,35 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.lineWidth = 3;
             ctx.stroke();
           }
+          // notes: small amber pin with first line of text next to it
+          for (const n of notes) {
+            const size = 12;
+            ctx.fillStyle = "#fbbf24";
+            ctx.strokeStyle = "#78350f";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.rect(n.x - size / 2, n.y - size / 2, size, size);
+            ctx.fill();
+            ctx.stroke();
+            // preview of first line, truncated
+            const firstLine = n.text.split("\n")[0].slice(0, 32);
+            if (firstLine) {
+              ctx.font = "600 11px sans-serif";
+              const tw = ctx.measureText(firstLine).width;
+              const tx = n.x + size / 2 + 4;
+              const ty = n.y - 8;
+              ctx.fillStyle = "rgba(255,251,235,0.92)";
+              ctx.fillRect(tx - 2, ty - 1, tw + 4, 14);
+              ctx.strokeStyle = "rgba(120,53,15,0.35)";
+              ctx.strokeRect(tx - 2, ty - 1, tw + 4, 14);
+              ctx.fillStyle = "#78350f";
+              ctx.textAlign = "left";
+              ctx.textBaseline = "top";
+              ctx.fillText(firstLine, tx, ty + 1);
+            }
+          }
         }}
+
       />
 
       <NumericKeypad
