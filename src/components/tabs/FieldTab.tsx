@@ -5,7 +5,7 @@ import { NumericKeypad } from "../NumericKeypad";
 import { Button } from "@/components/ui/button";
 
 import type { Floor, SurveyPoint } from "@/lib/types";
-import { savePoint, deletePoint, uid } from "@/lib/db";
+import { savePoint, deletePoint, reindexFloorPoints, uid } from "@/lib/db";
 
 interface Props {
   projectId: string;
@@ -113,7 +113,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     const last = points[points.length - 1];
     if (!last) return;
     await deletePoint(last.id);
-    onPointsChange(points.slice(0, -1));
+    const reindexed = await reindexFloorPoints(floor.id);
+    onPointsChange(reindexed);
   }
 
   const keypadTitle = editingPoint
@@ -268,7 +269,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const p = editingPoint;
           setEditingPoint(null);
           await deletePoint(p.id);
-          onPointsChange(points.filter((x) => x.id !== p.id));
+          const reindexed = await reindexFloorPoints(floor.id);
+          onPointsChange(reindexed);
         } : undefined}
       />
 

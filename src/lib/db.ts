@@ -112,6 +112,23 @@ export async function deletePoint(id: string) {
   await db.delete("points", id);
 }
 
+/** Reassign sequential indexes (1..N) to points on a floor, ordered by current index. */
+export async function reindexFloorPoints(floorId: string): Promise<SurveyPoint[]> {
+  const db = await getDB();
+  const all = (await db.getAllFromIndex("points", "floorId", floorId)).sort(
+    (a, b) => a.index - b.index,
+  );
+  const tx = db.transaction("points", "readwrite");
+  const updated: SurveyPoint[] = [];
+  for (let i = 0; i < all.length; i++) {
+    const next = { ...all[i], index: i + 1 };
+    updated.push(next);
+    await tx.store.put(next);
+  }
+  await tx.done;
+  return updated;
+}
+
 export function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { ChevronDown, ChevronUp, X, GripVertical, Database, Minus, Plus } from "lucide-react";
 import type { SurveyPoint } from "@/lib/types";
 import { PointDetail } from "@/components/PointDetail";
-import { deletePoint, savePoint } from "@/lib/db";
+import { deletePoint, reindexFloorPoints, savePoint } from "@/lib/db";
 
 interface Props {
   projectId: string;
@@ -267,7 +267,8 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         onDelete={async () => {
           if (!confirm(`Delete point #${detail.index}?`)) return;
           await deletePoint(detail.id);
-          onPointsChange(points.filter((x) => x.id !== detail.id));
+          const reindexed = await reindexFloorPoints(detail.floorId);
+          onPointsChange(reindexed);
           setDetailId(null);
         }}
       />
