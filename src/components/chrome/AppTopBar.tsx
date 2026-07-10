@@ -1,17 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ArrowLeft, MoreHorizontal, Undo2, Redo2 } from "lucide-react";
-import { deleteProject, listPoints, deletePoint } from "@/lib/db";
 
 type Props = {
-  projectId: string;
   projectName: string;
   floorName: string;
-  activeFloorId: string;
   onOpenSetup: () => void;
   onOpenReview: () => void;
   onOpenExport: () => void;
-  onPointsCleared?: () => void;
 };
 
 /**
@@ -20,18 +16,14 @@ type Props = {
  * without a global store change.
  */
 export function AppTopBar({
-  projectId,
   projectName,
   floorName,
-  activeFloorId,
   onOpenSetup,
   onOpenReview,
   onOpenExport,
-  onPointsCleared,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -50,21 +42,6 @@ export function AppTopBar({
 
   const fire = (name: "app:undo" | "app:redo") =>
     window.dispatchEvent(new CustomEvent(name));
-
-  const handleClearPoints = async () => {
-    setMenuOpen(false);
-    if (!confirm("Clear all points on this floor? This cannot be undone.")) return;
-    const pts = await listPoints(activeFloorId);
-    for (const p of pts) await deletePoint(p.id);
-    onPointsCleared?.();
-  };
-
-  const handleDeleteProject = async () => {
-    setMenuOpen(false);
-    if (!confirm(`Delete project "${projectName}"? This cannot be undone.`)) return;
-    await deleteProject(projectId);
-    navigate({ to: "/" });
-  };
 
   return (
     <header className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b">
@@ -132,9 +109,6 @@ export function AppTopBar({
                   onOpenExport();
                 }}
               />
-              <div className="my-1 border-t" />
-              <MenuItem label="Clear all points" onClick={handleClearPoints} destructive />
-              <MenuItem label="Delete project" onClick={handleDeleteProject} destructive />
             </div>
           )}
         </div>
