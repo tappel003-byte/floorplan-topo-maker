@@ -546,9 +546,9 @@ export function FieldTab({
             ctx.stroke();
 
             ctx.fillStyle = "#111827";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "top";
-            ctx.fillText(label, lx, ly);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(label, lx + tm.width / 2, ly - padY + (12 + padY * 2) / 2);
           }
           // Note pins (drawn on top of points visually is fine; they're field-only)
           for (let i = 0; i < notes.length; i++) {
