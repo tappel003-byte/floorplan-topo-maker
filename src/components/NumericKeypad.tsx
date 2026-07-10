@@ -24,15 +24,13 @@ export function NumericKeypad({
   subtitle,
   onSubmit,
   onClose,
-  secondaryAction,
   onDelete,
 }: Props) {
   const [text, setText] = useState<string>("");
 
-  const parsedText = parseFloat(text);
-  const hasTypedValue = text.trim() !== "" && isFinite(parsedText);
-  const canUseRepeatValue = repeatValue != null && isFinite(repeatValue);
-  const actionableValue = hasTypedValue ? parsedText : canUseRepeatValue ? repeatValue : undefined;
+  useEffect(() => {
+    if (open) setText(initialValue != null ? String(initialValue) : "");
+  }, [open, initialValue]);
 
   useEffect(() => {
     if (open) setText(initialValue != null ? String(initialValue) : "");
