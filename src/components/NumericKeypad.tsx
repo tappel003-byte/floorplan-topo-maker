@@ -11,9 +11,6 @@ interface Props {
   subtitle?: string;
   onSubmit: (value: number) => void;
   onClose: () => void;
-  /** Optional secondary action rendered as a full-width button under the display,
-   * e.g. "Add transition" or "Save as adjacent reading". */
-  secondaryAction?: { label: string; onClick: (value: number) => void; disabled?: boolean };
   /** When provided, shows a trash button in the header. Used for editing existing points. */
   onDelete?: () => void;
 }
@@ -27,15 +24,13 @@ export function NumericKeypad({
   subtitle,
   onSubmit,
   onClose,
-  secondaryAction,
   onDelete,
 }: Props) {
   const [text, setText] = useState<string>("");
 
-  const parsedText = parseFloat(text);
-  const hasTypedValue = text.trim() !== "" && isFinite(parsedText);
-  const canUseRepeatValue = repeatValue != null && isFinite(repeatValue);
-  const actionableValue = hasTypedValue ? parsedText : canUseRepeatValue ? repeatValue : undefined;
+  useEffect(() => {
+    if (open) setText(initialValue != null ? String(initialValue) : "");
+  }, [open, initialValue]);
 
   useEffect(() => {
     if (open) setText(initialValue != null ? String(initialValue) : "");
@@ -134,17 +129,6 @@ export function NumericKeypad({
             className="mb-3 w-full h-11 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99]"
           >
             <Repeat2 className="h-4 w-4" /> Repeat last ({repeatValue.toFixed(2)})
-          </button>
-        )}
-        {secondaryAction && (
-          <button
-            onClick={() => {
-              if (actionableValue != null) secondaryAction.onClick(actionableValue);
-            }}
-            disabled={secondaryAction.disabled || actionableValue == null}
-            className="mb-3 w-full h-11 rounded-lg border border-dashed border-amber-500/60 bg-amber-50 text-amber-900 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-40"
-          >
-            {secondaryAction.label}
           </button>
         )}
         <div className="grid grid-cols-3 gap-2">

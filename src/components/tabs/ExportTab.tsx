@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
-import type { Floor, ProjectMeta, RenderSettings, SurveyPoint, Transition } from "@/lib/types";
+import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { buildGrid, computeContours } from "@/lib/topo";
 import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
-import { listTransitions } from "@/lib/db";
 
 interface Props {
   project: ProjectMeta;
@@ -23,14 +22,10 @@ export function ExportTab({ project, floor, points, settings }: Props) {
   const [format, setFormat] = useState<(typeof FORMATS)[number]>("png");
   const [status, setStatus] = useState<string>("");
   const [pointsOnly, setPointsOnly] = useState(false);
-  const [transitions, setTransitions] = useState<Transition[]>([]);
   const previewRef = useRef<HTMLCanvasElement | null>(null);
   const resolved = resolveSettings(settings);
   const exportSettings = pointsOnly ? resolveSettings({ ...resolved, mode: "points-only", showContours: false, showLegend: false, showHighLow: false, showPoints: true, showLabels: false }) : resolved;
 
-  useEffect(() => {
-    (async () => setTransitions(await listTransitions(floor.id)))();
-  }, [floor.id]);
 
   const grid = useMemo(() => {
     if (points.length < 3 || floor.boundary.length < 3) return null;
@@ -91,44 +86,19 @@ export function ExportTab({ project, floor, points, settings }: Props) {
   function downloadCsv() {
     const safe = project.name.replace(/[^a-z0-9-]+/gi, "_");
     const rows: string[] = [];
-    rows.push([
-      "index", "label", "x", "y", "raw", "offset", "corrected",
-      "normalized", "role", "transition_id", "transition_offset", "notes",
-    ].join(","));
+    rows.push(["index", "label", "x", "y", "value", "role", "notes"].join(","));
     for (const p of points) {
-      const raw = p.raw ?? p.value;
-      const offset = p.offset ?? 0;
-      const role = p.isBasePoint
-        ? "base-point"
-        : p.isTransitionAnchor
-          ? "transition-anchor"
-          : p.transitionId
-            ? "normalized"
-            : "normal";
-      const t = transitions.find((tr) => tr.id === p.transitionId);
+      const role = p.isBasePoint ? "base-point" : "normal";
       const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
       rows.push([
         p.index,
         esc(p.label ?? ""),
         p.x.toFixed(2),
         p.y.toFixed(2),
-        raw.toFixed(3),
-        offset.toFixed(3),
         p.value.toFixed(3),
-        p.transitionId ? "yes" : "no",
         role,
-        esc(p.transitionId ?? ""),
-        t ? t.offset.toFixed(3) : "",
         esc(p.notes ?? ""),
       ].join(","));
-    }
-    if (transitions.length) {
-      rows.push("");
-      rows.push("# Transitions");
-      rows.push(["transition_id", "anchor_point_id", "offset", "label"].join(","));
-      for (const t of transitions) {
-        rows.push([t.id, t.anchorId, t.offset.toFixed(3), `"${(t.label ?? "").replace(/"/g, '""')}"`].join(","));
-      }
     }
     const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -138,6 +108,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     setStatus("CSV exported.");
   }
+
 
   async function doExport() {
     if (format === "csv") { downloadCsv(); return; }
