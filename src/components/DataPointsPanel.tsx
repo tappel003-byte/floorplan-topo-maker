@@ -111,7 +111,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         onPointerCancel={onHeaderUp}
       >
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-[11px] font-semibold flex-1">Data · {points.length}</span>
+        <span className="text-[11px] font-semibold flex-1">Data</span>
         <button
           className="p-0.5 hover:bg-muted rounded"
           onClick={() => setState((s) => ({ ...s, collapsed: !s.collapsed }))}
