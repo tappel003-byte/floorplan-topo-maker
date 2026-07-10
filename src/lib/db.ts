@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Floor, FloorNote, ProjectMeta, SurveyPoint } from "./types";
+import type { Floor, ProjectMeta, SurveyPoint } from "./types";
 
 interface FloorSurveyDB extends DBSchema {
   projects: {
@@ -17,11 +17,6 @@ interface FloorSurveyDB extends DBSchema {
     value: SurveyPoint;
     indexes: { floorId: string };
   };
-  notes: {
-    key: string;
-    value: FloorNote;
-    indexes: { floorId: string };
-  };
 }
 
 let dbPromise: Promise<IDBPDatabase<FloorSurveyDB>> | null = null;
@@ -31,7 +26,7 @@ function getDB() {
     throw new Error("IndexedDB not available");
   }
   if (!dbPromise) {
-    dbPromise = openDB<FloorSurveyDB>("floor-survey", 4, {
+    dbPromise = openDB<FloorSurveyDB>("floor-survey", 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const p = db.createObjectStore("projects", { keyPath: "id" });
@@ -47,6 +42,7 @@ function getDB() {
           if (db.objectStoreNames.contains("transitions" as never)) {
             db.deleteObjectStore("transitions" as never);
           }
+          // Scrub legacy transition fields from stored points.
           const store = tx.objectStore("points");
           store.openCursor().then(async function walk(cursor): Promise<void> {
             if (!cursor) return;
@@ -59,11 +55,6 @@ function getDB() {
             const next = await cursor.continue();
             return walk(next);
           });
-        }
-        // v4: per-floor freeform notes pinned to a canvas location.
-        if (oldVersion < 4) {
-          const n = db.createObjectStore("notes", { keyPath: "id" });
-          n.createIndex("floorId", "floorId");
         }
       },
     });
@@ -110,8 +101,6 @@ export async function deleteFloor(id: string) {
   const db = await getDB();
   const points = await listPoints(id);
   for (const p of points) await db.delete("points", p.id);
-  const notes = await listNotes(id);
-  for (const n of notes) await db.delete("notes", n.id);
   await db.delete("floors", id);
 }
 
@@ -130,22 +119,6 @@ export async function deletePoint(id: string) {
   await db.delete("points", id);
 }
 
-// Notes
-export async function listNotes(floorId: string): Promise<FloorNote[]> {
-  const db = await getDB();
-  const all = await db.getAllFromIndex("notes", "floorId", floorId);
-  return all.sort((a, b) => a.createdAt - b.createdAt);
-}
-export async function saveNote(n: FloorNote) {
-  const db = await getDB();
-  await db.put("notes", { ...n, updatedAt: Date.now() });
-}
-export async function deleteNote(id: string) {
-  const db = await getDB();
-  await db.delete("notes", id);
-}
-
 export function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
-

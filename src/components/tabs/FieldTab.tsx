@@ -2,12 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { DataPointsPanel } from "../DataPointsPanel";
-import { NoteDialog } from "../NoteDialog";
 import { Button } from "@/components/ui/button";
-import { Undo2, StickyNote } from "lucide-react";
-import type { Floor, FloorNote, SurveyPoint } from "@/lib/types";
-import { savePoint, deletePoint, saveNote, deleteNote, listNotes, uid } from "@/lib/db";
-
+import { Undo2 } from "lucide-react";
+import type { Floor, SurveyPoint } from "@/lib/types";
+import { savePoint, deletePoint, uid } from "@/lib/db";
 
 interface Props {
   projectId: string;
@@ -42,16 +40,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
 
-  // Notes
-  const [notes, setNotes] = useState<FloorNote[]>([]);
-  const [noteMode, setNoteMode] = useState(false);
-  const [editingNote, setEditingNote] = useState<FloorNote | null>(null);
-  const [newNoteAt, setNewNoteAt] = useState<{ x: number; y: number } | null>(null);
-
-  useEffect(() => {
-    listNotes(floor.id).then(setNotes).catch(() => setNotes([]));
-  }, [floor.id]);
-
   const [pointSize, setPointSize] = useState<number>(() => {
     try {
       const raw = localStorage.getItem(`dpp-size:${projectId}`);
@@ -69,28 +57,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
 
-  // Note hit test — small square pinned at (x,y).
-  function hitNote(x: number, y: number): FloorNote | null {
-    const s = scaleRef.current || 1;
-    const r = 14 / s;
-    for (const n of notes) {
-      if (Math.abs(n.x - x) <= r && Math.abs(n.y - y) <= r) return n;
-    }
-    return null;
-  }
-
   async function handleTap(x: number, y: number) {
-    if (noteMode) {
-      setNewNoteAt({ x, y });
-      setNoteMode(false);
-      return;
-    }
-    // Tap on existing note → open editor
-    const n = hitNote(x, y);
-    if (n) {
-      setEditingNote(n);
-      return;
-    }
     for (const p of points) {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < 12) return;
@@ -98,7 +65,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     setPending({ x, y });
     if (isBasePointCapture) setBpPromptOpen(true);
   }
-
 
   async function submitValue(v: number) {
     if (editingPoint) {
@@ -163,8 +129,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Floating status chip (top-left, offset for note tool) */}
-      <div className="absolute top-2 left-14 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs">
+      {/* Floating status chip (top-left) */}
+      <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs">
         <span className="font-medium">{points.length}</span>
         <span className="text-muted-foreground">pts</span>
         {points.length > 0 && (
@@ -176,19 +142,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         )}
       </div>
 
-      {/* Note tool (top-left corner) */}
-      <button
-        onClick={() => setNoteMode((v) => !v)}
-        aria-label={noteMode ? "Cancel note placement" : "Add note"}
-        aria-pressed={noteMode}
-        className={
-          "absolute top-2 left-2 z-30 h-9 w-9 rounded-full backdrop-blur border shadow-sm flex items-center justify-center " +
-          (noteMode ? "bg-amber-400 text-amber-950 border-amber-500" : "bg-background/90 hover:bg-background")
-        }
-      >
-        <StickyNote className="h-4 w-4" />
-      </button>
-
       {/* Floating Undo (top-right) */}
       <button
         onClick={undoLast}
@@ -198,13 +151,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       >
         <Undo2 className="h-4 w-4" />
       </button>
-
-      {/* Note mode hint */}
-      {noteMode && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs px-3 py-1 shadow-sm">
-          Tap the plan to drop a note
-        </div>
-      )}
 
       {/* Dismissible boundary warning */}
       {floor.boundary.length < 3 && !warningDismissed && (
@@ -220,7 +166,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         </div>
       )}
 
-
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
         planWidth={floor.planWidth}
@@ -228,10 +173,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onTap={handleTap}
         onTransform={(t) => { scaleRef.current = t.scale; }}
         onImagePointerDown={(x, y, event) => {
-          // In note mode, defer to onTap (handleTap will drop the note).
-          if (noteMode) return false;
-          // Tapping an existing note takes precedence over point-drag.
-          if (hitNote(x, y)) return false;
           const hit = hitPoint(x, y);
           if (!hit) return false;
           const { point: hp } = hit;
@@ -252,7 +193,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           setDragging(drag);
           return true;
         }}
-
         onImagePointerMove={(x, y, event) => {
           const drag = dragRef.current;
           if (!drag) return;
@@ -329,35 +269,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.lineWidth = 3;
             ctx.stroke();
           }
-          // notes: small amber pin with first line of text next to it
-          for (const n of notes) {
-            const size = 12;
-            ctx.fillStyle = "#fbbf24";
-            ctx.strokeStyle = "#78350f";
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.rect(n.x - size / 2, n.y - size / 2, size, size);
-            ctx.fill();
-            ctx.stroke();
-            // preview of first line, truncated
-            const firstLine = n.text.split("\n")[0].slice(0, 32);
-            if (firstLine) {
-              ctx.font = "600 11px sans-serif";
-              const tw = ctx.measureText(firstLine).width;
-              const tx = n.x + size / 2 + 4;
-              const ty = n.y - 8;
-              ctx.fillStyle = "rgba(255,251,235,0.92)";
-              ctx.fillRect(tx - 2, ty - 1, tw + 4, 14);
-              ctx.strokeStyle = "rgba(120,53,15,0.35)";
-              ctx.strokeRect(tx - 2, ty - 1, tw + 4, 14);
-              ctx.fillStyle = "#78350f";
-              ctx.textAlign = "left";
-              ctx.textBaseline = "top";
-              ctx.fillText(firstLine, tx, ty + 1);
-            }
-          }
         }}
-
       />
 
       <NumericKeypad
@@ -421,47 +333,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           }
         }}
       />
-
-      {/* New note dialog */}
-      <NoteDialog
-        open={!!newNoteAt}
-        isNew
-        onClose={() => setNewNoteAt(null)}
-        onSave={async (text) => {
-          if (!newNoteAt) return;
-          const n: FloorNote = {
-            id: uid(),
-            floorId: floor.id,
-            x: newNoteAt.x,
-            y: newNoteAt.y,
-            text,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          };
-          await saveNote(n);
-          setNotes((prev) => [...prev, n]);
-        }}
-      />
-
-      {/* Edit note dialog */}
-      <NoteDialog
-        open={!!editingNote}
-        isNew={false}
-        initialText={editingNote?.text ?? ""}
-        onClose={() => setEditingNote(null)}
-        onSave={async (text) => {
-          if (!editingNote) return;
-          const updated = { ...editingNote, text, updatedAt: Date.now() };
-          await saveNote(updated);
-          setNotes((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-        }}
-        onDelete={async () => {
-          if (!editingNote) return;
-          await deleteNote(editingNote.id);
-          setNotes((prev) => prev.filter((x) => x.id !== editingNote.id));
-        }}
-      />
     </div>
-
   );
 }
