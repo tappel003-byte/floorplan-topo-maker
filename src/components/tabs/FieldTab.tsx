@@ -113,7 +113,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     const last = points[points.length - 1];
     if (!last) return;
     await deletePoint(last.id);
-    onPointsChange(points.slice(0, -1));
+    const reindexed = await reindexFloorPoints(floor.id);
+    onPointsChange(reindexed);
   }
 
   const keypadTitle = editingPoint
