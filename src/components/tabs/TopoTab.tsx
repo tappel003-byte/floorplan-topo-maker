@@ -220,31 +220,37 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Corner icons — closed by default, tap to open. */}
-      <CornerIcon
-        pos="top-2 left-2"
-        active={openCorner === "contours"}
-        onClick={() => setOpenCorner((c) => (c === "contours" ? null : "contours"))}
-        label="Contours"
-      >
-        <Waves className="h-4 w-4" />
-      </CornerIcon>
-      <CornerIcon
-        pos="top-2 right-2"
-        active={openCorner === "palette"}
-        onClick={() => setOpenCorner((c) => (c === "palette" ? null : "palette"))}
-        label="Palette"
-      >
-        <Palette className="h-4 w-4" />
-      </CornerIcon>
-      <CornerIcon
-        pos="bottom-2 right-2"
-        active={openCorner === "labels"}
-        onClick={() => setOpenCorner((c) => (c === "labels" ? null : "labels"))}
-        label="Labels & layers"
-      >
-        <Tag className="h-4 w-4" />
-      </CornerIcon>
+      {/* Corner icons — closed by default, tap to open. Hidden while their own panel is open. */}
+      {openCorner !== "contours" && (
+        <CornerIcon
+          pos="top-2 left-2"
+          active={false}
+          onClick={() => setOpenCorner("contours")}
+          label="Contours"
+        >
+          <Waves className="h-4 w-4" />
+        </CornerIcon>
+      )}
+      {openCorner !== "palette" && (
+        <CornerIcon
+          pos="top-2 right-2"
+          active={false}
+          onClick={() => setOpenCorner("palette")}
+          label="Palette"
+        >
+          <Palette className="h-4 w-4" />
+        </CornerIcon>
+      )}
+      {openCorner !== "labels" && (
+        <CornerIcon
+          pos="bottom-2 right-2"
+          active={false}
+          onClick={() => setOpenCorner("labels")}
+          label="Labels & layers"
+        >
+          <Tag className="h-4 w-4" />
+        </CornerIcon>
+      )}
 
       {/* Warning */}
       {!canRender && !warningDismissed && (
@@ -560,21 +566,6 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                 Reset label positions
               </Button>
             </details>
-            <div className="flex items-center justify-between gap-2 border-t pt-2">
-              <span className="text-[11px] text-muted-foreground leading-tight">
-                Long-press a number or pin to move it.
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={undoLastMove}
-                disabled={!lastMove}
-                className="h-8 px-2 gap-1 shrink-0"
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-                Undo
-              </Button>
-            </div>
           </CornerPanel>
         )}
       </div>
