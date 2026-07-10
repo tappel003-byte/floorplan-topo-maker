@@ -1,10 +1,9 @@
-import { useMemo, useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Trash2, AlertTriangle, X, StickyNote } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, X, StickyNote } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { deletePoint, savePoint } from "@/lib/db";
+import { PointDetail } from "@/components/PointDetail";
+
 
 interface Props {
   floor: Floor;
