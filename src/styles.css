@@ -115,8 +115,18 @@
     border-color: var(--color-border);
   }
 
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    position: fixed;
+    inset: 0;
+    width: 100%;
   }
 }
