@@ -269,7 +269,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const p = editingPoint;
           setEditingPoint(null);
           await deletePoint(p.id);
-          onPointsChange(points.filter((x) => x.id !== p.id));
+          const reindexed = await reindexFloorPoints(floor.id);
+          onPointsChange(reindexed);
         } : undefined}
       />
 
