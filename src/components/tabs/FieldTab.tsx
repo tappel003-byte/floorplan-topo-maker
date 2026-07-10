@@ -34,6 +34,12 @@ type DragState = {
   moved: boolean;
   startClientX: number;
   startClientY: number;
+  /** Finger position in image coords at pointer-down. */
+  startImgX: number;
+  startImgY: number;
+  /** Point's original position at pointer-down. */
+  origX: number;
+  origY: number;
   lastX: number;
   lastY: number;
 };
