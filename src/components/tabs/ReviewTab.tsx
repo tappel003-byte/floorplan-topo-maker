@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, X, StickyNote } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
-import { deletePoint, savePoint } from "@/lib/db";
+import { deletePoint, reindexFloorPoints, savePoint } from "@/lib/db";
 import { PointDetail } from "@/components/PointDetail";
 
 
