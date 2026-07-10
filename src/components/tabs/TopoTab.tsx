@@ -917,15 +917,6 @@ function renderTopoBase(
     ctx.restore();
   }
 
-  // Boundary line
-  if (floor.boundary.length >= 3) {
-    ctx.beginPath();
-    floor.boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-    ctx.closePath();
-    ctx.strokeStyle = "#111";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
 }
 
 // Top pass: points, point labels, high/low pins, legend. Meant to sit OVER the wall plan.
