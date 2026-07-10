@@ -205,7 +205,14 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
             <span className="flex-1">Value</span>
           </div>
 
-          <div className="overflow-auto flex-1">
+          <div
+            className="overflow-auto overscroll-contain flex-1"
+            style={{ touchAction: "pan-y" }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+          >
             {sortedPoints.length === 0 ? (
               <div className="p-3 text-xs text-muted-foreground text-center">No points yet</div>
             ) : (
