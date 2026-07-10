@@ -67,7 +67,7 @@ export function AppTopBar({
   };
 
   return (
-    <header className="bg-background/85 backdrop-blur border-b">
+    <header className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b">
       <div className="flex items-center gap-1 px-2 h-9 text-xs">
         <Link
           to="/"
