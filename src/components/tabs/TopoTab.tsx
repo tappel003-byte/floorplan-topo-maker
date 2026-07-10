@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Undo2, SlidersHorizontal, X } from "lucide-react";
+import { Undo2, X, Waves, Palette, Tag } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, clampValue, computeContours, contourThresholds, type Grid } from "@/lib/topo";
@@ -58,7 +58,7 @@ function labelAnchor(p: SurveyPoint) {
 
 
 export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange }: Props) {
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [openCorner, setOpenCorner] = useState<null | "contours" | "palette" | "labels">(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [legendSelected, setLegendSelected] = useState(false);
@@ -220,36 +220,35 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Floating status chip (top-left): mode + range */}
-      <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs max-w-[calc(100%-4.5rem)]">
-        <span className="font-medium capitalize truncate">
-          {resolved.mode === "contour-fill" ? "Fill" : resolved.mode === "contour-cells" ? "Cells" : resolved.mode === "contour-bw" ? "B&W" : "Points"}
-        </span>
-        {gridAndContours?.grid && (
-          <>
-            <span className="text-muted-foreground/60">·</span>
-            <span className="text-muted-foreground tabular-nums truncate">
-              {gridAndContours.grid.minValue.toFixed(2)}"–{gridAndContours.grid.maxValue.toFixed(2)}"
-            </span>
-          </>
-        )}
-      </div>
-
-      {/* Floating settings toggle (top-right) */}
-      <button
-        onClick={() => setPanelOpen((v) => !v)}
-        aria-label={panelOpen ? "Hide controls" : "Show controls"}
-        className={
-          "absolute top-2 right-2 z-30 h-9 w-9 rounded-full backdrop-blur border shadow-sm flex items-center justify-center " +
-          (panelOpen ? "bg-primary text-primary-foreground border-primary" : "bg-background/90 hover:bg-background")
-        }
+      {/* Corner icons — closed by default, tap to open. */}
+      <CornerIcon
+        pos="top-2 left-2"
+        active={openCorner === "contours"}
+        onClick={() => setOpenCorner((c) => (c === "contours" ? null : "contours"))}
+        label="Contours"
       >
-        <SlidersHorizontal className="h-4 w-4" />
-      </button>
+        <Waves className="h-4 w-4" />
+      </CornerIcon>
+      <CornerIcon
+        pos="top-2 right-2"
+        active={openCorner === "palette"}
+        onClick={() => setOpenCorner((c) => (c === "palette" ? null : "palette"))}
+        label="Palette"
+      >
+        <Palette className="h-4 w-4" />
+      </CornerIcon>
+      <CornerIcon
+        pos="bottom-2 right-2"
+        active={openCorner === "labels"}
+        onClick={() => setOpenCorner((c) => (c === "labels" ? null : "labels"))}
+        label="Labels & layers"
+      >
+        <Tag className="h-4 w-4" />
+      </CornerIcon>
 
-      {/* Dismissible warning */}
+      {/* Warning */}
       {!canRender && !warningDismissed && (
-        <div className="absolute top-14 left-2 right-2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2 max-w-[calc(100%-6rem)]">
           <span className="flex-1">Need at least 3 points and a closed boundary to generate a topo.</span>
           <button onClick={() => setWarningDismissed(true)} aria-label="Dismiss" className="text-amber-700 shrink-0">
             <X className="h-3.5 w-3.5" />
@@ -257,9 +256,9 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
         </div>
       )}
 
-      {/* Legend size slider (appears when legend is tapped) */}
+      {/* Legend size (appears when the legend is tapped) */}
       {legendSelected && resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only" && (
-        <div className="absolute top-14 right-2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <Label className="text-xs">Legend size</Label>
             <div className="flex items-center gap-2">
@@ -393,8 +392,14 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           }}
         />
 
-        {panelOpen && (
-          <div className="absolute top-12 right-2 rounded-xl border bg-card/95 backdrop-blur shadow-2xl p-3 w-72 max-h-[calc(100%-4rem)] overflow-auto space-y-4 text-sm z-30">
+        {/* Contours popover — upper left */}
+        {openCorner === "contours" && (
+          <CornerPanel pos="top-12 left-2" onClose={() => setOpenCorner(null)} title="Contours">
+            {gridAndContours?.grid && (
+              <p className="text-[10px] text-muted-foreground tabular-nums -mt-1">
+                Range {gridAndContours.grid.minValue.toFixed(2)}"–{gridAndContours.grid.maxValue.toFixed(2)}"
+              </p>
+            )}
             <div>
               <Label className="text-xs">Mode</Label>
               <select
@@ -402,9 +407,9 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                 onChange={(e) => update({ mode: e.target.value as RenderSettings["mode"] })}
                 className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
               >
-                <option value="contour-fill">Color fill contours</option>
+                <option value="contour-fill">Color fill</option>
                 <option value="contour-cells">Color cells</option>
-                <option value="contour-bw">Simple B&W contours</option>
+                <option value="contour-bw">B&W lines</option>
                 <option value="points-only">Points only</option>
               </select>
             </div>
@@ -447,30 +452,6 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 border-t pt-3">
-              <NumberControl label="Decimals" value={resolved.decimalPlaces} min={0} max={3} step={1} onChange={(v) => update({ decimalPlaces: Math.max(0, Math.min(3, Math.round(v ?? 2))) })} />
-              <div>
-                <Label className="text-xs">Palette</Label>
-                <select
-                  value={resolved.palette}
-                  onChange={(e) => update({ palette: e.target.value as RenderSettings["palette"] })}
-                  className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
-                >
-                  <option value="brown">Brown elevation</option>
-                  <option value="rainbow">Rainbow</option>
-                  <option value="blue-red">Blue to red</option>
-                  <option value="gray">Grayscale</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Show floor plan</Label>
-              <Switch checked={resolved.showPlan} onCheckedChange={(v) => update({ showPlan: v })} />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Contours</Label>
-              <Switch checked={resolved.showContours} onCheckedChange={(v) => update({ showContours: v })} />
-            </div>
             <div>
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Line thickness</Label>
@@ -479,44 +460,57 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               <Slider min={0.5} max={4} step={0.1} value={[resolved.lineThickness]} onValueChange={(v) => update({ lineThickness: v[0] })} className="mt-2" />
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Labels</Label>
-              <Switch
-                checked={resolved.showLabels}
-                onCheckedChange={(v) => update({ showLabels: v })}
-              />
+              <Label className="text-xs">Contours on</Label>
+              <Switch checked={resolved.showContours} onCheckedChange={(v) => update({ showContours: v })} />
+            </div>
+          </CornerPanel>
+        )}
+
+        {/* Palette popover — upper right */}
+        {openCorner === "palette" && (
+          <CornerPanel pos="top-12 right-2 w-56" onClose={() => setOpenCorner(null)} title="Palette">
+            <div>
+              <Label className="text-xs">Palette</Label>
+              <select
+                value={resolved.palette}
+                onChange={(e) => update({ palette: e.target.value as RenderSettings["palette"] })}
+                className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
+              >
+                <option value="brown">Brown elevation</option>
+                <option value="rainbow">Rainbow</option>
+                <option value="blue-red">Blue to red</option>
+                <option value="gray">Grayscale</option>
+              </select>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Reverse palette</Label>
+              <Label className="text-xs">Reverse</Label>
               <Switch checked={resolved.reversePalette} onCheckedChange={(v) => update({ reversePalette: v })} />
             </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Points</Label>
-              <Switch
-                checked={resolved.showPoints}
-                onCheckedChange={(v) => update({ showPoints: v, pointsOpacity: 1 })}
+          </CornerPanel>
+        )}
+
+        {/* Labels & layers popover — lower right */}
+        {openCorner === "labels" && (
+          <CornerPanel pos="bottom-14 right-2" onClose={() => setOpenCorner(null)} title="Labels & layers">
+            <div className="grid grid-cols-2 gap-2">
+              <SwitchRow label="Labels" checked={resolved.showLabels} onChange={(v) => update({ showLabels: v })} />
+              <NumberControl
+                label="Decimals"
+                value={resolved.decimalPlaces}
+                min={0}
+                max={3}
+                step={1}
+                onChange={(v) => update({ decimalPlaces: Math.max(0, Math.min(3, Math.round(v ?? 2))) })}
               />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Label background</Label>
-              <Switch
+              <SwitchRow label="Floor plan" checked={resolved.showPlan} onChange={(v) => update({ showPlan: v })} />
+              <SwitchRow label="Points" checked={resolved.showPoints} onChange={(v) => update({ showPoints: v, pointsOpacity: 1 })} />
+              <SwitchRow label="Legend" checked={resolved.showLegend} onChange={(v) => update({ showLegend: v })} />
+              <SwitchRow label="High / low" checked={resolved.showHighLow} onChange={(v) => update({ showHighLow: v })} />
+              <SwitchRow
+                label="Label bg"
                 checked={resolved.pointLabelBackground === "white"}
-                onCheckedChange={(v) => update({ pointLabelBackground: v ? "white" : "transparent" })}
+                onChange={(v) => update({ pointLabelBackground: v ? "white" : "transparent" })}
               />
-            </div>
-            <div className="flex items-center justify-between gap-2 border-t pt-2">
-              <span className="text-[11px] text-muted-foreground leading-tight">
-                Long-press a number or H/L pin on the map to move it.
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={undoLastMove}
-                disabled={!lastMove}
-                className="h-8 px-2 gap-1 shrink-0"
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-                Undo
-              </Button>
             </div>
             <details className="border-t pt-2">
               <summary className="text-xs text-muted-foreground cursor-pointer select-none">Label style</summary>
@@ -563,40 +557,108 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                 onClick={resetAllLabelPositions}
                 className="mt-2 w-full h-8"
               >
-                Reset all label positions
+                Reset label positions
               </Button>
             </details>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Legend</Label>
-              <Switch checked={resolved.showLegend} onCheckedChange={(v) => update({ showLegend: v })} />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">High / low pins</Label>
-              <Switch checked={resolved.showHighLow} onCheckedChange={(v) => update({ showHighLow: v })} />
-            </div>
-            <details className="border-t pt-2">
-              <summary className="text-xs text-muted-foreground cursor-pointer select-none">Advanced</summary>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <NumberControl label="Color min" value={resolved.minClamp} placeholder="auto" onChange={(v) => update({ minClamp: v })} />
-                <NumberControl label="Color max" value={resolved.maxClamp} placeholder="auto" onChange={(v) => update({ maxClamp: v })} />
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
-                Force the color scale to a fixed range. Leave auto for normal use.
-              </p>
-            </details>
-            <div className="border-t pt-3">
+            <div className="flex items-center justify-between gap-2 border-t pt-2">
+              <span className="text-[11px] text-muted-foreground leading-tight">
+                Long-press a number or pin to move it.
+              </span>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => onSettingsChange(defaultRenderSettings)}
-                className="w-full h-8"
+                onClick={undoLastMove}
+                disabled={!lastMove}
+                className="h-8 px-2 gap-1 shrink-0"
               >
-                Reset all settings
+                <Undo2 className="h-3.5 w-3.5" />
+                Undo
               </Button>
             </div>
-          </div>
+          </CornerPanel>
         )}
       </div>
+    </div>
+  );
+}
+
+function CornerIcon({
+  pos,
+  active,
+  onClick,
+  label,
+  children,
+}: {
+  pos: string;
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      className={
+        "absolute z-30 h-9 w-9 rounded-full backdrop-blur border shadow-sm flex items-center justify-center " +
+        pos + " " +
+        (active ? "bg-primary text-primary-foreground border-primary" : "bg-background/90 hover:bg-background")
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function CornerPanel({
+  pos,
+  title,
+  onClose,
+  children,
+}: {
+  pos: string;
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={
+        "absolute z-30 rounded-xl border bg-card/95 backdrop-blur shadow-2xl p-3 w-64 max-h-[calc(100%-4rem)] overflow-auto space-y-3 text-sm " +
+        pos
+      }
+    >
+      <div className="flex items-center justify-between -mt-1">
+        <span className="text-xs font-semibold">{title}</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SwitchRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Label className="text-xs">{label}</Label>
+      <Switch checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }
