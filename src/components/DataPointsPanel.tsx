@@ -87,7 +87,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, poin
         left: state.x,
         top: state.y,
         width,
-        maxHeight: state.collapsed ? undefined : "45dvh",
+        maxHeight: state.collapsed ? undefined : "38dvh",
       }}
     >
       <div
