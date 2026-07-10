@@ -48,7 +48,7 @@ export function AppTopBar({
     window.dispatchEvent(new CustomEvent(name));
 
   return (
-    <header className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b">
+    <header className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b pt-[env(safe-area-inset-top)]">
       <div className="flex items-center gap-1 px-2 h-9 text-xs">
         <Link
           to="/"
