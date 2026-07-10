@@ -70,6 +70,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const noteDragRef = useRef<NoteDragState | null>(null);
+  const lastNoteTapRef = useRef<{ id: string; at: number } | null>(null);
   const [, setNoteDragTick] = useState(0);
   const longPressTimerRef = useRef<number | null>(null);
 
@@ -123,8 +124,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
       const pin: NotePin = { id: uid(), x, y, text: "" };
       const next = [...notes, pin];
       await persistNotes(next);
-      setEditingNoteId(pin.id);
-      setNoteDraft("");
       return;
     }
     // Normal mode: place a survey point (ignore taps on note pins so they don't collide)
@@ -343,9 +342,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
               const moved = notes.map((n) => (n.id === nd.id ? { ...n, x: nd.origX + (x - nd.startImgX), y: nd.origY + (y - nd.startImgY) } : n));
               await persistNotes(moved);
             } else if (!nd.moved) {
-              // short tap on pin → open editor
-              const note = notes.find((n) => n.id === nd.id);
-              if (note) openNoteEditor(note);
+              // Double-tap on pin → open editor. Single tap does nothing so
+              // dropping/selecting notes never focuses a text field or shifts iOS viewport.
+              const now = Date.now();
+              const last = lastNoteTapRef.current;
+              if (last?.id === nd.id && now - last.at < 360) {
+                lastNoteTapRef.current = null;
+                const note = notes.find((n) => n.id === nd.id);
+                if (note) openNoteEditor(note);
+              } else {
+                lastNoteTapRef.current = { id: nd.id, at: now };
+              }
             }
             return;
           }
@@ -451,11 +458,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
             </button>
           </div>
           <textarea
-            autoFocus
             value={noteDraft}
             onChange={(e) => setNoteDraft(e.target.value)}
             placeholder="Type or dictate…"
-            className="w-full min-h-[90px] text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-y"
+            className="w-full min-h-[90px] text-base border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-y"
           />
           <div className="flex justify-end gap-2 mt-2">
             <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(null)}>Cancel</Button>
