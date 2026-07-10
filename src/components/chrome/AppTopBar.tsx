@@ -16,18 +16,14 @@ type Props = {
  * without a global store change.
  */
 export function AppTopBar({
-  projectId,
   projectName,
   floorName,
-  activeFloorId,
   onOpenSetup,
   onOpenReview,
   onOpenExport,
-  onPointsCleared,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -46,21 +42,6 @@ export function AppTopBar({
 
   const fire = (name: "app:undo" | "app:redo") =>
     window.dispatchEvent(new CustomEvent(name));
-
-  const handleClearPoints = async () => {
-    setMenuOpen(false);
-    if (!confirm("Clear all points on this floor? This cannot be undone.")) return;
-    const pts = await listPoints(activeFloorId);
-    for (const p of pts) await deletePoint(p.id);
-    onPointsCleared?.();
-  };
-
-  const handleDeleteProject = async () => {
-    setMenuOpen(false);
-    if (!confirm(`Delete project "${projectName}"? This cannot be undone.`)) return;
-    await deleteProject(projectId);
-    navigate({ to: "/" });
-  };
 
   return (
     <header className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b">
