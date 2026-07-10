@@ -144,6 +144,21 @@ export async function reindexFloorPoints(floorId: string): Promise<SurveyPoint[]
   return updated;
 }
 
+// Notes
+export async function listNotes(floorId: string): Promise<SurveyNote[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("notes", "floorId", floorId);
+  return all.sort((a, b) => a.createdAt - b.createdAt);
+}
+export async function saveNote(n: SurveyNote) {
+  const db = await getDB();
+  await db.put("notes", { ...n, updatedAt: Date.now() });
+}
+export async function deleteNote(id: string) {
+  const db = await getDB();
+  await db.delete("notes", id);
+}
+
 export function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
