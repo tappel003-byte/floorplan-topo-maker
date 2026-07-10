@@ -53,14 +53,14 @@ function Btn({
       aria-selected={active}
       onClick={onClick}
       className={
-        "flex flex-col items-center justify-center h-11 w-11 rounded-full text-[10px] leading-tight transition-colors " +
+        "flex flex-row items-center justify-center gap-1 h-7 px-2.5 rounded-full text-[11px] leading-none transition-colors " +
         (active
           ? "bg-primary text-primary-foreground font-medium"
           : "text-muted-foreground hover:text-foreground")
       }
     >
       {icon}
-      <span className="mt-0.5">{label}</span>
+      <span>{label}</span>
     </button>
   );
 }
