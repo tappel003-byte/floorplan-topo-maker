@@ -49,12 +49,40 @@ type DragState = {
 export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest, onCommit }: Props) {
 
   const scaleRef = useRef(1);
+  const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
+
+  // Note pins
+  const [noteMode, setNoteMode] = useState(false);
+  const [notePins, setNotePins] = useState<NotePin[]>([]);
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    setNotePins(loadNotePins(floor.id));
+    setOpenNoteId(null);
+  }, [floor.id]);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setContainerSize({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  function commitNotes(next: NotePin[]) {
+    setNotePins(next);
+    saveNotePins(floor.id, next);
+  }
 
   function commitSnap(nextPoints: SurveyPoint[]) {
     onCommit?.({ points: nextPoints });
