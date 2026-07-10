@@ -15,6 +15,7 @@ interface Props {
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
   pointSize: number;
+  pointColor: string;
 }
 
 
@@ -33,7 +34,8 @@ type DragState = {
   lastY: number;
 };
 
-export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize }: Props) {
+export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor }: Props) {
+
   const scaleRef = useRef(1);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
