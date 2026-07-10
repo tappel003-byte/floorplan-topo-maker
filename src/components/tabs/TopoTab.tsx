@@ -560,21 +560,6 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                 Reset label positions
               </Button>
             </details>
-            <div className="flex items-center justify-between gap-2 border-t pt-2">
-              <span className="text-[11px] text-muted-foreground leading-tight">
-                Long-press a number or pin to move it.
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={undoLastMove}
-                disabled={!lastMove}
-                className="h-8 px-2 gap-1 shrink-0"
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-                Undo
-              </Button>
-            </div>
           </CornerPanel>
         )}
       </div>
