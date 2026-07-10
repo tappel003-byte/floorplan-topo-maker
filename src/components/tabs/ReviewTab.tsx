@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Edit3, AlertTriangle, X } from "lucide-react";
+import { Trash2, AlertTriangle, X, StickyNote } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { deletePoint, savePoint } from "@/lib/db";
 
@@ -16,10 +16,7 @@ interface Props {
 }
 
 export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds, onClose }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editVal, setEditVal] = useState("");
-  const [noteId, setNoteId] = useState<string | null>(null);
-  const [noteVal, setNoteVal] = useState("");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     if (points.length === 0) return null;
@@ -41,27 +38,7 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds,
     return set;
   }, [points, stats]);
 
-  async function commitEdit(p: SurveyPoint) {
-    const n = parseFloat(editVal);
-    if (!isFinite(n)) return;
-    const updated = { ...p, value: n };
-    await savePoint(updated);
-    onPointsChange(points.map((x) => (x.id === p.id ? updated : x)));
-    setEditingId(null);
-  }
-
-  async function remove(p: SurveyPoint) {
-    if (!confirm(`Delete point #${p.index}?`)) return;
-    await deletePoint(p.id);
-    onPointsChange(points.filter((x) => x.id !== p.id));
-  }
-
-  async function commitNote(p: SurveyPoint) {
-    const updated = { ...p, notes: noteVal.trim() };
-    await savePoint(updated);
-    onPointsChange(points.map((x) => (x.id === p.id ? updated : x)));
-    setNoteId(null);
-  }
+  const detail = detailId ? points.find((p) => p.id === detailId) ?? null : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -89,134 +66,166 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds,
       <div className="flex-1 overflow-auto">
         {points.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            No points captured yet. Switch to Field mode.
+            No points captured yet. Switch to Data mode.
           </div>
         ) : (
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col className="w-10" />
-              <col className="w-20" />
-              <col className="w-20" />
-              <col />
-              <col className="w-20" />
-            </colgroup>
-            <thead className="text-xs text-muted-foreground bg-muted/40 sticky top-0">
-              <tr>
-                <th className="text-left px-2 py-2">#</th>
-                <th className="text-left px-2 py-2">Kind</th>
-                <th className="text-right px-2 py-2">Value</th>
-                <th className="text-left px-2 py-2">Notes</th>
-                <th className="text-right px-2 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((p) => {
-                return (
-                <tr
+          <ul className="divide-y">
+            {points.map((p) => {
+              const selected = selectedIds.has(p.id);
+              return (
+                <li
                   key={p.id}
                   onClick={(e) => {
                     if (e.shiftKey || e.metaKey) {
                       const next = new Set(selectedIds);
                       next.has(p.id) ? next.delete(p.id) : next.add(p.id);
                       setSelectedIds(next);
-                    } else {
-                      setSelectedIds(new Set([p.id]));
+                      return;
                     }
+                    setSelectedIds(new Set([p.id]));
+                    setDetailId(p.id);
                   }}
                   className={
-                    "border-t cursor-pointer " +
-                    (selectedIds.has(p.id) ? "bg-primary/10" : "hover:bg-muted/30")
+                    "flex items-start gap-2 px-3 py-2 cursor-pointer " +
+                    (selected ? "bg-primary/10" : "hover:bg-muted/30")
                   }
                 >
-                  <td className="px-2 py-1.5 font-mono">{p.index}</td>
-                  <td className="px-2 py-1.5">
-                    {p.isBasePoint ? (
-                      <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-xs font-medium">
-                        {p.label ?? "BP1"}
+                  <span className="font-mono text-xs text-muted-foreground w-6 pt-0.5 tabular-nums">
+                    {p.index}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-semibold tabular-nums">
+                        {p.value.toFixed(2)}"
                       </span>
-                    ) : outliers.has(p.id) ? (
-                      <span className="inline-flex items-center gap-1 rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-xs">
-                        <AlertTriangle className="h-3 w-3" />
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
+                      {p.isBasePoint && (
+                        <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-[10px] font-medium">
+                          {p.label ?? "BP"}
+                        </span>
+                      )}
+                      {outliers.has(p.id) && (
+                        <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px]">
+                          <AlertTriangle className="h-3 w-3" />
+                          outlier
+                        </span>
+                      )}
+                      {p.notes && <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />}
+                    </div>
+                    {p.notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap break-words">
+                        {p.notes}
+                      </p>
                     )}
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-mono tabular-nums font-semibold">
-                    {editingId === p.id ? (
-                      <Input
-                        autoFocus
-                        type="number"
-                        inputMode="decimal"
-                        value={editVal}
-                        onChange={(e) => setEditVal(e.target.value)}
-                        onBlur={() => commitEdit(p)}
-                        onKeyDown={(e) => e.key === "Enter" && commitEdit(p)}
-                        className="h-8 text-right"
-                      />
-                    ) : (
-                      p.value.toFixed(2)
-                    )}
-                  </td>
-
-                  <td className="px-2 py-1.5">
-                    {noteId === p.id ? (
-                      <Textarea
-                        autoFocus
-                        rows={2}
-                        value={noteVal}
-                        onChange={(e) => setNoteVal(e.target.value)}
-                        onBlur={() => commitNote(p)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) commitNote(p);
-                        }}
-                        className="text-xs"
-                      />
-                    ) : (
-                      <button
-                        className="text-left text-xs text-muted-foreground hover:text-foreground w-full truncate"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setNoteId(p.id);
-                          setNoteVal(p.notes ?? "");
-                        }}
-                      >
-                        {p.notes || "Add note"}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-1 py-1.5 text-right whitespace-nowrap">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingId(p.id);
-                        setEditVal(String(p.value));
-                      }}
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        remove(p);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-                );
-              })}
-              <tr><td colSpan={5} className="h-24" /></tr>
-            </tbody>
-          </table>
+                  </div>
+                </li>
+              );
+            })}
+            <li className="h-24" />
+          </ul>
         )}
+      </div>
+
+      {detail && (
+        <PointDetail
+          key={detail.id}
+          point={detail}
+          onClose={() => setDetailId(null)}
+          onSave={async (updated) => {
+            await savePoint(updated);
+            onPointsChange(points.map((x) => (x.id === updated.id ? updated : x)));
+          }}
+          onDelete={async () => {
+            if (!confirm(`Delete point #${detail.index}?`)) return;
+            await deletePoint(detail.id);
+            onPointsChange(points.filter((x) => x.id !== detail.id));
+            setDetailId(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function PointDetail({
+  point,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  point: SurveyPoint;
+  onClose: () => void;
+  onSave: (p: SurveyPoint) => Promise<void>;
+  onDelete: () => Promise<void>;
+}) {
+  const [value, setValue] = useState(String(point.value));
+  const [notes, setNotes] = useState(point.notes ?? "");
+
+  useEffect(() => {
+    setValue(String(point.value));
+    setNotes(point.notes ?? "");
+  }, [point.id]);
+
+  const dirty = value !== String(point.value) || notes !== (point.notes ?? "");
+
+  async function save() {
+    const n = parseFloat(value);
+    if (!isFinite(n)) return;
+    await onSave({ ...point, value: n, notes: notes.trim() });
+    onClose();
+  }
+
+  return (
+    <div className="absolute inset-0 z-40 bg-background/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
+      <div className="w-full max-w-sm rounded-lg border bg-popover shadow-lg flex flex-col">
+        <div className="flex items-center justify-between px-3 h-9 border-b">
+          <span className="text-xs font-semibold">Point #{point.index}</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center justify-center h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="p-3 flex flex-col gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground">Elevation</label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="h-10 text-right font-mono text-base mt-1"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Note</label>
+            <Textarea
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add a note…"
+              className="text-sm mt-1"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 p-3 border-t">
+          <Button size="sm" variant="outline" onClick={onDelete} className="text-destructive">
+            <Trash2 className="h-4 w-4 mr-1" />
+            Delete
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={save} disabled={!dirty}>
+              Save
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
