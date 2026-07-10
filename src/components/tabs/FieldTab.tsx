@@ -393,23 +393,25 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.fillText(p.value.toFixed(2), p.x + pointSize + 4, p.y + pointSize + 3);
           }
           // note pins (drawn above points so they are always tappable)
+          // Keep a consistent ~9px screen size, but cap the image-space radius
+          // so a zoomed-out fit view doesn't render a giant blob.
           const s = scaleRef.current || 1;
-          const pinR = 9 / s;
+          const pinR = Math.min(9 / s, 14);
+          const strokeW = Math.min(1.5 / s, 2);
+          const fontPx = Math.min(11 / s, 16);
           for (const n of notes) {
-            // shadow
             ctx.beginPath();
             ctx.arc(n.x, n.y, pinR, 0, Math.PI * 2);
             ctx.fillStyle = "#f59e0b";
             ctx.fill();
-            ctx.lineWidth = 1.5 / s;
+            ctx.lineWidth = strokeW;
             ctx.strokeStyle = "#78350f";
             ctx.stroke();
-            // "N" glyph
             ctx.fillStyle = "#78350f";
-            ctx.font = `bold ${11 / s}px sans-serif`;
+            ctx.font = `bold ${fontPx}px sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(String(n.index), n.x, n.y + 0.5 / s);
+            ctx.fillText(String(n.index), n.x, n.y);
           }
           // pending marker
           if (pending) {
