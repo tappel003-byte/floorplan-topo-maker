@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
-import type { Floor, ProjectMeta, RenderSettings, SurveyPoint, Transition } from "@/lib/types";
+import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { buildGrid, computeContours } from "@/lib/topo";
 import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
-import { listTransitions } from "@/lib/db";
 
 interface Props {
   project: ProjectMeta;
@@ -23,14 +22,10 @@ export function ExportTab({ project, floor, points, settings }: Props) {
   const [format, setFormat] = useState<(typeof FORMATS)[number]>("png");
   const [status, setStatus] = useState<string>("");
   const [pointsOnly, setPointsOnly] = useState(false);
-  const [transitions, setTransitions] = useState<Transition[]>([]);
   const previewRef = useRef<HTMLCanvasElement | null>(null);
   const resolved = resolveSettings(settings);
   const exportSettings = pointsOnly ? resolveSettings({ ...resolved, mode: "points-only", showContours: false, showLegend: false, showHighLow: false, showPoints: true, showLabels: false }) : resolved;
 
-  useEffect(() => {
-    (async () => setTransitions(await listTransitions(floor.id)))();
-  }, [floor.id]);
 
   const grid = useMemo(() => {
     if (points.length < 3 || floor.boundary.length < 3) return null;
