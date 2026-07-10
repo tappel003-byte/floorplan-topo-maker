@@ -539,7 +539,6 @@ export function FieldTab({
             ctx.stroke();
           }
           for (const p of points) {
-            const sel = selectedIds.has(p.id);
             const color = p.isBasePoint ? "#16a34a" : pointColor;
             // Point keeps the user's selected color; readability belongs to the label box.
             const markerR = Math.max(pointSize, 2);
@@ -547,14 +546,6 @@ export function FieldTab({
             ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.fill();
-
-            if (sel) {
-              ctx.beginPath();
-              ctx.arc(p.x, p.y, Math.max(12, markerR + 8), 0, Math.PI * 2);
-              ctx.strokeStyle = "#2563eb";
-              ctx.lineWidth = 2;
-              ctx.stroke();
-            }
 
             // Label background so elevation is legible over black plan lines.
             const label = p.value.toFixed(2);
@@ -568,7 +559,9 @@ export function FieldTab({
             ctx.beginPath();
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
-
+            ctx.strokeStyle = "#111827";
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
             ctx.fillStyle = "#111827";
             ctx.textAlign = "center";
