@@ -196,6 +196,12 @@ function ProjectWorkspace() {
             pointSize={pointSize}
             pointColor={pointColor}
             focusRequest={focusRequest}
+            notesVersion={notesVersion}
+            onCommit={(snap) => history.commit(snap)}
+            onFloorNotesChange={(notePins) => {
+              const nextFloor: Floor = { ...activeFloor, notePins };
+              setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
+            }}
           />
         )}
         {mode === "review" && (
@@ -206,6 +212,9 @@ function ProjectWorkspace() {
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             onClose={() => setMode("field")}
+            onCommit={(pts) =>
+              history.commit({ points: pts, notePins: activeFloor.notePins ?? [] })
+            }
           />
         )}
         {mode === "topo" && (
