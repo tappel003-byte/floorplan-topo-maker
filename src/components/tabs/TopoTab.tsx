@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Undo2, SlidersHorizontal, X } from "lucide-react";
+import { Undo2, X, Waves, Palette, Tag } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { buildGrid, clampValue, computeContours, contourThresholds, type Grid } from "@/lib/topo";
@@ -58,7 +58,7 @@ function labelAnchor(p: SurveyPoint) {
 
 
 export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange }: Props) {
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [openCorner, setOpenCorner] = useState<null | "contours" | "palette" | "labels">(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [legendSelected, setLegendSelected] = useState(false);
