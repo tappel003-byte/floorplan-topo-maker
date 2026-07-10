@@ -1,17 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ArrowLeft, MoreHorizontal, Undo2, Redo2 } from "lucide-react";
-import { deleteProject, listPoints, deletePoint } from "@/lib/db";
 
 type Props = {
-  projectId: string;
   projectName: string;
   floorName: string;
-  activeFloorId: string;
   onOpenSetup: () => void;
   onOpenReview: () => void;
   onOpenExport: () => void;
-  onPointsCleared?: () => void;
 };
 
 /**

@@ -105,14 +105,11 @@ function ProjectWorkspace() {
   return (
     <div className="flex flex-col h-[100dvh] relative bg-background">
       <AppTopBar
-        projectId={project.id}
         projectName={project.name}
         floorName={activeFloor.name}
-        activeFloorId={activeFloor.id}
         onOpenSetup={() => setMode("setup")}
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
-        onPointsCleared={() => setPoints([])}
       />
       {floors.length > 1 && (
         <div className="flex items-center gap-2 px-2 h-7 text-xs border-b bg-background/70">
