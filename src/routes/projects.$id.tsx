@@ -113,7 +113,7 @@ function ProjectWorkspace() {
     [activeFloor, points],
   );
 
-  const undoActive = mode === "field" || mode === "review";
+  const undoActive = mode === "field" || mode === "review" || mode === "topo";
   const onUndo = useCallback(() => {
     if (!undoActive) return;
     const snap = history.undo();
