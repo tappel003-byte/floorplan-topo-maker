@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X, Repeat2 } from "lucide-react";
+import { Delete, Check, X, Repeat2, Trash2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -14,6 +14,8 @@ interface Props {
   /** Optional secondary action rendered as a full-width button under the display,
    * e.g. "Add transition" or "Save as adjacent reading". */
   secondaryAction?: { label: string; onClick: (value: number) => void; disabled?: boolean };
+  /** When provided, shows a trash button in the header. Used for editing existing points. */
+  onDelete?: () => void;
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
@@ -26,6 +28,7 @@ export function NumericKeypad({
   onSubmit,
   onClose,
   secondaryAction,
+  onDelete,
 }: Props) {
   const [text, setText] = useState<string>("");
 
@@ -96,14 +99,27 @@ export function NumericKeypad({
         className="bg-background rounded-t-2xl shadow-2xl p-4 pb-6 max-w-md w-full mx-auto max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-2">
-          <div>
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <div className="min-w-0">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{title}</div>
             {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1 shrink-0">
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDelete}
+                aria-label="Delete point"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         <div className="mb-3 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl font-mono tabular-nums h-16 flex items-center justify-end">
           {text || (
