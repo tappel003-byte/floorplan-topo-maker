@@ -16,6 +16,7 @@ interface Props {
   setSelectedIds: (ids: Set<string>) => void;
   pointSize: number;
   pointColor: string;
+  focusRequest?: { x: number; y: number; nonce: number };
 }
 
 
