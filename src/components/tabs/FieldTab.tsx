@@ -1,20 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { StickyNote } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
-import { NoteOverlay } from "../NoteOverlay";
 
 import { Button } from "@/components/ui/button";
 
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, uid } from "@/lib/db";
-import {
-  loadNotePins,
-  saveNotePins,
-  reindexNotePins,
-  newNotePinId,
-  type NotePin,
-} from "@/lib/notePins";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 interface Props {
@@ -49,7 +40,7 @@ type DragState = {
 export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest, onCommit }: Props) {
 
   const scaleRef = useRef(1);
-  const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
+  const [, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
@@ -57,32 +48,11 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
 
-  // Note pins
-  const [noteMode, setNoteMode] = useState(false);
-  const [notePins, setNotePins] = useState<NotePin[]>([]);
-  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
-
   useEffect(() => {
-    setNotePins(loadNotePins(floor.id));
-    setOpenNoteId(null);
+    // Reset transient state when the floor changes.
+    setPending(null);
+    setEditingPoint(null);
   }, [floor.id]);
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => setContainerSize({ w: el.clientWidth, h: el.clientHeight });
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  function commitNotes(next: NotePin[]) {
-    setNotePins(next);
-    saveNotePins(floor.id, next);
-  }
 
   function commitSnap(nextPoints: SurveyPoint[]) {
     onCommit?.({ points: nextPoints });
@@ -95,37 +65,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
 
-  function hitNotePin(x: number, y: number): NotePin | null {
-    const s = scaleRef.current || 1;
-    const r = 16 / s;
-    for (let i = notePins.length - 1; i >= 0; i--) {
-      const p = notePins[i];
-      if (Math.hypot(p.x - x, p.y - y) < r) return p;
-    }
-    return null;
-  }
-
   async function handleTap(x: number, y: number) {
-    // Note pins always tappable — open the card.
-    const noteHit = hitNotePin(x, y);
-    if (noteHit) {
-      setOpenNoteId(noteHit.id);
-      return;
-    }
-    if (noteMode) {
-      const pin: NotePin = {
-        id: newNotePinId(),
-        x,
-        y,
-        index: notePins.length + 1,
-        text: "",
-        createdAt: Date.now(),
-      };
-      const next = [...notePins, pin];
-      commitNotes(next);
-      setOpenNoteId(pin.id);
-      return;
-    }
     for (const p of points) {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < 12) return;
@@ -193,6 +133,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     const reindexed = await reindexFloorPoints(floor.id);
     onPointsChange(reindexed);
   }
+  void undoLast;
 
   const keypadTitle = editingPoint
     ? `Edit point #${editingPoint.index}`
@@ -200,31 +141,12 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       ? "Base Point value (BP1)"
       : `Point #${nextIndex}`;
 
-  const openNote = notePins.find((p) => p.id === openNoteId) || null;
-
   return (
-    <div ref={containerRef} className="flex flex-col h-full relative">
-
-      {/* Note-mode toggle pill */}
-      <button
-        type="button"
-        onClick={() => setNoteMode((v) => !v)}
-        aria-pressed={noteMode}
-        className={
-          "absolute top-2 right-2 z-20 h-9 px-3 rounded-full text-xs font-semibold shadow-sm border flex items-center gap-1.5 " +
-          (noteMode
-            ? "bg-amber-500 text-white border-amber-600"
-            : "bg-white/90 backdrop-blur text-amber-900 border-amber-300")
-        }
-      >
-        <StickyNote className="w-3.5 h-3.5" />
-        {noteMode ? "Placing note" : "Note"}
-      </button>
-
+    <div className="flex flex-col h-full relative">
 
       {/* Dismissible boundary warning */}
       {floor.boundary.length < 3 && !warningDismissed && (
-        <div className="absolute top-14 left-2 right-2 z-20 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
+        <div className="absolute top-2 left-2 right-2 z-20 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
           <span className="flex-1">Draw a boundary in Setup → Boundary before collecting points.</span>
           <button
             onClick={() => setWarningDismissed(true)}
@@ -343,23 +265,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.lineWidth = 3;
             ctx.stroke();
           }
-          // note pins (orange, numbered)
-          const s = scaleRef.current || 1;
-          const rNote = Math.max(7, 9 / s);
-          for (const n of notePins) {
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, rNote, 0, Math.PI * 2);
-            ctx.fillStyle = "#f59e0b";
-            ctx.fill();
-            ctx.strokeStyle = "#78350f";
-            ctx.lineWidth = 1.5 / s;
-            ctx.stroke();
-            ctx.fillStyle = "#ffffff";
-            ctx.font = `bold ${Math.max(9, 11 / s)}px sans-serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(String(n.index), n.x, n.y + 0.5 / s);
-          }
         }}
       />
 
@@ -408,25 +313,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             </div>
           </div>
         </div>
-      )}
-
-      {/* Floating note card — NO fullscreen backdrop */}
-      {openNote && (
-        <NoteOverlay
-          pin={openNote}
-          transform={transform}
-          containerWidth={containerSize.w}
-          containerHeight={containerSize.h}
-          onChangeText={(text) => {
-            commitNotes(notePins.map((n) => (n.id === openNote.id ? { ...n, text } : n)));
-          }}
-          onClose={() => setOpenNoteId(null)}
-          onDelete={() => {
-            const next = reindexNotePins(notePins.filter((n) => n.id !== openNote.id));
-            commitNotes(next);
-            setOpenNoteId(null);
-          }}
-        />
       )}
 
     </div>
