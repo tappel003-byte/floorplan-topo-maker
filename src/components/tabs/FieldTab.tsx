@@ -314,7 +314,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
         planDataUrl={floor.planDataUrl}
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
-        focusRequest={focusRequest}
+        focusRequest={noteFocusReq && (!focusRequest || noteFocusReq.nonce > focusRequest.nonce) ? noteFocusReq : focusRequest}
         onTap={handleTap}
         onTransform={(t) => { scaleRef.current = t.scale; setTransform(t); }}
         onImagePointerDown={(x, y, event) => {
