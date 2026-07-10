@@ -211,13 +211,32 @@ export function FieldTab({
       ? "Base Point value (BP1)"
       : `Point #${nextIndex}`;
 
-  // Editor screen position (from image coords → wrapper coords)
+  // Editor screen position (from image coords → wrapper coords).
+  // The card is placed offset from the pin so it never covers the dot.
+  // Preferred: to the right of the pin. If not enough room, flip to the left.
+  // Vertically: try to keep the card top a bit above the pin, but keep on screen.
   const editingNote = editingNoteId ? notes.find((n) => n.id === editingNoteId) : null;
+  const CARD_W = 256; // matches w-64
+  const CARD_H = 200; // approx height incl. padding + buttons
+  const PIN_GAP = 18; // clearance between pin edge and card edge
   const editorScreen = editingNote
-    ? {
-        x: editingNote.x * transform.scale + transform.tx,
-        y: editingNote.y * transform.scale + transform.ty,
-      }
+    ? (() => {
+        const px = editingNote.x * transform.scale + transform.tx;
+        const py = editingNote.y * transform.scale + transform.ty;
+        const vw = wrapWidth() ?? 400;
+        const vh = wrapHeight() ?? 600;
+        // Prefer right side of pin
+        let left = px + PIN_GAP;
+        if (left + CARD_W + 8 > vw) {
+          // Flip to left of pin
+          left = px - PIN_GAP - CARD_W;
+        }
+        left = Math.max(8, Math.min(left, vw - CARD_W - 8));
+        // Vertically center-ish on the pin, but clamp
+        let top = py - CARD_H / 2;
+        top = Math.max(8, Math.min(top, vh - CARD_H - 8));
+        return { x: px, y: py, left, top };
+      })()
     : null;
 
   async function saveNoteEditor() {
@@ -583,8 +602,8 @@ export function FieldTab({
         <div
           className="absolute z-30 w-64 rounded-xl bg-white shadow-2xl border border-gray-200 p-3"
           style={{
-            left: Math.max(8, Math.min(editorScreen.x + 16, (wrapWidth() ?? 400) - 264)),
-            top: Math.max(8, Math.min(editorScreen.y - 40, (wrapHeight() ?? 600) - 200)),
+            left: editorScreen.left,
+            top: editorScreen.top,
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
