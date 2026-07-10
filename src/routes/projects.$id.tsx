@@ -143,6 +143,7 @@ function ProjectWorkspace() {
             onPointsChange={setPoints}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
+            pointSize={pointSize}
           />
         )}
         {mode === "review" && (
@@ -176,16 +177,26 @@ function ProjectWorkspace() {
           onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
         />
       )}
-      {mode === "field" && (
-        <>
-          <ReviewShortcut
-            points={points}
-            selectedIds={selectedIds}
-            onOpen={() => setMode("review")}
-          />
-          <NoteTool />
-        </>
+      {(mode === "field" || mode === "topo") && (
+        <DataPointsPanel
+          projectId={project.id}
+          points={points}
+          selectedIds={selectedIds}
+          pointSize={pointSize}
+          onPointSizeChange={setPointSize}
+          onSelect={(pid, additive) => {
+            if (additive) {
+              const next = new Set(selectedIds);
+              next.has(pid) ? next.delete(pid) : next.add(pid);
+              setSelectedIds(next);
+            } else {
+              setSelectedIds(new Set([pid]));
+            }
+          }}
+        />
       )}
+      {mode === "field" && <NoteTool />}
+
     </div>
   );
 }
