@@ -58,6 +58,7 @@ export function PlanCanvas({
   planOpacity = 1,
   hidePlan = false,
   planOnTop = false,
+  focusRequest,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
