@@ -602,8 +602,8 @@ export function FieldTab({
         <div
           className="absolute z-30 w-64 rounded-xl bg-white shadow-2xl border border-gray-200 p-3"
           style={{
-            left: Math.max(8, Math.min(editorScreen.x + 16, (wrapWidth() ?? 400) - 264)),
-            top: Math.max(8, Math.min(editorScreen.y - 40, (wrapHeight() ?? 600) - 200)),
+            left: editorScreen.left,
+            top: editorScreen.top,
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
