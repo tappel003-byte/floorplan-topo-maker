@@ -3,9 +3,10 @@ import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 
 import { Button } from "@/components/ui/button";
+import { StickyNote, Trash2 } from "lucide-react";
 
-import type { Floor, SurveyPoint } from "@/lib/types";
-import { savePoint, deletePoint, reindexFloorPoints, uid } from "@/lib/db";
+import type { Floor, NotePin, SurveyPoint } from "@/lib/types";
+import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
+  onFloorChange?: (floor: Floor) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
   pointSize: number;
@@ -27,20 +29,35 @@ type DragState = {
   moved: boolean;
   startClientX: number;
   startClientY: number;
-  /** Finger position in image coords at pointer-down. */
   startImgX: number;
   startImgY: number;
-  /** Point's original position at pointer-down. */
   origX: number;
   origY: number;
   lastX: number;
   lastY: number;
 };
 
-export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest, onCommit }: Props) {
+type NoteDragState = {
+  id: string;
+  moved: boolean;
+  startClientX: number;
+  startClientY: number;
+  startImgX: number;
+  startImgY: number;
+  origX: number;
+  origY: number;
+  longPressAt: number;
+  active: boolean; // becomes true after long-press fires
+};
 
+const NOTE_RADIUS = 11; // image-space radius for note pin hit / draw
+const NOTE_COLOR = "#f97316"; // orange-500
+const LONG_PRESS_MS = 380;
+
+export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest, onCommit }: Props) {
+  void projectId;
   const scaleRef = useRef(1);
-  const [, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
+  const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
@@ -48,24 +65,70 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
 
+  // Notes state
+  const [noteMode, setNoteMode] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const noteDragRef = useRef<NoteDragState | null>(null);
+  const [, setNoteDragTick] = useState(0);
+  const longPressTimerRef = useRef<number | null>(null);
+
+  const notes: NotePin[] = floor.notes ?? [];
+
   useEffect(() => {
-    // Reset transient state when the floor changes.
     setPending(null);
     setEditingPoint(null);
+    setEditingNoteId(null);
+    setNoteMode(false);
   }, [floor.id]);
 
   function commitSnap(nextPoints: SurveyPoint[]) {
     onCommit?.({ points: nextPoints });
   }
 
+  async function persistNotes(next: NotePin[]) {
+    const nextFloor: Floor = { ...floor, notes: next };
+    await saveFloor(nextFloor);
+    onFloorChange?.(nextFloor);
+  }
 
-  // Silence unused-var when dragging state isn't read directly in render.
   void dragging;
 
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
 
+  function hitNote(x: number, y: number): NotePin | null {
+    const s = scaleRef.current || 1;
+    const r = NOTE_RADIUS + 6 / s;
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const n = notes[i];
+      if (Math.hypot(n.x - x, n.y - y) < r) return n;
+    }
+    return null;
+  }
+
+  function openNoteEditor(n: NotePin) {
+    setEditingNoteId(n.id);
+    setNoteDraft(n.text);
+  }
+
   async function handleTap(x: number, y: number) {
+    // Note mode: tap empty spot creates a new pin + opens editor
+    if (noteMode) {
+      const hit = hitNote(x, y);
+      if (hit) {
+        openNoteEditor(hit);
+        return;
+      }
+      const pin: NotePin = { id: uid(), x, y, text: "" };
+      const next = [...notes, pin];
+      await persistNotes(next);
+      setEditingNoteId(pin.id);
+      setNoteDraft("");
+      return;
+    }
+    // Normal mode: place a survey point (ignore taps on note pins so they don't collide)
+    if (hitNote(x, y)) return;
     for (const p of points) {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < 12) return;
@@ -126,20 +189,30 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     return null;
   }
 
-  async function undoLast() {
-    const last = points[points.length - 1];
-    if (!last) return;
-    await deletePoint(last.id);
-    const reindexed = await reindexFloorPoints(floor.id);
-    onPointsChange(reindexed);
-  }
-  void undoLast;
-
   const keypadTitle = editingPoint
     ? `Edit point #${editingPoint.index}`
     : isBasePointCapture
       ? "Base Point value (BP1)"
       : `Point #${nextIndex}`;
+
+  // Editor screen position (from image coords → wrapper coords)
+  const editingNote = editingNoteId ? notes.find((n) => n.id === editingNoteId) : null;
+  const editorScreen = editingNote
+    ? { x: editingNote.x * transform.scale + transform.tx, y: editingNote.y * transform.scale + transform.ty }
+    : null;
+
+  async function saveNoteEditor() {
+    if (!editingNote) return;
+    const next = notes.map((n) => (n.id === editingNote.id ? { ...n, text: noteDraft } : n));
+    await persistNotes(next);
+    setEditingNoteId(null);
+  }
+
+  async function deleteNote(id: string) {
+    const next = notes.filter((n) => n.id !== id);
+    await persistNotes(next);
+    setEditingNoteId(null);
+  }
 
   return (
     <div className="flex flex-col h-full relative">
@@ -158,6 +231,20 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         </div>
       )}
 
+      {/* Notes mode toggle chip — floats above canvas, below top bar */}
+      <button
+        onClick={() => { setNoteMode((v) => !v); setEditingNoteId(null); }}
+        className={`absolute z-20 bottom-20 right-3 rounded-full shadow-md px-3 py-2 text-xs font-medium flex items-center gap-1.5 border transition-colors ${
+          noteMode
+            ? "bg-orange-500 text-white border-orange-600"
+            : "bg-white/95 text-gray-700 border-gray-300 hover:bg-white"
+        }`}
+        aria-pressed={noteMode}
+      >
+        <StickyNote className="w-3.5 h-3.5" />
+        {noteMode ? "Notes on" : "Notes"}
+      </button>
+
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
         planWidth={floor.planWidth}
@@ -166,6 +253,34 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onTap={handleTap}
         onTransform={(t) => { scaleRef.current = t.scale; setTransform(t); }}
         onImagePointerDown={(x, y, event) => {
+          // Note pin takes priority (both modes) — supports long-press-drag and tap-to-open
+          const note = hitNote(x, y);
+          if (note) {
+            const drag: NoteDragState = {
+              id: note.id,
+              moved: false,
+              startClientX: event.clientX,
+              startClientY: event.clientY,
+              startImgX: x,
+              startImgY: y,
+              origX: note.x,
+              origY: note.y,
+              longPressAt: Date.now() + LONG_PRESS_MS,
+              active: false,
+            };
+            noteDragRef.current = drag;
+            setNoteDragTick((t) => t + 1);
+            if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = window.setTimeout(() => {
+              const d = noteDragRef.current;
+              if (d && !d.moved) {
+                d.active = true;
+                setNoteDragTick((t) => t + 1);
+              }
+            }, LONG_PRESS_MS);
+            return true;
+          }
+          if (noteMode) return false; // in note mode, empty taps handled via onTap
           const hit = hitPoint(x, y);
           if (!hit) return false;
           const { point: hp } = hit;
@@ -187,6 +302,18 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           return true;
         }}
         onImagePointerMove={(x, y, event) => {
+          const nd = noteDragRef.current;
+          if (nd) {
+            const screenDist = Math.hypot(event.clientX - nd.startClientX, event.clientY - nd.startClientY);
+            if (screenDist > 8) nd.moved = true;
+            if (!nd.active) return; // must long-press first to start moving
+            const nx = nd.origX + (x - nd.startImgX);
+            const ny = nd.origY + (y - nd.startImgY);
+            const next = notes.map((n) => (n.id === nd.id ? { ...n, x: nx, y: ny } : n));
+            // optimistic local render via floor prop callback
+            onFloorChange?.({ ...floor, notes: next });
+            return;
+          }
           const drag = dragRef.current;
           if (!drag) return;
           const screenDist = Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY);
@@ -201,8 +328,27 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onImagePointerCancel={() => {
           dragRef.current = null;
           setDragging(null);
+          if (longPressTimerRef.current) { window.clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+          noteDragRef.current = null;
+          setNoteDragTick((t) => t + 1);
         }}
         onImagePointerUp={async (x, y, _event) => {
+          const nd = noteDragRef.current;
+          if (nd) {
+            if (longPressTimerRef.current) { window.clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+            noteDragRef.current = null;
+            setNoteDragTick((t) => t + 1);
+            if (nd.active) {
+              // committed a move — persist
+              const moved = notes.map((n) => (n.id === nd.id ? { ...n, x: nd.origX + (x - nd.startImgX), y: nd.origY + (y - nd.startImgY) } : n));
+              await persistNotes(moved);
+            } else if (!nd.moved) {
+              // short tap on pin → open editor
+              const note = notes.find((n) => n.id === nd.id);
+              if (note) openNoteEditor(note);
+            }
+            return;
+          }
           const drag = dragRef.current;
           if (!drag) return;
           const point = points.find((p) => p.id === drag.id);
@@ -223,7 +369,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           commitSnap(nextPts);
         }}
         drawOverlay={(ctx) => {
-          // boundary
           if (floor.boundary.length > 1) {
             ctx.beginPath();
             floor.boundary.forEach((p, i) =>
@@ -234,7 +379,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.lineWidth = 2;
             ctx.stroke();
           }
-          // points
           for (const p of points) {
             const sel = selectedIds.has(p.id);
             const color = p.isBasePoint ? "#16a34a" : pointColor;
@@ -257,7 +401,23 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.textBaseline = "top";
             ctx.fillText(p.value.toFixed(2), p.x + pointSize + 4, p.y + pointSize + 3);
           }
-          // pending marker
+          // Note pins (drawn on top of points visually is fine; they're field-only)
+          for (let i = 0; i < notes.length; i++) {
+            const n = notes[i];
+            const r = NOTE_RADIUS;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = NOTE_COLOR;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#ffffff";
+            ctx.stroke();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 11px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(i + 1), n.x, n.y + 0.5);
+          }
           if (pending) {
             ctx.beginPath();
             ctx.arc(pending.x, pending.y, 14, 0, Math.PI * 2);
@@ -267,6 +427,42 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           }
         }}
       />
+
+      {/* Inline note editor — absolutely positioned inside FieldTab, NO fullscreen backdrop */}
+      {editingNote && editorScreen && (
+        <div
+          className="absolute z-30 w-64 rounded-xl bg-white shadow-2xl border border-gray-200 p-3"
+          style={{
+            left: Math.max(8, Math.min(editorScreen.x + 16, (wrapWidth() ?? 400) - 264)),
+            top: Math.max(8, Math.min(editorScreen.y - 40, (wrapHeight() ?? 600) - 200)),
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Note {notes.findIndex((n) => n.id === editingNote.id) + 1}
+            </span>
+            <button
+              onClick={() => deleteNote(editingNote.id)}
+              className="text-gray-400 hover:text-red-600 p-1"
+              aria-label="Delete note"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+          <textarea
+            autoFocus
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            placeholder="Type or dictate…"
+            className="w-full min-h-[90px] text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-y"
+          />
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(null)}>Cancel</Button>
+            <Button size="sm" onClick={saveNoteEditor}>Save</Button>
+          </div>
+        </div>
+      )}
 
       <NumericKeypad
         open={(!!pending && !bpPromptOpen) || !!editingPoint}
@@ -296,7 +492,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         } : undefined}
       />
 
-      {/* Base Point confirmation prompt */}
       {bpPromptOpen && pending && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-background rounded-xl shadow-2xl max-w-sm w-full p-5">
@@ -317,4 +512,14 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
 
     </div>
   );
+}
+
+// Best-effort viewport helpers so the editor card doesn't overflow the container.
+function wrapWidth(): number | null {
+  if (typeof window === "undefined") return null;
+  return window.innerWidth;
+}
+function wrapHeight(): number | null {
+  if (typeof window === "undefined") return null;
+  return window.innerHeight;
 }
