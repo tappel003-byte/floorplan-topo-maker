@@ -107,13 +107,13 @@ export function ProjectList() {
                 className="flex-1 min-w-0"
               >
                 <div className="font-medium truncate">{p.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground truncate">
-                  {p.address || "No address"} · {p.inspectionDate || "no date"}
+                <div className="mt-1 text-xs text-muted-foreground break-words">
+                  {p.address || "No address"}
                 </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {p.floorCount} floor{p.floorCount === 1 ? "" : "s"} · {p.pointCount} point
-                  {p.pointCount === 1 ? "" : "s"}
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {p.inspectionDate || "no date"}
                 </div>
+
               </Link>
               <Button
                 variant="ghost"
