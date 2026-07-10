@@ -153,6 +153,8 @@ function ProjectWorkspace() {
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             pointSize={pointSize}
+            pointColor={pointColor}
+
           />
         )}
         {mode === "review" && (
