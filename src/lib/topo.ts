@@ -18,7 +18,7 @@ export interface Grid {
   step: number;
 }
 
-export function pointInPolygon(px: number, py: number, poly: Array<{ x: number; y: number }>) {
+function pointInPolygon(px: number, py: number, poly: Array<{ x: number; y: number }>) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const xi = poly[i].x,
