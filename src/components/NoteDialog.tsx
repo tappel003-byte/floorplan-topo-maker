@@ -26,8 +26,8 @@ export function NoteDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
-      <div className="w-full max-w-sm rounded-lg border bg-popover shadow-lg flex flex-col">
+    <div className="fixed left-2 right-2 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[80] flex justify-center pointer-events-none">
+      <div className="w-full max-w-sm max-h-[calc(100dvh-5rem)] rounded-lg border bg-popover shadow-lg flex flex-col pointer-events-auto">
         <div className="flex items-center justify-between px-3 h-9 border-b">
           <span className="text-xs font-semibold">Note N{pin.index}</span>
           <button
