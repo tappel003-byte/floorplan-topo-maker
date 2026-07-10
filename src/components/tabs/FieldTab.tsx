@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
-import { NoteDialog } from "../NoteDialog";
 
 import { Button } from "@/components/ui/button";
 
@@ -73,7 +72,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   // --- Note pins ---
   const [notes, setNotes] = useState<NotePin[]>(floor.notePins ?? []);
   const [armed, setArmed] = useState(false);
-  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
   const pinGestureRef = useRef<PinGesture | null>(null);
   const lastTapRef = useRef<{ id: string; at: number } | null>(null);
 
@@ -112,7 +110,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       await persistNotes(next);
       commitSnap(points, next);
       setArmed(false);
-      setOpenNoteId(pin.id);
       return;
     }
     for (const p of points) {
@@ -199,8 +196,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     : isBasePointCapture
       ? "Base Point value (BP1)"
       : `Point #${nextIndex}`;
-
-  const openNote = openNoteId ? notes.find((n) => n.id === openNoteId) ?? null : null;
 
   return (
     <div className="flex flex-col h-full relative">
@@ -332,7 +327,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             const prev = lastTapRef.current;
             if (prev && prev.id === g.id && now - prev.at < DOUBLE_TAP_MS) {
               lastTapRef.current = null;
-              setOpenNoteId(g.id);
             } else {
               lastTapRef.current = { id: g.id, at: now };
             }
@@ -451,28 +445,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           commitSnap(reindexed, notes);
         } : undefined}
       />
-
-      {openNote && (
-        <NoteDialog
-          key={openNote.id}
-          pin={openNote}
-          onClose={() => setOpenNoteId(null)}
-          onSave={async (text) => {
-            const next = notes.map((n) => (n.id === openNote.id ? { ...n, text } : n));
-            await persistNotes(next);
-            commitSnap(points, next);
-          }}
-          onDelete={async () => {
-            if (!confirm(`Delete note N${openNote.index}?`)) return;
-            const next = notes
-              .filter((n) => n.id !== openNote.id)
-              .map((n, i) => ({ ...n, index: i + 1 }));
-            await persistNotes(next);
-            commitSnap(points, next);
-            setOpenNoteId(null);
-          }}
-        />
-      )}
 
       {/* Base Point confirmation prompt */}
       {bpPromptOpen && pending && (
