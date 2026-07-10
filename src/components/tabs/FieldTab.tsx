@@ -60,7 +60,7 @@ const LONG_PRESS_MS = 400;
 const DOUBLE_TAP_MS = 350;
 const PIN_HIT_RADIUS = 18;
 
-export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest }: Props) {
+export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest, notesVersion, onCommit, onFloorNotesChange }: Props) {
 
   const scaleRef = useRef(1);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
