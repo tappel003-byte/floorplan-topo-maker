@@ -1,6 +1,6 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Settings2, Pointer, ListChecks, Layers3, Share2 } from "lucide-react";
+import { Settings2, Pointer, ListChecks, Layers3, Share2 } from "lucide-react";
 import { getProject, listFloors, listPoints } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
@@ -9,6 +9,7 @@ import { FieldTab } from "@/components/tabs/FieldTab";
 import { ReviewTab } from "@/components/tabs/ReviewTab";
 import { TopoTab } from "@/components/tabs/TopoTab";
 import { ExportTab } from "@/components/tabs/ExportTab";
+import { AppTopBar } from "@/components/chrome/AppTopBar";
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
