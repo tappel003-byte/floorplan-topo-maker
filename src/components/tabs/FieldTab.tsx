@@ -45,9 +45,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [dragging, setDragging] = useState<DragState | null>(null);
-  const [trashHover, setTrashHover] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
-  const trashRef = useRef<HTMLButtonElement | null>(null);
 
   // Transitions on this floor + which one is currently applied to new points.
   const [transitions, setTransitions] = useState<Transition[]>([]);
