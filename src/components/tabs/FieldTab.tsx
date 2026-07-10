@@ -421,6 +421,47 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           }
         }}
       />
+
+      {/* New note dialog */}
+      <NoteDialog
+        open={!!newNoteAt}
+        isNew
+        onClose={() => setNewNoteAt(null)}
+        onSave={async (text) => {
+          if (!newNoteAt) return;
+          const n: FloorNote = {
+            id: uid(),
+            floorId: floor.id,
+            x: newNoteAt.x,
+            y: newNoteAt.y,
+            text,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          await saveNote(n);
+          setNotes((prev) => [...prev, n]);
+        }}
+      />
+
+      {/* Edit note dialog */}
+      <NoteDialog
+        open={!!editingNote}
+        isNew={false}
+        initialText={editingNote?.text ?? ""}
+        onClose={() => setEditingNote(null)}
+        onSave={async (text) => {
+          if (!editingNote) return;
+          const updated = { ...editingNote, text, updatedAt: Date.now() };
+          await saveNote(updated);
+          setNotes((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+        }}
+        onDelete={async () => {
+          if (!editingNote) return;
+          await deleteNote(editingNote.id);
+          setNotes((prev) => prev.filter((x) => x.id !== editingNote.id));
+        }}
+      />
     </div>
+
   );
 }
