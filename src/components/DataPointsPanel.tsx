@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ChevronDown, ChevronUp, X, GripVertical, Database, Minus, Plus } from "lucide-react";
 import type { SurveyPoint } from "@/lib/types";
 import { PointDetail } from "@/components/PointDetail";
@@ -19,20 +19,28 @@ interface Props {
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
 
 
+type SortMode = "index" | "desc" | "asc";
 
 interface PanelState {
   x: number;
   y: number;
   collapsed: boolean;
   hidden: boolean;
+  sortMode?: SortMode;
+}
+
+function nextSortMode(m: SortMode): SortMode {
+  if (m === "index") return "desc";
+  if (m === "desc") return "asc";
+  return "index";
 }
 
 function loadState(projectId: string): PanelState {
   try {
     const raw = localStorage.getItem(`dpp:${projectId}`);
-    if (raw) return { collapsed: false, hidden: false, x: 8, y: 52, ...JSON.parse(raw) };
+    if (raw) return { collapsed: false, hidden: false, x: 8, y: 52, sortMode: "index", ...JSON.parse(raw) };
   } catch {}
-  return { x: 8, y: 52, collapsed: false, hidden: false };
+  return { x: 8, y: 52, collapsed: false, hidden: false, sortMode: "index" };
 }
 
 
@@ -40,6 +48,14 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
   const [detailId, setDetailId] = useState<string | null>(null);
   const [colorOpen, setColorOpen] = useState(false);
+
+  const sortMode = state.sortMode ?? "index";
+  const sortedPoints = useMemo(() => {
+    const list = [...points];
+    if (sortMode === "index") return list.sort((a, b) => a.index - b.index);
+    if (sortMode === "desc") return list.sort((a, b) => b.value - a.value);
+    return list.sort((a, b) => a.value - b.value);
+  }, [points, sortMode]);
 
   const dragRef = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null);
   const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -113,7 +129,16 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-[11px] font-semibold flex-1">Data</span>
         <button
+          className="p-0.5 hover:bg-muted rounded text-[10px] font-mono w-5"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setState((s) => ({ ...s, sortMode: nextSortMode(s.sortMode ?? "index") }))}
+          aria-label={`Sort: ${sortMode === "index" ? "number" : sortMode === "desc" ? "high to low" : "low to high"}`}
+        >
+          {sortMode === "index" ? "#" : sortMode === "desc" ? "↓" : "↑"}
+        </button>
+        <button
           className="p-0.5 hover:bg-muted rounded"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setState((s) => ({ ...s, collapsed: !s.collapsed }))}
           aria-label={state.collapsed ? "Expand" : "Collapse"}
         >
@@ -121,6 +146,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         </button>
         <button
           className="p-0.5 hover:bg-muted rounded"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setState((s) => ({ ...s, hidden: true }))}
           aria-label="Hide"
         >
@@ -180,10 +206,10 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
           </div>
 
           <div className="overflow-auto flex-1">
-            {points.length === 0 ? (
+            {sortedPoints.length === 0 ? (
               <div className="p-3 text-xs text-muted-foreground text-center">No points yet</div>
             ) : (
-              points.map((p) => {
+              sortedPoints.map((p) => {
                 const sel = selectedIds.has(p.id);
                 return (
                   <button
