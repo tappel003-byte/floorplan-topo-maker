@@ -71,9 +71,9 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, poin
     return (
       <button
         onClick={() => setState((s) => ({ ...s, hidden: false }))}
-        className="fixed top-16 right-3 z-40 rounded-full bg-background border shadow-md h-10 px-3 flex items-center gap-1.5 text-xs font-medium"
+        className="fixed top-11 left-2 z-40 rounded-full bg-background/90 backdrop-blur border shadow-md h-8 px-2.5 flex items-center gap-1.5 text-xs font-medium"
       >
-        <Database className="h-4 w-4" /> Data
+        <Database className="h-3.5 w-3.5" /> {points.length}
       </button>
     );
   }
