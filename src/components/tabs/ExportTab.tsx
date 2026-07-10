@@ -23,9 +23,19 @@ export function ExportTab({ project, floor, points, settings }: Props) {
   const [format, setFormat] = useState<(typeof FORMATS)[number]>("png");
   const [status, setStatus] = useState<string>("");
   const [pointsOnly, setPointsOnly] = useState(false);
+  const [notes, setNotes] = useState<SurveyNote[]>([]);
   const previewRef = useRef<HTMLCanvasElement | null>(null);
   const resolved = resolveSettings(settings);
   const exportSettings = pointsOnly ? resolveSettings({ ...resolved, mode: "points-only", showContours: false, showLegend: false, showHighLow: false, showPoints: true, showLabels: false }) : resolved;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const list = await listNotes(floor.id);
+      if (!cancelled) setNotes(list);
+    })();
+    return () => { cancelled = true; };
+  }, [floor.id]);
 
 
   const grid = useMemo(() => {
