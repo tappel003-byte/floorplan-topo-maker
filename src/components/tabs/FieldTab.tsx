@@ -14,7 +14,9 @@ interface Props {
   onPointsChange: (points: SurveyPoint[]) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
+  pointSize: number;
 }
+
 
 type DragState = {
   id: string;
