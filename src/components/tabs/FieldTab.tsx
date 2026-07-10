@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
-import { DataPointsPanel } from "../DataPointsPanel";
+
 import { Button } from "@/components/ui/button";
 import { Undo2 } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
@@ -14,7 +14,9 @@ interface Props {
   onPointsChange: (points: SurveyPoint[]) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
+  pointSize: number;
 }
+
 
 type DragState = {
   id: string;
@@ -31,7 +33,7 @@ type DragState = {
   lastY: number;
 };
 
-export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds }: Props) {
+export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize }: Props) {
   const scaleRef = useRef(1);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
@@ -40,16 +42,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
 
-  const [pointSize, setPointSize] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem(`dpp-size:${projectId}`);
-      const n = raw ? Number(raw) : 2;
-      return Number.isFinite(n) && n >= 1 && n <= 8 ? n : 2;
-    } catch { return 2; }
-  });
-  useEffect(() => {
-    try { localStorage.setItem(`dpp-size:${projectId}`, String(pointSize)); } catch {}
-  }, [pointSize, projectId]);
 
   // Silence unused-var when dragging state isn't read directly in render.
   void dragging;
@@ -317,22 +309,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         </div>
       )}
 
-      <DataPointsPanel
-        projectId={projectId}
-        points={points}
-        selectedIds={selectedIds}
-        pointSize={pointSize}
-        onPointSizeChange={setPointSize}
-        onSelect={(id, additive) => {
-          if (additive) {
-            const next = new Set(selectedIds);
-            next.has(id) ? next.delete(id) : next.add(id);
-            setSelectedIds(next);
-          } else {
-            setSelectedIds(new Set([id]));
-          }
-        }}
-      />
     </div>
   );
 }
