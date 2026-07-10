@@ -23,10 +23,11 @@ interface PanelState {
 function loadState(projectId: string): PanelState {
   try {
     const raw = localStorage.getItem(`dpp:${projectId}`);
-    if (raw) return { collapsed: false, hidden: false, expanded: false, x: 16, y: 16, ...JSON.parse(raw) };
+    if (raw) return { collapsed: false, hidden: false, expanded: false, x: 8, y: 52, ...JSON.parse(raw) };
   } catch {}
-  return { x: 16, y: 16, collapsed: false, hidden: false, expanded: false };
+  return { x: 8, y: 52, collapsed: false, hidden: false, expanded: false };
 }
+
 
 export function DataPointsPanel({ projectId, points, selectedIds, onSelect, pointSize, onPointSizeChange }: Props) {
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
