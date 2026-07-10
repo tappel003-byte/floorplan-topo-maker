@@ -10,8 +10,9 @@ import { TopoTab } from "@/components/tabs/TopoTab";
 import { ExportTab } from "@/components/tabs/ExportTab";
 import { AppTopBar } from "@/components/chrome/AppTopBar";
 import { ModeToggle } from "@/components/chrome/ModeToggle";
-import { ReviewShortcut } from "@/components/chrome/ReviewShortcut";
 import { NoteTool } from "@/components/chrome/NoteTool";
+import { DataPointsPanel } from "@/components/DataPointsPanel";
+
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
