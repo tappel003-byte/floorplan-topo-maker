@@ -532,11 +532,23 @@ export function FieldTab({
               ctx.stroke();
             }
 
-            ctx.fillStyle = "#111827";
+            // Label background so elevation is legible over black plan lines.
+            const label = p.value.toFixed(2);
+            const lx = p.x + markerR + 4;
+            const ly = p.y + markerR + 3;
             ctx.font = "bold 12px sans-serif";
+            const tm = ctx.measureText(label);
+            const padX = 3;
+            const padY = 2;
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
+            ctx.fill();
+
+            ctx.fillStyle = "#111827";
             ctx.textAlign = "left";
             ctx.textBaseline = "top";
-            ctx.fillText(p.value.toFixed(2), p.x + markerR + 4, p.y + markerR + 3);
+            ctx.fillText(label, lx, ly);
           }
           // Note pins (drawn on top of points visually is fine; they're field-only)
           for (let i = 0; i < notes.length; i++) {
