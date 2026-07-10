@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
-import { DataPointsPanel } from "../DataPointsPanel";
+
 import { Button } from "@/components/ui/button";
 import { Undo2 } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
