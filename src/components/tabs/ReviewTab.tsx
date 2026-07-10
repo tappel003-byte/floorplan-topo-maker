@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Edit3, AlertTriangle } from "lucide-react";
+import { Trash2, Edit3, AlertTriangle, X } from "lucide-react";
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { deletePoint, savePoint } from "@/lib/db";
 
@@ -12,9 +12,10 @@ interface Props {
   onPointsChange: (points: SurveyPoint[]) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
+  onClose?: () => void;
 }
 
-export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds }: Props) {
+export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds, onClose }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
   const [noteId, setNoteId] = useState<string | null>(null);
@@ -64,6 +65,19 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds 
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between border-b px-3 h-9">
+        <span className="text-xs font-semibold">Review</span>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center justify-center h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+            aria-label="Close review"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
       {stats && (
         <div className="border-b p-3 grid grid-cols-4 gap-2 text-center text-xs">
           <Stat label="Points" value={points.length.toString()} />
