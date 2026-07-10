@@ -37,6 +37,7 @@ function ProjectWorkspace() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [focusRequest, setFocusRequest] = useState<{ x: number; y: number; nonce: number } | undefined>(undefined);
   const [pointSize, setPointSize] = useState<number>(() => {
     try {
       const raw = localStorage.getItem(`dpp-size:${id}`);
