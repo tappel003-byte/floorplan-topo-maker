@@ -147,7 +147,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       createdAt: Date.now(),
     };
     await savePoint(point);
-    onPointsChange([...points, point]);
+    const nextPts = [...points, point];
+    onPointsChange(nextPts);
+    commitSnap(nextPts, notes);
     setPending(null);
     setBpPromptOpen(false);
   }
