@@ -114,13 +114,13 @@ export function NumericKeypad({
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30" onClick={onClose}>
       <div
-        className="bg-background rounded-t-2xl shadow-2xl p-4 pb-6 max-w-md w-full mx-auto max-h-[90dvh] overflow-y-auto"
+        className="bg-background rounded-t-2xl shadow-2xl p-4 pb-6 landscape-short:p-3 landscape-short:pb-3 max-w-md landscape-short:max-w-2xl w-full mx-auto max-h-[95dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-2 gap-2">
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{title}</div>
-            {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
+            {subtitle && <div className="text-xs text-muted-foreground mt-0.5 landscape-short:hidden">{subtitle}</div>}
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {onDelete && (
@@ -139,43 +139,69 @@ export function NumericKeypad({
             </Button>
           </div>
         </div>
-        <div className="mb-3 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl font-mono tabular-nums h-16 flex items-center justify-end">
-          {text || (
-            <span className="text-muted-foreground/60">
-              {repeatValue != null ? repeatValue.toFixed(2) : "0.0"}
-            </span>
-          )}
-        </div>
-        {repeatValue != null && (
-          <button
-            onClick={repeatLast}
-            className="mb-3 w-full h-11 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99]"
-          >
-            <Repeat2 className="h-4 w-4" /> Repeat last ({repeatValue.toFixed(2)})
-          </button>
-        )}
-        <div className="grid grid-cols-3 gap-2">
-          {keys.map((k) => (
-            <KeyBtn key={k} onClick={() => push(k)}>
-              {k}
+        <div className="landscape-short:grid landscape-short:grid-cols-[1fr_1.4fr] landscape-short:gap-3">
+          <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
+            <div className="mb-3 landscape-short:mb-2 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
+              {text || (
+                <span className="text-muted-foreground/60">
+                  {repeatValue != null ? repeatValue.toFixed(2) : "0.0"}
+                </span>
+              )}
+            </div>
+            {repeatValue != null && (
+              <button
+                onClick={repeatLast}
+                className="mb-3 landscape-short:mb-0 w-full h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99]"
+              >
+                <Repeat2 className="h-4 w-4" /> Repeat last ({repeatValue.toFixed(2)})
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2 landscape-short:gap-1.5">
+            {keys.map((k) => (
+              <KeyBtn key={k} onClick={() => push(k)}>
+                {k}
+              </KeyBtn>
+            ))}
+            <KeyBtn onClick={toggleSign}>±</KeyBtn>
+            <KeyBtn onClick={() => push("0")}>0</KeyBtn>
+            <KeyBtn onClick={() => push(".")}>.</KeyBtn>
+            <KeyBtn onClick={backspace} className="col-span-1">
+              <Delete className="h-6 w-6 mx-auto" />
             </KeyBtn>
-          ))}
-          <KeyBtn onClick={toggleSign}>±</KeyBtn>
-          <KeyBtn onClick={() => push("0")}>0</KeyBtn>
-          <KeyBtn onClick={() => push(".")}>.</KeyBtn>
-          <KeyBtn onClick={backspace} className="col-span-1">
-            <Delete className="h-6 w-6 mx-auto" />
-          </KeyBtn>
-          <button
-            onClick={submit}
-            disabled={!text || !isFinite(parseFloat(text))}
-            className="col-span-2 h-16 rounded-lg bg-primary text-primary-foreground text-xl font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            <Check className="h-6 w-6" /> Enter
-          </button>
+            <button
+              onClick={submit}
+              disabled={!text || !isFinite(parseFloat(text))}
+              className="col-span-2 h-16 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground text-xl landscape-short:text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              <Check className="h-6 w-6 landscape-short:h-5 landscape-short:w-5" /> Enter
+            </button>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function KeyBtn({
+  children,
+  onClick,
+  className = "",
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "h-16 landscape-short:h-10 rounded-lg bg-secondary hover:bg-secondary/80 text-2xl landscape-short:text-lg font-semibold active:scale-95 transition-transform " +
+        className
+      }
+    >
+      {children}
+    </button>
   );
 }
 
