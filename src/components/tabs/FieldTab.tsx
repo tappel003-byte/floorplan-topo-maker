@@ -213,7 +213,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           // points
           for (const p of points) {
             const sel = selectedIds.has(p.id);
-            const color = p.isBasePoint ? "#16a34a" : "#dc2626";
+            const color = p.isBasePoint ? "#16a34a" : pointColor;
             ctx.beginPath();
             ctx.arc(p.x, p.y, pointSize, 0, Math.PI * 2);
             ctx.fillStyle = color;
