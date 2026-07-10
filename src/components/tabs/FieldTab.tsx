@@ -110,6 +110,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       const pin: NotePin = { id: uid(), index: idx, x, y, text: "", createdAt: Date.now() };
       const next = [...notes, pin];
       await persistNotes(next);
+      commitSnap(points, next);
       setArmed(false);
       setOpenNoteId(pin.id);
       return;
@@ -126,7 +127,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
       await savePoint(updated);
-      onPointsChange(points.map((p) => (p.id === updated.id ? updated : p)));
+      const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
+      onPointsChange(nextPts);
+      commitSnap(nextPts, notes);
       setEditingPoint(null);
       return;
     }
