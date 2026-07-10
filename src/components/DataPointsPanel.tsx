@@ -14,6 +14,7 @@ interface Props {
   onPointSizeChange: (n: number) => void;
   pointColor: string;
   onPointColorChange: (c: string) => void;
+  onCommit?: (points: SurveyPoint[]) => void;
 }
 
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
