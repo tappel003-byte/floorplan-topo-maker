@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Floor, ProjectMeta, SurveyPoint } from "./types";
+import type { Floor, ProjectMeta, SurveyNote, SurveyPoint } from "./types";
 
 interface FloorSurveyDB extends DBSchema {
   projects: {
@@ -17,25 +17,41 @@ interface FloorSurveyDB extends DBSchema {
     value: SurveyPoint;
     indexes: { floorId: string };
   };
+  notes: {
+    key: string;
+    value: SurveyNote;
+    indexes: { floorId: string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<FloorSurveyDB>> | null = null;
 
-const REQUIRED_STORES = ["projects", "floors", "points"] as const;
+const REQUIRED_STORES = ["projects", "floors", "points", "notes"] as const;
 
 function hasRequiredStores(db: { objectStoreNames: DOMStringList }) {
   return REQUIRED_STORES.every((name) => db.objectStoreNames.contains(name));
 }
 
 function openFreshDB() {
-  return openDB<FloorSurveyDB>("floor-survey", 3, {
-    upgrade(db) {
-      const p = db.createObjectStore("projects", { keyPath: "id" });
-      p.createIndex("updatedAt", "updatedAt");
-      const f = db.createObjectStore("floors", { keyPath: "id" });
-      f.createIndex("projectId", "projectId");
-      const pt = db.createObjectStore("points", { keyPath: "id" });
-      pt.createIndex("floorId", "floorId");
+  return openDB<FloorSurveyDB>("floor-survey", 4, {
+    upgrade(db, oldVersion) {
+      if (!db.objectStoreNames.contains("projects")) {
+        const p = db.createObjectStore("projects", { keyPath: "id" });
+        p.createIndex("updatedAt", "updatedAt");
+      }
+      if (!db.objectStoreNames.contains("floors")) {
+        const f = db.createObjectStore("floors", { keyPath: "id" });
+        f.createIndex("projectId", "projectId");
+      }
+      if (!db.objectStoreNames.contains("points")) {
+        const pt = db.createObjectStore("points", { keyPath: "id" });
+        pt.createIndex("floorId", "floorId");
+      }
+      if (!db.objectStoreNames.contains("notes")) {
+        const n = db.createObjectStore("notes", { keyPath: "id" });
+        n.createIndex("floorId", "floorId");
+      }
+      void oldVersion;
     },
   });
 }
@@ -46,9 +62,8 @@ function getDB() {
   }
   if (!dbPromise) {
     dbPromise = openDB<FloorSurveyDB>("floor-survey").then(async (db) => {
-      if (hasRequiredStores(db)) return db as IDBPDatabase<FloorSurveyDB>;
+      if (hasRequiredStores(db) && db.version >= 4) return db as IDBPDatabase<FloorSurveyDB>;
       db.close();
-      await indexedDB.deleteDatabase("floor-survey");
       return openFreshDB();
     });
   }
