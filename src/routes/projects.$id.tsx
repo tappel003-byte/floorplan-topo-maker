@@ -78,7 +78,11 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] relative bg-background">
+    <div
+      className="flex flex-col fixed inset-0 bg-background overflow-hidden"
+      style={{ overscrollBehavior: "none", touchAction: "none" }}
+    >
+
       <header className="bg-background/85 backdrop-blur border-b">
         <div className="flex items-center gap-2 px-2 h-8 text-xs">
           <Link
