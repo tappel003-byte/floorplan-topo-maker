@@ -18,6 +18,7 @@ interface Props {
   onFloorChange: (floor: Floor) => void;
   settings: RenderSettings;
   onSettingsChange: (s: RenderSettings) => void;
+  selectedIds?: Set<string>;
 }
 
 const DEFAULT_LABEL_DX = 8;
@@ -57,7 +58,8 @@ function labelAnchor(p: SurveyPoint) {
 
 
 
-export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange }: Props) {
+export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange, selectedIds }: Props) {
+  const selectedId = selectedIds && selectedIds.size > 0 ? selectedIds.values().next().value ?? null : null;
   const [openCorner, setOpenCorner] = useState<null | "contours" | "palette" | "labels">(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
@@ -389,7 +391,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               : null;
             renderTopoTop(ctx, floor, points, resolved, gridAndContours, {
               liveDrag: activeLabel,
-              highlightId: activeLabel?.id ?? null,
+              highlightId: activeLabel?.id ?? selectedId,
               livePinHigh: activePinHigh,
               livePinLow: activePinLow,
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
@@ -878,6 +880,13 @@ export function renderTopoTop(
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 1.5;
       ctx.stroke();
+      if (highlightId === p.id) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.strokeStyle = "hsl(var(--primary))";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
 
       // label
       const text = p.value.toFixed(resolved.decimalPlaces);
@@ -923,6 +932,15 @@ export function renderTopoTop(
       }
     }
     ctx.globalAlpha = 1;
+  } else if (highlightId) {
+    const sel = points.find((p) => p.id === highlightId);
+    if (sel) {
+      ctx.beginPath();
+      ctx.arc(sel.x, sel.y, 12, 0, Math.PI * 2);
+      ctx.strokeStyle = "hsl(var(--primary))";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
   }
 
   // Legend + High/Low pins

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ChevronDown, ChevronUp, X, GripVertical, Database } from "lucide-react";
+import { ChevronDown, ChevronUp, X, GripVertical, Database, Minus, Plus } from "lucide-react";
 import type { SurveyPoint } from "@/lib/types";
 
 interface Props {
@@ -78,7 +78,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, poin
     );
   }
 
-  const width = 280;
+  const width = 200;
 
   return (
     <div
@@ -87,7 +87,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, poin
         left: state.x,
         top: state.y,
         width,
-        maxHeight: state.collapsed ? undefined : "45dvh",
+        maxHeight: state.collapsed ? undefined : "38dvh",
       }}
     >
       <div
@@ -116,19 +116,25 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, poin
       </div>
       {!state.collapsed && (
         <>
-          <div className="flex items-center gap-2 px-2 py-1.5 border-b bg-muted/20">
+          <div className="flex items-center gap-1.5 px-2 py-1 border-b bg-muted/20">
             <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">Dot</span>
-            <input
-              type="range"
-              min={1}
-              max={8}
-              step={1}
-              value={pointSize}
-              onChange={(e) => onPointSizeChange(Number(e.target.value))}
-              className="flex-1 accent-primary"
-              aria-label="Point marker size"
-            />
-            <span className="text-[10px] font-mono w-6 text-right text-muted-foreground">{pointSize}px</span>
+            <button
+              className="ml-auto h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+              onClick={() => onPointSizeChange(Math.max(1, pointSize - 1))}
+              disabled={pointSize <= 1}
+              aria-label="Smaller dot"
+            >
+              <Minus className="h-3 w-3" />
+            </button>
+            <span className="text-[10px] font-mono w-8 text-center tabular-nums">{pointSize}px</span>
+            <button
+              className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+              onClick={() => onPointSizeChange(Math.min(8, pointSize + 1))}
+              disabled={pointSize >= 8}
+              aria-label="Larger dot"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
           </div>
           <div className="flex items-center px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-b bg-muted/30">
             <span className="w-8">#</span>
