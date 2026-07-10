@@ -267,7 +267,8 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         onDelete={async () => {
           if (!confirm(`Delete point #${detail.index}?`)) return;
           await deletePoint(detail.id);
-          onPointsChange(points.filter((x) => x.id !== detail.id));
+          const reindexed = await reindexFloorPoints(detail.floorId);
+          onPointsChange(reindexed);
           setDetailId(null);
         }}
       />
