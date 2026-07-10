@@ -12,9 +12,10 @@ interface Props {
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
   onClose?: () => void;
+  onCommit?: (points: SurveyPoint[]) => void;
 }
 
-export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds, onClose }: Props) {
+export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds, onClose, onCommit }: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
