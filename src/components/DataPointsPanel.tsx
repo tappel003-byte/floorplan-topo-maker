@@ -85,7 +85,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         className="fixed top-11 left-2 z-40 rounded-full bg-background/90 backdrop-blur border shadow-md h-7 px-2 flex items-center gap-1 text-[11px] font-medium"
         aria-label="Show data points"
       >
-        <Database className="h-3 w-3" /> {points.length}
+        <Database className="h-3 w-3" />
       </button>
     );
   }
