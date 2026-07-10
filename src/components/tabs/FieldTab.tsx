@@ -79,7 +79,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
 
   useEffect(() => {
     setNotes(floor.notePins ?? []);
-  }, [floor.id]);
+  }, [floor.id, notesVersion]);
 
   useEffect(() => {
     function onAdd() { setArmed(true); }
@@ -90,6 +90,11 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   async function persistNotes(next: NotePin[]) {
     setNotes(next);
     await saveFloor({ ...floor, notePins: next });
+    onFloorNotesChange?.(next);
+  }
+
+  function commitSnap(nextPoints: SurveyPoint[], nextNotes: NotePin[]) {
+    onCommit?.({ points: nextPoints, notePins: nextNotes });
   }
 
 
