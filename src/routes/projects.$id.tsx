@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Settings2, Pointer, ListChecks, Layers3, Share2 } from "lucide-react";
 import { getProject, listFloors, listPoints } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
@@ -10,6 +9,9 @@ import { ReviewTab } from "@/components/tabs/ReviewTab";
 import { TopoTab } from "@/components/tabs/TopoTab";
 import { ExportTab } from "@/components/tabs/ExportTab";
 import { AppTopBar } from "@/components/chrome/AppTopBar";
+import { ModeToggle } from "@/components/chrome/ModeToggle";
+import { ReviewShortcut } from "@/components/chrome/ReviewShortcut";
+import { NoteTool } from "@/components/chrome/NoteTool";
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
@@ -29,7 +31,7 @@ function ProjectWorkspace() {
   const [floors, setFloors] = useState<Floor[]>([]);
   const [activeFloorId, setActiveFloorId] = useState<string | null>(null);
   const [points, setPoints] = useState<SurveyPoint[]>([]);
-  const [mode, setMode] = useState<Mode>("setup");
+  const [mode, setMode] = useState<Mode>("field");
   const [settings, setSettings] = useState<RenderSettings>(defaultRenderSettings);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
