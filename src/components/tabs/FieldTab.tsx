@@ -42,6 +42,16 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
 
+  // Notes
+  const [notes, setNotes] = useState<FloorNote[]>([]);
+  const [noteMode, setNoteMode] = useState(false);
+  const [editingNote, setEditingNote] = useState<FloorNote | null>(null);
+  const [newNoteAt, setNewNoteAt] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    listNotes(floor.id).then(setNotes).catch(() => setNotes([]));
+  }, [floor.id]);
+
   const [pointSize, setPointSize] = useState<number>(() => {
     try {
       const raw = localStorage.getItem(`dpp-size:${projectId}`);
@@ -59,7 +69,28 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
 
+  // Note hit test — small square pinned at (x,y).
+  function hitNote(x: number, y: number): FloorNote | null {
+    const s = scaleRef.current || 1;
+    const r = 14 / s;
+    for (const n of notes) {
+      if (Math.abs(n.x - x) <= r && Math.abs(n.y - y) <= r) return n;
+    }
+    return null;
+  }
+
   async function handleTap(x: number, y: number) {
+    if (noteMode) {
+      setNewNoteAt({ x, y });
+      setNoteMode(false);
+      return;
+    }
+    // Tap on existing note → open editor
+    const n = hitNote(x, y);
+    if (n) {
+      setEditingNote(n);
+      return;
+    }
     for (const p of points) {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < 12) return;
@@ -67,6 +98,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     setPending({ x, y });
     if (isBasePointCapture) setBpPromptOpen(true);
   }
+
 
   async function submitValue(v: number) {
     if (editingPoint) {
