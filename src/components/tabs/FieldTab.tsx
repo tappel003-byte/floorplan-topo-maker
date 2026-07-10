@@ -410,6 +410,25 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         </div>
       )}
 
+      {/* Floating note card — NO fullscreen backdrop */}
+      {openNote && (
+        <NoteOverlay
+          pin={openNote}
+          transform={transform}
+          containerWidth={containerSize.w}
+          containerHeight={containerSize.h}
+          onChangeText={(text) => {
+            commitNotes(notePins.map((n) => (n.id === openNote.id ? { ...n, text } : n)));
+          }}
+          onClose={() => setOpenNoteId(null)}
+          onDelete={() => {
+            const next = reindexNotePins(notePins.filter((n) => n.id !== openNote.id));
+            commitNotes(next);
+            setOpenNoteId(null);
+          }}
+        />
+      )}
+
     </div>
   );
 }
