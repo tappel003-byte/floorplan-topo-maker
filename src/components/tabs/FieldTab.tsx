@@ -353,6 +353,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           }
           const updated = { ...point, x: finalX, y: finalY };
           await savePoint(updated);
+          const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
+          onPointsChange(nextPts);
+          commitSnap(nextPts, notes);
         }}
         drawOverlay={(ctx) => {
           // boundary
