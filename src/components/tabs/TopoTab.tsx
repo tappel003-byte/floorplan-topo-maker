@@ -932,6 +932,15 @@ export function renderTopoTop(
       }
     }
     ctx.globalAlpha = 1;
+  } else if (highlightId) {
+    const sel = points.find((p) => p.id === highlightId);
+    if (sel) {
+      ctx.beginPath();
+      ctx.arc(sel.x, sel.y, 12, 0, Math.PI * 2);
+      ctx.strokeStyle = "hsl(var(--primary))";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
   }
 
   // Legend + High/Low pins
