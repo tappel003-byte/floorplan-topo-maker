@@ -228,6 +228,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onTap={handleTap}
         onTransform={(t) => { scaleRef.current = t.scale; }}
         onImagePointerDown={(x, y, event) => {
+          // In note mode, defer to onTap (handleTap will drop the note).
+          if (noteMode) return false;
+          // Tapping an existing note takes precedence over point-drag.
+          if (hitNote(x, y)) return false;
           const hit = hitPoint(x, y);
           if (!hit) return false;
           const { point: hp } = hit;
@@ -248,6 +252,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           setDragging(drag);
           return true;
         }}
+
         onImagePointerMove={(x, y, event) => {
           const drag = dragRef.current;
           if (!drag) return;
