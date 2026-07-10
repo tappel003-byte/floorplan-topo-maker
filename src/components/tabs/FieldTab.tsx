@@ -121,28 +121,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Floating status chip (top-left) */}
-      <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs">
-        <span className="font-medium">{points.length}</span>
-        <span className="text-muted-foreground">pts</span>
-        {points.length > 0 && (
-          <>
-            <span className="text-muted-foreground/60">·</span>
-            <span className="text-muted-foreground">next</span>
-            <span className="font-mono font-medium">#{nextIndex}</span>
-          </>
-        )}
-      </div>
-
-      {/* Floating Undo (top-right) */}
-      <button
-        onClick={undoLast}
-        disabled={points.length === 0}
-        aria-label="Undo last point"
-        className="absolute top-2 right-2 z-30 h-9 w-9 rounded-full bg-background/90 backdrop-blur border shadow-sm flex items-center justify-center disabled:opacity-40 hover:bg-background"
-      >
-        <Undo2 className="h-4 w-4" />
-      </button>
 
       {/* Dismissible boundary warning */}
       {floor.boundary.length < 3 && !warningDismissed && (
