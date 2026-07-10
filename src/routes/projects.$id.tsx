@@ -151,6 +151,8 @@ function ProjectWorkspace() {
         onOpenSetup={() => setMode("setup")}
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
+        undoEnabled={undoActive && history.canUndo}
+        redoEnabled={undoActive && history.canRedo}
       />
       {floors.length > 1 && (
         <div className="flex items-center gap-2 px-2 h-7 text-xs border-b bg-background/70">
