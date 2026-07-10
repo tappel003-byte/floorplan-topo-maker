@@ -234,7 +234,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
       )}
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
-      <div className="absolute z-20 top-2 right-2 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
+      <div className="absolute z-20 top-2 right-2 h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
         <button
           onClick={() => { setNoteMode((v) => !v); setEditingNoteId(null); setNotesListOpen(false); }}
           className={`px-3 py-2 flex items-center gap-1.5 transition-colors ${

@@ -15,7 +15,7 @@ export function ModeToggle({
 }) {
   return (
     <div
-      className="fixed z-10 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-[calc(env(safe-area-inset-left)+0.75rem)] flex flex-col rounded-full bg-background/90 backdrop-blur border shadow-lg p-1 gap-1"
+      className="fixed z-10 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-[calc(env(safe-area-inset-left)+0.75rem)] flex flex-row items-center rounded-full bg-background/90 backdrop-blur border shadow-lg p-1 gap-1"
       role="tablist"
       aria-label="Mode"
     >
@@ -53,14 +53,14 @@ function Btn({
       aria-selected={active}
       onClick={onClick}
       className={
-        "flex flex-col items-center justify-center h-11 w-11 rounded-full text-[10px] leading-tight transition-colors " +
+        "flex flex-row items-center justify-center gap-1 h-7 px-2.5 rounded-full text-[11px] leading-none transition-colors " +
         (active
           ? "bg-primary text-primary-foreground font-medium"
           : "text-muted-foreground hover:text-foreground")
       }
     >
       {icon}
-      <span className="mt-0.5">{label}</span>
+      <span>{label}</span>
     </button>
   );
 }
