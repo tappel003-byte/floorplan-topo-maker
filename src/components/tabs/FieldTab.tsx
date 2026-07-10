@@ -145,10 +145,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     const r = PIN_HIT_RADIUS / s;
     for (let i = notes.length - 1; i >= 0; i--) {
       const n = notes[i];
-      if (Math.hypot(n.x - x, n.y - (n.y - 14 / s)) < 0) { /* no-op */ }
       if (Math.hypot(n.x - x, n.y - y) < r) return n;
     }
     return null;
+
   }
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
