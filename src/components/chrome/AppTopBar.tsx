@@ -109,9 +109,6 @@ export function AppTopBar({
                   onOpenExport();
                 }}
               />
-              <div className="my-1 border-t" />
-              <MenuItem label="Clear all points" onClick={handleClearPoints} destructive />
-              <MenuItem label="Delete project" onClick={handleDeleteProject} destructive />
             </div>
           )}
         </div>
