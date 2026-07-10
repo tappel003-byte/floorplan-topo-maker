@@ -28,6 +28,7 @@ export function NumericKeypad({
   onSubmit,
   onClose,
   secondaryAction,
+  onDelete,
 }: Props) {
   const [text, setText] = useState<string>("");
 
