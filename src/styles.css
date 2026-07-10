@@ -2,6 +2,8 @@
 @source "../src";
 @import "tw-animate-css";
 
+@custom-variant landscape-short (@media (orientation: landscape) and (max-height: 500px));
+
 /*
  * Design system — warm sand palette aligned with Distress Survey.
  * Light-only. Semantic tokens map to Tailwind utilities via @theme inline.
