@@ -58,7 +58,8 @@ function labelAnchor(p: SurveyPoint) {
 
 
 
-export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange }: Props) {
+export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange, selectedIds }: Props) {
+  const selectedId = selectedIds && selectedIds.size > 0 ? selectedIds.values().next().value ?? null : null;
   const [openCorner, setOpenCorner] = useState<null | "contours" | "palette" | "labels">(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
