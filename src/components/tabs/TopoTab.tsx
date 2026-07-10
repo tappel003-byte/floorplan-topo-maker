@@ -244,14 +244,14 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
         </CornerIcon>
       )}
       {openCorner !== "labels" && (
-        <CornerIcon
-          pos="bottom-3 right-3"
-          active={false}
+        <button
+          type="button"
           onClick={() => setOpenCorner("labels")}
-          label="Labels & layers"
+          aria-label="Labels & layers"
+          className="fixed z-30 h-9 w-9 rounded-full bg-background/90 backdrop-blur border shadow-sm flex items-center justify-center bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-[calc(env(safe-area-inset-right)+0.75rem)]"
         >
           <Tag className="h-4 w-4" />
-        </CornerIcon>
+        </button>
       )}
 
       {/* Warning */}
