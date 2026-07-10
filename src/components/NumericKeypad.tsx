@@ -99,14 +99,27 @@ export function NumericKeypad({
         className="bg-background rounded-t-2xl shadow-2xl p-4 pb-6 max-w-md w-full mx-auto max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-2">
-          <div>
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <div className="min-w-0">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{title}</div>
             {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1 shrink-0">
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDelete}
+                aria-label="Delete point"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         <div className="mb-3 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl font-mono tabular-nums h-16 flex items-center justify-end">
           {text || (
