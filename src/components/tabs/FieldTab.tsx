@@ -323,6 +323,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             if (g.dragMode && g.moved) {
               const next = notes.map((n) => (n.id === g.id ? { ...n, x: g.lastX, y: g.lastY } : n));
               await persistNotes(next);
+              commitSnap(points, next);
               lastTapRef.current = null;
               return;
             }
