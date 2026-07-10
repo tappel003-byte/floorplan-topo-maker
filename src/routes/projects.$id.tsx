@@ -178,13 +178,14 @@ function ProjectWorkspace() {
           onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
         />
       )}
-      {(mode === "field" || mode === "topo") && (
+      {mode === "field" && (
         <DataPointsPanel
           projectId={project.id}
           points={points}
           selectedIds={selectedIds}
           pointSize={pointSize}
           onPointSizeChange={setPointSize}
+          onPointsChange={setPoints}
           onSelect={(pid, additive) => {
             if (additive) {
               const next = new Set(selectedIds);
@@ -196,6 +197,7 @@ function ProjectWorkspace() {
           }}
         />
       )}
+
       {mode === "field" && <NoteTool />}
 
     </div>
