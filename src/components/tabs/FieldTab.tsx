@@ -5,7 +5,7 @@ import { NumericKeypad } from "../NumericKeypad";
 import { Button } from "@/components/ui/button";
 
 import type { Floor, SurveyPoint } from "@/lib/types";
-import { savePoint, deletePoint, uid } from "@/lib/db";
+import { savePoint, deletePoint, reindexFloorPoints, uid } from "@/lib/db";
 
 interface Props {
   projectId: string;
