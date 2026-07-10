@@ -880,6 +880,13 @@ export function renderTopoTop(
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 1.5;
       ctx.stroke();
+      if (highlightId === p.id) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.strokeStyle = "hsl(var(--primary))";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
 
       // label
       const text = p.value.toFixed(resolved.decimalPlaces);
