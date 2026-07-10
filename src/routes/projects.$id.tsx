@@ -196,7 +196,10 @@ function ProjectWorkspace() {
           selectedIds={selectedIds}
           pointSize={pointSize}
           onPointSizeChange={setPointSize}
+          pointColor={pointColor}
+          onPointColorChange={setPointColor}
           onPointsChange={setPoints}
+
           onSelect={(pid, additive) => {
             if (additive) {
               const next = new Set(selectedIds);
