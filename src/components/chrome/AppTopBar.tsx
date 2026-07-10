@@ -63,16 +63,18 @@ export function AppTopBar({
         </div>
         <button
           type="button"
-          onClick={() => fire("app:undo")}
-          className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+          onClick={() => undoEnabled && fire("app:undo")}
+          disabled={!undoEnabled}
+          className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground enabled:hover:text-foreground enabled:hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
           aria-label="Undo"
         >
           <Undo2 className="h-4 w-4" />
         </button>
         <button
           type="button"
-          onClick={() => fire("app:redo")}
-          className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+          onClick={() => redoEnabled && fire("app:redo")}
+          disabled={!redoEnabled}
+          className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground enabled:hover:text-foreground enabled:hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
           aria-label="Redo"
         >
           <Redo2 className="h-4 w-4" />
