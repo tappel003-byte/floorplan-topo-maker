@@ -48,7 +48,7 @@ function ProjectWorkspace() {
   useEffect(() => {
     try {
       localStorage.setItem(`dpp-size:${id}`, String(pointSize));
-    } catch {}
+    } catch { /* ignore */ }
   }, [pointSize, id]);
   const [pointColor, setPointColor] = useState<string>(() => {
     try {
@@ -60,7 +60,7 @@ function ProjectWorkspace() {
   useEffect(() => {
     try {
       localStorage.setItem(`dpp-color:${id}`, pointColor);
-    } catch {}
+    } catch { /* ignore */ }
   }, [pointColor, id]);
 
   useEffect(() => {
