@@ -90,7 +90,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
     );
   }
 
-  const width = 190;
+  const width = 150;
 
   return (
     <>
