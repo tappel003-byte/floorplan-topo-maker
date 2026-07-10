@@ -67,8 +67,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
 
   // Notes state
   const [noteMode, setNoteMode] = useState(false);
+  const [notesListOpen, setNotesListOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
+  const [noteFocusReq, setNoteFocusReq] = useState<{ x: number; y: number; nonce: number } | undefined>(undefined);
   const noteDragRef = useRef<NoteDragState | null>(null);
   const lastNoteTapRef = useRef<{ id: string; at: number } | null>(null);
   const [, setNoteDragTick] = useState(0);
