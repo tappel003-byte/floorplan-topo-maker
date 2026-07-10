@@ -117,6 +117,25 @@ export function PlanCanvas({
     fit();
   }, [fit, planDataUrl, imgLoaded]);
 
+  // Re-fit when the wrapper resizes (e.g. orientation change phone/tablet)
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    let lastW = wrap.clientWidth;
+    let lastH = wrap.clientHeight;
+    const ro = new ResizeObserver(() => {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      if (Math.abs(w - lastW) > 20 || Math.abs(h - lastH) > 20) {
+        lastW = w;
+        lastH = h;
+        fit();
+      }
+    });
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [fit]);
+
   // Programmatic focus: pan (and gently zoom in if too zoomed out) to center (x,y).
   const focusNonceRef = useRef<number | undefined>(undefined);
   useEffect(() => {
