@@ -37,6 +37,17 @@ function ProjectWorkspace() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pointSize, setPointSize] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(`dpp-size:${id}`);
+      const n = raw ? Number(raw) : 2;
+      return Number.isFinite(n) && n >= 1 && n <= 8 ? n : 2;
+    } catch { return 2; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(`dpp-size:${id}`, String(pointSize)); } catch {}
+  }, [pointSize, id]);
+
 
   useEffect(() => {
     (async () => {
