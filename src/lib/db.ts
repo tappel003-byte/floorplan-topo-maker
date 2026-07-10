@@ -21,42 +21,35 @@ interface FloorSurveyDB extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<FloorSurveyDB>> | null = null;
 
+const REQUIRED_STORES = ["projects", "floors", "points"] as const;
+
+function hasRequiredStores(db: { objectStoreNames: DOMStringList }) {
+  return REQUIRED_STORES.every((name) => db.objectStoreNames.contains(name));
+}
+
+function openFreshDB() {
+  return openDB<FloorSurveyDB>("floor-survey", 3, {
+    upgrade(db) {
+      const p = db.createObjectStore("projects", { keyPath: "id" });
+      p.createIndex("updatedAt", "updatedAt");
+      const f = db.createObjectStore("floors", { keyPath: "id" });
+      f.createIndex("projectId", "projectId");
+      const pt = db.createObjectStore("points", { keyPath: "id" });
+      pt.createIndex("floorId", "floorId");
+    },
+  });
+}
+
 function getDB() {
   if (typeof indexedDB === "undefined") {
     throw new Error("IndexedDB not available");
   }
   if (!dbPromise) {
-    dbPromise = openDB<FloorSurveyDB>("floor-survey", 3, {
-      upgrade(db, oldVersion, _newVersion, tx) {
-        if (oldVersion < 1) {
-          const p = db.createObjectStore("projects", { keyPath: "id" });
-          p.createIndex("updatedAt", "updatedAt");
-          const f = db.createObjectStore("floors", { keyPath: "id" });
-          f.createIndex("projectId", "projectId");
-          const pt = db.createObjectStore("points", { keyPath: "id" });
-          pt.createIndex("floorId", "floorId");
-        }
-        // v2 introduced a "transitions" store; v3 removes it and strips
-        // any transition-related fields left on existing points.
-        if (oldVersion < 3) {
-          if (db.objectStoreNames.contains("transitions" as never)) {
-            db.deleteObjectStore("transitions" as never);
-          }
-          // Scrub legacy transition fields from stored points.
-          const store = tx.objectStore("points");
-          store.openCursor().then(async function walk(cursor): Promise<void> {
-            if (!cursor) return;
-            const v = cursor.value as SurveyPoint & Record<string, unknown>;
-            let dirty = false;
-            for (const k of ["raw", "offset", "transitionId", "isTransitionAnchor"]) {
-              if (k in v) { delete v[k]; dirty = true; }
-            }
-            if (dirty) await cursor.update(v);
-            const next = await cursor.continue();
-            return walk(next);
-          });
-        }
-      },
+    dbPromise = openDB<FloorSurveyDB>("floor-survey").then(async (db) => {
+      if (hasRequiredStores(db)) return db as IDBPDatabase<FloorSurveyDB>;
+      db.close();
+      await indexedDB.deleteDatabase("floor-survey");
+      return openFreshDB();
     });
   }
   return dbPromise;
