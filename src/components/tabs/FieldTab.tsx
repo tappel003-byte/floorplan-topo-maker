@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 
 import type { Floor, NotePin, SurveyPoint } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
+import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 interface Props {
   projectId: string;
@@ -18,6 +19,9 @@ interface Props {
   pointSize: number;
   pointColor: string;
   focusRequest?: { x: number; y: number; nonce: number };
+  notesVersion?: number;
+  onCommit?: (snap: FloorSnapshot) => void;
+  onFloorNotesChange?: (notePins: NotePin[]) => void;
 }
 
 
