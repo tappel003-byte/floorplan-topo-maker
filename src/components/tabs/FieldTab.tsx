@@ -514,15 +514,12 @@ export function FieldTab({
           for (const p of points) {
             const sel = selectedIds.has(p.id);
             const color = p.isBasePoint ? "#16a34a" : pointColor;
-            // White-filled point so it stays visible over black plan lines without an outer halo.
-            const markerR = Math.max(pointSize + 1, 3);
+            // Point keeps the user's selected color; readability belongs to the label box.
+            const markerR = Math.max(pointSize, 2);
             ctx.beginPath();
             ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
-            ctx.fillStyle = "#ffffff";
+            ctx.fillStyle = color;
             ctx.fill();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
 
             if (sel) {
               ctx.beginPath();
@@ -544,6 +541,9 @@ export function FieldTab({
             ctx.beginPath();
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
+            ctx.strokeStyle = "#9ca3af";
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
             ctx.fillStyle = "#111827";
             ctx.textAlign = "left";
