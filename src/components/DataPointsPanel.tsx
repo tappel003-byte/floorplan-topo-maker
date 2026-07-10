@@ -197,9 +197,9 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
                         onSelect(p.id, true);
                       } else {
                         onSelect(p.id, false);
-                        setDetailId(p.id);
                       }
                     }}
+                    onDoubleClick={() => setDetailId(p.id)}
                     className={
                       "w-full text-left px-2 py-1.5 text-xs border-b border-border/50 flex items-start gap-1 " +
                       (sel ? "bg-primary/10 text-foreground" : "hover:bg-muted/50")
