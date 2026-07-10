@@ -232,19 +232,83 @@ export function FieldTab({ projectId, floor, points, onPointsChange, onFloorChan
         </div>
       )}
 
-      {/* Notes mode toggle chip — floats above canvas, below top bar */}
-      <button
-        onClick={() => { setNoteMode((v) => !v); setEditingNoteId(null); }}
-        className={`absolute z-20 bottom-20 right-3 rounded-full shadow-md px-3 py-2 text-xs font-medium flex items-center gap-1.5 border transition-colors ${
-          noteMode
-            ? "bg-orange-500 text-white border-orange-600"
-            : "bg-white/95 text-gray-700 border-gray-300 hover:bg-white"
-        }`}
-        aria-pressed={noteMode}
-      >
-        <StickyNote className="w-3.5 h-3.5" />
-        {noteMode ? "Notes on" : "Notes"}
-      </button>
+      {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
+      <div className="absolute z-20 top-2 right-2 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
+        <button
+          onClick={() => { setNoteMode((v) => !v); setEditingNoteId(null); setNotesListOpen(false); }}
+          className={`px-3 py-2 flex items-center gap-1.5 transition-colors ${
+            noteMode ? "bg-orange-500 text-white" : "text-gray-700 hover:bg-gray-50"
+          }`}
+          aria-pressed={noteMode}
+          aria-label="Toggle note mode"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          {noteMode ? "Notes on" : "Note"}
+        </button>
+        <button
+          onClick={() => { setNotesListOpen((v) => !v); setEditingNoteId(null); }}
+          className={`px-3 py-2 flex items-center gap-1.5 border-l border-gray-200 transition-colors ${
+            notesListOpen ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+          }`}
+          aria-expanded={notesListOpen}
+          aria-label="Show all notes"
+        >
+          <List className="w-3.5 h-3.5" />
+          {notes.length}
+        </button>
+      </div>
+
+      {/* Notes list dropdown */}
+      {notesListOpen && (
+        <div
+          className="absolute z-30 top-12 right-2 w-64 max-h-[60vh] overflow-y-auto overscroll-contain rounded-xl bg-white shadow-2xl border border-gray-200"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">All Notes</span>
+            <button
+              onClick={() => setNotesListOpen(false)}
+              className="text-gray-400 hover:text-gray-700 text-sm px-1"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+          {notes.length === 0 ? (
+            <div className="p-4 text-xs text-gray-500 text-center">No notes yet. Turn on Note mode and tap the plan to drop one.</div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {notes.map((n, i) => (
+                <li key={n.id} className="flex items-start gap-2 px-3 py-2 hover:bg-gray-50">
+                  <button
+                    onClick={() => {
+                      setNoteFocusReq({ x: n.x, y: n.y, nonce: Date.now() });
+                      setNotesListOpen(false);
+                    }}
+                    className="shrink-0 w-6 h-6 rounded-full bg-orange-500 text-white text-[11px] font-bold flex items-center justify-center"
+                    aria-label={`Center on note ${i + 1}`}
+                  >
+                    {i + 1}
+                  </button>
+                  <button
+                    onClick={() => { openNoteEditor(n); setNotesListOpen(false); }}
+                    className="flex-1 min-w-0 text-left text-xs text-gray-700"
+                  >
+                    {n.text.trim() ? <span className="line-clamp-3 whitespace-pre-wrap">{n.text}</span> : <span className="italic text-gray-400">(empty)</span>}
+                  </button>
+                  <button
+                    onClick={() => deleteNote(n.id)}
+                    className="shrink-0 text-gray-400 hover:text-red-600 p-1"
+                    aria-label={`Delete note ${i + 1}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
