@@ -225,16 +225,23 @@ export function FieldTab({
         const py = editingNote.y * transform.scale + transform.ty;
         const vw = wrapWidth() ?? 400;
         const vh = wrapHeight() ?? 600;
-        // Prefer right side of pin
-        let left = px + PIN_GAP;
-        if (left + CARD_W + 8 > vw) {
-          // Flip to left of pin
+        const roomRight = vw - (px + PIN_GAP) - 8;
+        const roomLeft = (px - PIN_GAP) - 8;
+        let left: number;
+        let top: number;
+        if (roomRight >= CARD_W) {
+          left = px + PIN_GAP;
+          top = Math.max(8, Math.min(py - CARD_H / 2, vh - CARD_H - 8));
+        } else if (roomLeft >= CARD_W) {
           left = px - PIN_GAP - CARD_W;
+          top = Math.max(8, Math.min(py - CARD_H / 2, vh - CARD_H - 8));
+        } else {
+          // No horizontal room — place above or below the pin
+          left = Math.max(8, Math.min(px - CARD_W / 2, vw - CARD_W - 8));
+          const below = py + PIN_GAP;
+          const above = py - PIN_GAP - CARD_H;
+          top = below + CARD_H + 8 <= vh ? below : Math.max(8, above);
         }
-        left = Math.max(8, Math.min(left, vw - CARD_W - 8));
-        // Vertically center-ish on the pin, but clamp
-        let top = py - CARD_H / 2;
-        top = Math.max(8, Math.min(top, vh - CARD_H - 8));
         return { x: px, y: py, left, top };
       })()
     : null;
