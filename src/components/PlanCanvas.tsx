@@ -341,12 +341,6 @@ export function PlanCanvas({
       >
         <canvas ref={canvasRef} />
       </div>
-      <button
-        onClick={fit}
-        className="absolute bottom-3 right-3 rounded-md bg-background/90 border px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-background"
-      >
-        Fit
-      </button>
     </div>
   );
 }
