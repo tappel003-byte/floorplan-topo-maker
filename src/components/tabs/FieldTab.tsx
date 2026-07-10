@@ -140,6 +140,7 @@ export function FieldTab({
       const next = [...notes, pin];
       await persistNotes(next);
       openNoteEditor(pin);
+      setNoteMode(false);
       return;
     }
     // Normal mode: place a survey point (ignore taps on note pins so they don't collide)
