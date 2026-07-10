@@ -79,22 +79,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     setAwaitingAdjacent(null);
   }, [floor.id]);
 
-  useEffect(() => {
-    if (!dragging) {
-      setTrashHover(false);
-      return;
-    }
-    function onMove(e: PointerEvent) {
-      if (!dragRef.current?.moved) return;
-      const el = trashRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-      setTrashHover(over);
-    }
-    window.addEventListener("pointermove", onMove);
-    return () => window.removeEventListener("pointermove", onMove);
-  }, [dragging]);
+
+
 
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
