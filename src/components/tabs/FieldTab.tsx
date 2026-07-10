@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { DataPointsPanel } from "../DataPointsPanel";
+import { NoteDialog } from "../NoteDialog";
 import { Button } from "@/components/ui/button";
-import { Undo2 } from "lucide-react";
-import type { Floor, SurveyPoint } from "@/lib/types";
-import { savePoint, deletePoint, uid } from "@/lib/db";
+import { Undo2, StickyNote } from "lucide-react";
+import type { Floor, FloorNote, SurveyPoint } from "@/lib/types";
+import { savePoint, deletePoint, saveNote, deleteNote, listNotes, uid } from "@/lib/db";
+
 
 interface Props {
   projectId: string;
