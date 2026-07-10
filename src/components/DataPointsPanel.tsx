@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ChevronDown, ChevronUp, X, GripVertical, Database } from "lucide-react";
+import { ChevronDown, ChevronUp, X, GripVertical, Database, Minus, Plus } from "lucide-react";
 import type { SurveyPoint } from "@/lib/types";
 
 interface Props {
