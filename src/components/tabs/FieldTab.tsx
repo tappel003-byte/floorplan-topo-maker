@@ -549,32 +549,18 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const drag = dragRef.current;
           if (!drag) return;
           const point = points.find((p) => p.id === drag.id);
-          const trashEl = trashRef.current;
-          const wasOverTrash = trashEl
-            ? (() => {
-                const r = trashEl.getBoundingClientRect();
-                return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
-              })()
-            : trashHover;
           const dragId = drag.id;
+          const moved = drag.moved;
+          const finalX = drag.lastX ?? x;
+          const finalY = drag.lastY ?? y;
           dragRef.current = null;
           setDragging(null);
-          setTrashHover(false);
           if (!point) return;
-          if (wasOverTrash) {
-            // Deleting an anchor also nukes its transition + reverts normalized points.
-            if (point.isTransitionAnchor && point.transitionId) {
-              await removeTransition(point.transitionId);
-            }
-            await deletePoint(dragId);
-            onPointsChange(points.filter((p) => p.id !== dragId));
-            return;
-          }
-          if (!drag.moved) {
+          if (!moved) {
             setEditingPoint(point);
             return;
           }
-          const updated = { ...point, x: drag.lastX ?? x, y: drag.lastY ?? y };
+          const updated = { ...point, x: finalX, y: finalY };
           await savePoint(updated);
         }}
         drawOverlay={(ctx) => {
