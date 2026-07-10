@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
+import { NoteDialog } from "../NoteDialog";
 
 import { Button } from "@/components/ui/button";
 
-import type { Floor, SurveyPoint } from "@/lib/types";
-import { savePoint, deletePoint, reindexFloorPoints, uid } from "@/lib/db";
+import type { Floor, NotePin, SurveyPoint } from "@/lib/types";
+import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
 
 interface Props {
   projectId: string;
@@ -35,6 +36,26 @@ type DragState = {
   lastY: number;
 };
 
+type PinGesture = {
+  id: string;
+  startClientX: number;
+  startClientY: number;
+  startImgX: number;
+  startImgY: number;
+  origX: number;
+  origY: number;
+  lastX: number;
+  lastY: number;
+  dragMode: boolean;   // becomes true after long-press
+  moved: boolean;
+  longPressTimer: number | null;
+  downAt: number;
+};
+
+const LONG_PRESS_MS = 400;
+const DOUBLE_TAP_MS = 350;
+const PIN_HIT_RADIUS = 18;
+
 export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest }: Props) {
 
   const scaleRef = useRef(1);
@@ -45,6 +66,28 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
 
+  // --- Note pins ---
+  const [notes, setNotes] = useState<NotePin[]>(floor.notePins ?? []);
+  const [armed, setArmed] = useState(false);
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  const pinGestureRef = useRef<PinGesture | null>(null);
+  const lastTapRef = useRef<{ id: string; at: number } | null>(null);
+
+  useEffect(() => {
+    setNotes(floor.notePins ?? []);
+  }, [floor.id]);
+
+  useEffect(() => {
+    function onAdd() { setArmed(true); }
+    window.addEventListener("app:add-note", onAdd);
+    return () => window.removeEventListener("app:add-note", onAdd);
+  }, []);
+
+  async function persistNotes(next: NotePin[]) {
+    setNotes(next);
+    await saveFloor({ ...floor, notePins: next });
+  }
+
 
   // Silence unused-var when dragging state isn't read directly in render.
   void dragging;
@@ -53,6 +96,15 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const isBasePointCapture = points.length === 0;
 
   async function handleTap(x: number, y: number) {
+    if (armed) {
+      const idx = (notes[notes.length - 1]?.index ?? 0) + 1;
+      const pin: NotePin = { id: uid(), index: idx, x, y, text: "", createdAt: Date.now() };
+      const next = [...notes, pin];
+      await persistNotes(next);
+      setArmed(false);
+      setOpenNoteId(pin.id);
+      return;
+    }
     for (const p of points) {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < 12) return;
@@ -86,6 +138,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     onPointsChange([...points, point]);
     setPending(null);
     setBpPromptOpen(false);
+  }
+
+  function hitPin(x: number, y: number): NotePin | null {
+    const s = scaleRef.current || 1;
+    const r = PIN_HIT_RADIUS / s;
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const n = notes[i];
+      if (Math.hypot(n.x - x, n.y - y) < r) return n;
+    }
+    return null;
+
   }
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
@@ -123,6 +186,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       ? "Base Point value (BP1)"
       : `Point #${nextIndex}`;
 
+  const openNote = openNoteId ? notes.find((n) => n.id === openNoteId) ?? null : null;
+
   return (
     <div className="flex flex-col h-full relative">
 
@@ -140,6 +205,13 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         </div>
       )}
 
+      {armed && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20 rounded-full bg-amber-500 text-white text-xs px-3 py-1.5 shadow-md flex items-center gap-2">
+          <span>Tap the plan to drop a note</span>
+          <button onClick={() => setArmed(false)} className="opacity-90 hover:opacity-100" aria-label="Cancel">✕</button>
+        </div>
+      )}
+
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
         planWidth={floor.planWidth}
@@ -148,6 +220,33 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         onTap={handleTap}
         onTransform={(t) => { scaleRef.current = t.scale; }}
         onImagePointerDown={(x, y, event) => {
+          // Note pin first (drawn on top → higher priority)
+          const np = hitPin(x, y);
+          if (np) {
+            const g: PinGesture = {
+              id: np.id,
+              startClientX: event.clientX,
+              startClientY: event.clientY,
+              startImgX: x,
+              startImgY: y,
+              origX: np.x,
+              origY: np.y,
+              lastX: np.x,
+              lastY: np.y,
+              dragMode: false,
+              moved: false,
+              longPressTimer: null,
+              downAt: performance.now(),
+            };
+            g.longPressTimer = window.setTimeout(() => {
+              const cur = pinGestureRef.current;
+              if (cur && cur.id === np.id && !cur.moved) {
+                cur.dragMode = true;
+              }
+            }, LONG_PRESS_MS);
+            pinGestureRef.current = g;
+            return true;
+          }
           const hit = hitPoint(x, y);
           if (!hit) return false;
           const { point: hp } = hit;
@@ -169,6 +268,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           return true;
         }}
         onImagePointerMove={(x, y, event) => {
+          const g = pinGestureRef.current;
+          if (g) {
+            const dist = Math.hypot(event.clientX - g.startClientX, event.clientY - g.startClientY);
+            if (dist > 6) g.moved = true;
+            if (!g.dragMode) return; // ignore movement until long-press promotes to drag
+            const nx = g.origX + (x - g.startImgX);
+            const ny = g.origY + (y - g.startImgY);
+            g.lastX = nx; g.lastY = ny;
+            setNotes((list) => list.map((n) => (n.id === g.id ? { ...n, x: nx, y: ny } : n)));
+            return;
+          }
           const drag = dragRef.current;
           if (!drag) return;
           const screenDist = Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY);
@@ -181,10 +291,38 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x: nx, y: ny } : p)));
         }}
         onImagePointerCancel={() => {
+          const g = pinGestureRef.current;
+          if (g) {
+            if (g.longPressTimer !== null) window.clearTimeout(g.longPressTimer);
+            // Revert visual to persisted state
+            setNotes(floor.notePins ?? notes);
+            pinGestureRef.current = null;
+          }
           dragRef.current = null;
           setDragging(null);
         }}
         onImagePointerUp={async (x, y, _event) => {
+          const g = pinGestureRef.current;
+          if (g) {
+            if (g.longPressTimer !== null) window.clearTimeout(g.longPressTimer);
+            pinGestureRef.current = null;
+            if (g.dragMode && g.moved) {
+              const next = notes.map((n) => (n.id === g.id ? { ...n, x: g.lastX, y: g.lastY } : n));
+              await persistNotes(next);
+              lastTapRef.current = null;
+              return;
+            }
+            // Treat as tap → double-tap detection
+            const now = performance.now();
+            const prev = lastTapRef.current;
+            if (prev && prev.id === g.id && now - prev.at < DOUBLE_TAP_MS) {
+              lastTapRef.current = null;
+              setOpenNoteId(g.id);
+            } else {
+              lastTapRef.current = { id: g.id, at: now };
+            }
+            return;
+          }
           const drag = dragRef.current;
           if (!drag) return;
           const point = points.find((p) => p.id === drag.id);
@@ -236,6 +374,25 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.textBaseline = "top";
             ctx.fillText(p.value.toFixed(2), p.x + pointSize + 4, p.y + pointSize + 3);
           }
+          // note pins (drawn above points so they are always tappable)
+          const s = scaleRef.current || 1;
+          const pinR = 9 / s;
+          for (const n of notes) {
+            // shadow
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, pinR, 0, Math.PI * 2);
+            ctx.fillStyle = "#f59e0b";
+            ctx.fill();
+            ctx.lineWidth = 1.5 / s;
+            ctx.strokeStyle = "#78350f";
+            ctx.stroke();
+            // "N" glyph
+            ctx.fillStyle = "#78350f";
+            ctx.font = `bold ${11 / s}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(n.index), n.x, n.y + 0.5 / s);
+          }
           // pending marker
           if (pending) {
             ctx.beginPath();
@@ -273,6 +430,26 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           onPointsChange(reindexed);
         } : undefined}
       />
+
+      {openNote && (
+        <NoteDialog
+          key={openNote.id}
+          pin={openNote}
+          onClose={() => setOpenNoteId(null)}
+          onSave={async (text) => {
+            const next = notes.map((n) => (n.id === openNote.id ? { ...n, text } : n));
+            await persistNotes(next);
+          }}
+          onDelete={async () => {
+            if (!confirm(`Delete note N${openNote.index}?`)) return;
+            const next = notes
+              .filter((n) => n.id !== openNote.id)
+              .map((n, i) => ({ ...n, index: i + 1 }));
+            await persistNotes(next);
+            setOpenNoteId(null);
+          }}
+        />
+      )}
 
       {/* Base Point confirmation prompt */}
       {bpPromptOpen && pending && (
