@@ -40,7 +40,16 @@ export interface Floor {
   highPinDy?: number;
   lowPinDx?: number;
   lowPinDy?: number;
+  // Room notes — orange pins visible only on the field/data entry screen.
+  notes?: NotePin[];
 }
+
+export interface NotePin {
+  id: string;
+  x: number; // image coords
+  y: number;
+  text: string;
+
 
 export interface SurveyPoint {
   id: string;
