@@ -90,7 +90,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
     );
   }
 
-  const width = 190;
+  const width = 150;
 
   return (
     <>
@@ -111,7 +111,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         onPointerCancel={onHeaderUp}
       >
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-[11px] font-semibold flex-1">Data · {points.length}</span>
+        <span className="text-[11px] font-semibold flex-1">Data</span>
         <button
           className="p-0.5 hover:bg-muted rounded"
           onClick={() => setState((s) => ({ ...s, collapsed: !s.collapsed }))}
@@ -129,31 +129,35 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
       </div>
       {!state.collapsed && (
         <>
-          <div className="relative flex items-center gap-1.5 px-2 py-1 border-b bg-muted/20">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">Dot</span>
-            <button
-              onClick={() => setColorOpen((v) => !v)}
-              className="h-5 w-5 rounded-full border shadow-sm shrink-0"
-              style={{ backgroundColor: pointColor }}
-              aria-label="Dot color"
-            />
-            <button
-              className="ml-auto h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
-              onClick={() => onPointSizeChange(Math.max(1, pointSize - 1))}
-              disabled={pointSize <= 1}
-              aria-label="Smaller dot"
-            >
-              <Minus className="h-3 w-3" />
-            </button>
-            <span className="text-[10px] font-mono w-7 text-center tabular-nums">{pointSize}px</span>
-            <button
-              className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
-              onClick={() => onPointSizeChange(Math.min(8, pointSize + 1))}
-              disabled={pointSize >= 8}
-              aria-label="Larger dot"
-            >
-              <Plus className="h-3 w-3" />
-            </button>
+          <div className="relative px-2 py-1 border-b bg-muted/20 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">Dot</span>
+              <button
+                onClick={() => setColorOpen((v) => !v)}
+                className="h-5 w-5 rounded-full border shadow-sm shrink-0"
+                style={{ backgroundColor: pointColor }}
+                aria-label="Dot color"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+                onClick={() => onPointSizeChange(Math.max(1, pointSize - 1))}
+                disabled={pointSize <= 1}
+                aria-label="Smaller dot"
+              >
+                <Minus className="h-3 w-3" />
+              </button>
+              <span className="text-[10px] font-mono flex-1 text-center tabular-nums">{pointSize}px</span>
+              <button
+                className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+                onClick={() => onPointSizeChange(Math.min(8, pointSize + 1))}
+                disabled={pointSize >= 8}
+                aria-label="Larger dot"
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+            </div>
             {colorOpen && (
               <div className="absolute z-50 top-full left-0 mt-1 rounded-lg border bg-popover shadow-lg p-2 flex gap-1.5">
                 {COLOR_PRESETS.map((c) => (
@@ -168,6 +172,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
               </div>
             )}
           </div>
+
 
           <div className="flex items-center px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-b bg-muted/30">
             <span className="w-8">#</span>
@@ -192,9 +197,9 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
                         onSelect(p.id, true);
                       } else {
                         onSelect(p.id, false);
-                        setDetailId(p.id);
                       }
                     }}
+                    onDoubleClick={() => setDetailId(p.id)}
                     className={
                       "w-full text-left px-2 py-1.5 text-xs border-b border-border/50 flex items-start gap-1 " +
                       (sel ? "bg-primary/10 text-foreground" : "hover:bg-muted/50")

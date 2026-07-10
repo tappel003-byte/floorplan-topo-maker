@@ -37,6 +37,7 @@ function ProjectWorkspace() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [focusRequest, setFocusRequest] = useState<{ x: number; y: number; nonce: number } | undefined>(undefined);
   const [pointSize, setPointSize] = useState<number>(() => {
     try {
       const raw = localStorage.getItem(`dpp-size:${id}`);
@@ -154,7 +155,7 @@ function ProjectWorkspace() {
             setSelectedIds={setSelectedIds}
             pointSize={pointSize}
             pointColor={pointColor}
-
+            focusRequest={focusRequest}
           />
         )}
         {mode === "review" && (
@@ -207,6 +208,8 @@ function ProjectWorkspace() {
               setSelectedIds(next);
             } else {
               setSelectedIds(new Set([pid]));
+              const p = points.find((pt) => pt.id === pid);
+              if (p) setFocusRequest({ x: p.x, y: p.y, nonce: Date.now() });
             }
           }}
         />

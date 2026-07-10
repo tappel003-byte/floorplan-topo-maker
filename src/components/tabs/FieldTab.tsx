@@ -16,6 +16,7 @@ interface Props {
   setSelectedIds: (ids: Set<string>) => void;
   pointSize: number;
   pointColor: string;
+  focusRequest?: { x: number; y: number; nonce: number };
 }
 
 
@@ -34,7 +35,7 @@ type DragState = {
   lastY: number;
 };
 
-export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor }: Props) {
+export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest }: Props) {
 
   const scaleRef = useRef(1);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
@@ -142,6 +143,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         planDataUrl={floor.planDataUrl}
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
+        focusRequest={focusRequest}
         onTap={handleTap}
         onTransform={(t) => { scaleRef.current = t.scale; }}
         onImagePointerDown={(x, y, event) => {

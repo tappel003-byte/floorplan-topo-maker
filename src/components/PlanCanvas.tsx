@@ -34,6 +34,8 @@ interface Props {
   hidePlan?: boolean;
   /** Draw the plan ON TOP of the overlay using multiply blend, so walls stay crisp over color fills */
   planOnTop?: boolean;
+  /** When nonce changes, pan (and gently zoom in if too far out) so (x,y) is centered. */
+  focusRequest?: { x: number; y: number; nonce: number };
 }
 
 const IMPLIED_W = 1000;
@@ -56,6 +58,7 @@ export function PlanCanvas({
   planOpacity = 1,
   hidePlan = false,
   planOnTop = false,
+  focusRequest,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -107,6 +110,27 @@ export function PlanCanvas({
   useEffect(() => {
     fit();
   }, [fit, planDataUrl, imgLoaded]);
+
+  // Programmatic focus: pan (and gently zoom in if too zoomed out) to center (x,y).
+  const focusNonceRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!focusRequest) return;
+    if (focusNonceRef.current === focusRequest.nonce) return;
+    focusNonceRef.current = focusRequest.nonce;
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const cw = wrap.clientWidth;
+    const ch = wrap.clientHeight;
+    const cur = transformRef.current;
+    const fitScale = Math.min(cw / imgW, ch / imgH);
+    // Zoom in to at least 1.5x the fit-scale so the point is clearly visible.
+    const minScale = fitScale * 1.5;
+    const scale = cur.scale < minScale ? minScale : cur.scale;
+    const tx = cw / 2 - focusRequest.x * scale;
+    const ty = ch / 2 - focusRequest.y * scale;
+    applyTransform({ scale, tx, ty });
+  }, [focusRequest, applyTransform, imgW, imgH]);
+
 
   useEffect(() => {
     const ro = new ResizeObserver(() => {
