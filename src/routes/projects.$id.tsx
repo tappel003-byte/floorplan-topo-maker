@@ -80,34 +80,32 @@ function ProjectWorkspace() {
 
   return (
     <div className="flex flex-col h-[100dvh] relative bg-background">
-      <header className="bg-background/85 backdrop-blur border-b">
-        <div className="flex items-center gap-2 px-2 h-8 text-xs">
-          <Link
-            to="/"
-            className="inline-flex items-center text-muted-foreground hover:text-foreground shrink-0"
-            aria-label="Back to projects"
+      <AppTopBar
+        projectId={project.id}
+        projectName={project.name}
+        floorName={activeFloor.name}
+        activeFloorId={activeFloor.id}
+        onOpenSetup={() => setMode("setup")}
+        onOpenReview={() => setMode("review")}
+        onOpenExport={() => setMode("export")}
+        onPointsCleared={() => setPoints([])}
+      />
+      {floors.length > 1 && (
+        <div className="flex items-center gap-2 px-2 h-7 text-xs border-b bg-background/70">
+          <span className="text-muted-foreground">Floor</span>
+          <select
+            value={activeFloor.id}
+            onChange={(e) => setActiveFloorId(e.target.value)}
+            className="rounded border px-1.5 py-0.5 text-xs bg-background max-w-[10rem] truncate"
           >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div className="flex-1 min-w-0 truncate">
-            <span className="font-medium">{project.name}</span>
-            <span className="text-muted-foreground"> · {activeFloor.name}</span>
-          </div>
-          {floors.length > 1 && (
-            <select
-              value={activeFloor.id}
-              onChange={(e) => setActiveFloorId(e.target.value)}
-              className="rounded border px-1.5 py-0.5 text-xs bg-background max-w-[8rem] truncate"
-            >
-              {floors.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          )}
+            {floors.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
         </div>
-      </header>
+      )}
 
       <main className="flex-1 min-h-0 overflow-hidden relative">
         {mode === "setup" && (
