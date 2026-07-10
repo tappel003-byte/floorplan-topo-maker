@@ -78,7 +78,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, poin
     );
   }
 
-  const width = 280;
+  const width = 200;
 
   return (
     <div
