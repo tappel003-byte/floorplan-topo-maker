@@ -245,7 +245,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
       )}
       {openCorner !== "labels" && (
         <CornerIcon
-          pos="bottom-2 right-2"
+          pos="bottom-3 right-3"
           active={false}
           onClick={() => setOpenCorner("labels")}
           label="Labels & layers"
