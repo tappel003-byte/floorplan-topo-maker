@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Settings2, Pointer, ListChecks, Layers3, Share2 } from "lucide-react";
 import { getProject, listFloors, listPoints } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
@@ -10,6 +9,9 @@ import { ReviewTab } from "@/components/tabs/ReviewTab";
 import { TopoTab } from "@/components/tabs/TopoTab";
 import { ExportTab } from "@/components/tabs/ExportTab";
 import { AppTopBar } from "@/components/chrome/AppTopBar";
+import { ModeToggle } from "@/components/chrome/ModeToggle";
+import { ReviewShortcut } from "@/components/chrome/ReviewShortcut";
+import { NoteTool } from "@/components/chrome/NoteTool";
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
@@ -29,7 +31,7 @@ function ProjectWorkspace() {
   const [floors, setFloors] = useState<Floor[]>([]);
   const [activeFloorId, setActiveFloorId] = useState<string | null>(null);
   const [points, setPoints] = useState<SurveyPoint[]>([]);
-  const [mode, setMode] = useState<Mode>("setup");
+  const [mode, setMode] = useState<Mode>("field");
   const [settings, setSettings] = useState<RenderSettings>(defaultRenderSettings);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
@@ -155,45 +157,22 @@ function ProjectWorkspace() {
         )}
       </main>
 
-      <nav
-        className="fixed z-40 flex items-center gap-1 rounded-full bg-background/90 backdrop-blur border shadow-lg px-2 py-1.5 landscape:px-1 landscape:py-2 bottom-3 left-1/2 -translate-x-1/2 landscape:bottom-auto landscape:left-3 landscape:top-1/2 landscape:translate-x-0 landscape:-translate-y-1/2 landscape:flex-col"
-        aria-label="Sections"
-      >
-        <ModeBtn active={mode === "setup"} onClick={() => setMode("setup")} icon={<Settings2 className="h-4 w-4" />} label="Setup" />
-        <ModeBtn active={mode === "field"} onClick={() => setMode("field")} icon={<Pointer className="h-4 w-4" />} label="Field" />
-        <ModeBtn active={mode === "review"} onClick={() => setMode("review")} icon={<ListChecks className="h-4 w-4" />} label="Review" />
-        <ModeBtn active={mode === "topo"} onClick={() => setMode("topo")} icon={<Layers3 className="h-4 w-4" />} label="Topo" />
-        <ModeBtn active={mode === "export"} onClick={() => setMode("export")} icon={<Share2 className="h-4 w-4" />} label="Export" />
-      </nav>
+      {mode !== "setup" && mode !== "export" && (
+        <ModeToggle
+          mode={mode === "topo" ? "topo" : "data"}
+          onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
+        />
+      )}
+      {mode === "field" && (
+        <>
+          <ReviewShortcut
+            points={points}
+            selectedIds={selectedIds}
+            onOpen={() => setMode("review")}
+          />
+          <NoteTool />
+        </>
+      )}
     </div>
-  );
-}
-
-function ModeBtn({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-        className={
-          "flex items-center gap-1.5 h-9 px-3 rounded-full text-xs transition-colors " +
-          "landscape:w-8 landscape:h-8 landscape:px-1 landscape:justify-center " +
-          (active
-            ? "bg-primary text-primary-foreground font-medium"
-            : "text-muted-foreground hover:text-foreground")
-        }
-        aria-label={label}
-      >
-        {icon}
-        <span className={active ? "whitespace-nowrap landscape:hidden" : "hidden sm:inline whitespace-nowrap landscape:hidden"}>{label}</span>
-      </button>
   );
 }
