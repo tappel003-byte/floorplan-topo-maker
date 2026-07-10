@@ -95,7 +95,37 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
 
+  function hitNotePin(x: number, y: number): NotePin | null {
+    const s = scaleRef.current || 1;
+    const r = 16 / s;
+    for (let i = notePins.length - 1; i >= 0; i--) {
+      const p = notePins[i];
+      if (Math.hypot(p.x - x, p.y - y) < r) return p;
+    }
+    return null;
+  }
+
   async function handleTap(x: number, y: number) {
+    // Note pins always tappable — open the card.
+    const noteHit = hitNotePin(x, y);
+    if (noteHit) {
+      setOpenNoteId(noteHit.id);
+      return;
+    }
+    if (noteMode) {
+      const pin: NotePin = {
+        id: newNotePinId(),
+        x,
+        y,
+        index: notePins.length + 1,
+        text: "",
+        createdAt: Date.now(),
+      };
+      const next = [...notePins, pin];
+      commitNotes(next);
+      setOpenNoteId(pin.id);
+      return;
+    }
     for (const p of points) {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < 12) return;
