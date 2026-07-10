@@ -568,9 +568,7 @@ export function FieldTab({
             ctx.beginPath();
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
-            ctx.strokeStyle = "#9ca3af";
-            ctx.lineWidth = 1;
-            ctx.stroke();
+
 
             ctx.fillStyle = "#111827";
             ctx.textAlign = "center";
