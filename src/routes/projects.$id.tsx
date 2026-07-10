@@ -155,7 +155,7 @@ function ProjectWorkspace() {
             setSelectedIds={setSelectedIds}
             pointSize={pointSize}
             pointColor={pointColor}
-
+            focusRequest={focusRequest}
           />
         )}
         {mode === "review" && (
