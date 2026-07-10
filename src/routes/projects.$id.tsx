@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { deletePoint, getProject, listFloors, listPoints, saveFloor, savePoint } from "@/lib/db";
+import { deletePoint, getProject, listFloors, listPoints, savePoint } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { SetupTab } from "@/components/tabs/SetupTab";
@@ -10,7 +10,6 @@ import { TopoTab } from "@/components/tabs/TopoTab";
 import { ExportTab } from "@/components/tabs/ExportTab";
 import { AppTopBar } from "@/components/chrome/AppTopBar";
 import { ModeToggle } from "@/components/chrome/ModeToggle";
-import { NoteTool } from "@/components/chrome/NoteTool";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 
@@ -82,21 +81,19 @@ function ProjectWorkspace() {
   );
 
   const history = useFloorHistory(activeFloorId);
-  const [notesVersion, setNotesVersion] = useState(0);
 
   useEffect(() => {
     if (!activeFloor) return;
     (async () => {
       const pts = await listPoints(activeFloor.id);
       setPoints(pts);
-      history.seed({ points: pts, notePins: activeFloor.notePins ?? [] });
+      history.seed({ points: pts });
     })();
   }, [activeFloor?.id]);
 
   const applySnapshot = useCallback(
     async (snap: FloorSnapshot) => {
       if (!activeFloor) return;
-      const floorId = activeFloor.id;
       // Diff points
       const nextIds = new Set(snap.points.map((p) => p.id));
       for (const p of points) {
@@ -104,11 +101,6 @@ function ProjectWorkspace() {
       }
       for (const p of snap.points) await savePoint(p);
       setPoints(snap.points);
-      // Note pins live on the floor record
-      const nextFloor: Floor = { ...activeFloor, notePins: snap.notePins };
-      await saveFloor(nextFloor);
-      setFloors((prev) => prev.map((f) => (f.id === floorId ? nextFloor : f)));
-      setNotesVersion((n) => n + 1);
     },
     [activeFloor, points],
   );
@@ -196,12 +188,7 @@ function ProjectWorkspace() {
             pointSize={pointSize}
             pointColor={pointColor}
             focusRequest={focusRequest}
-            notesVersion={notesVersion}
             onCommit={(snap) => history.commit(snap)}
-            onFloorNotesChange={(notePins) => {
-              const nextFloor: Floor = { ...activeFloor, notePins };
-              setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
-            }}
           />
         )}
         {mode === "review" && (
@@ -213,7 +200,7 @@ function ProjectWorkspace() {
             setSelectedIds={setSelectedIds}
             onClose={() => setMode("field")}
             onCommit={(pts) =>
-              history.commit({ points: pts, notePins: activeFloor.notePins ?? [] })
+              history.commit({ points: pts })
             }
           />
         )}
@@ -250,7 +237,7 @@ function ProjectWorkspace() {
           onPointColorChange={setPointColor}
           onPointsChange={setPoints}
           onCommit={(pts) =>
-            history.commit({ points: pts, notePins: activeFloor.notePins ?? [] })
+            history.commit({ points: pts })
           }
           onSelect={(pid, additive) => {
             if (additive) {
@@ -265,8 +252,6 @@ function ProjectWorkspace() {
           }}
         />
       )}
-
-      {mode === "field" && <NoteTool />}
 
     </div>
   );
