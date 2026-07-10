@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { getProject, listFloors, listPoints } from "@/lib/db";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { deletePoint, getProject, listFloors, listPoints, saveFloor, savePoint } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { SetupTab } from "@/components/tabs/SetupTab";
@@ -12,6 +12,7 @@ import { AppTopBar } from "@/components/chrome/AppTopBar";
 import { ModeToggle } from "@/components/chrome/ModeToggle";
 import { NoteTool } from "@/components/chrome/NoteTool";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
+import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
@@ -80,10 +81,50 @@ function ProjectWorkspace() {
     [floors, activeFloorId],
   );
 
+  const history = useFloorHistory(activeFloorId);
+  const [notesVersion, setNotesVersion] = useState(0);
+
   useEffect(() => {
     if (!activeFloor) return;
-    (async () => setPoints(await listPoints(activeFloor.id)))();
+    (async () => {
+      const pts = await listPoints(activeFloor.id);
+      setPoints(pts);
+      history.seed({ points: pts, notePins: activeFloor.notePins ?? [] });
+    })();
   }, [activeFloor?.id]);
+
+  const applySnapshot = useCallback(
+    async (snap: FloorSnapshot) => {
+      if (!activeFloor) return;
+      const floorId = activeFloor.id;
+      // Diff points
+      const nextIds = new Set(snap.points.map((p) => p.id));
+      for (const p of points) {
+        if (!nextIds.has(p.id)) await deletePoint(p.id);
+      }
+      for (const p of snap.points) await savePoint(p);
+      setPoints(snap.points);
+      // Note pins live on the floor record
+      const nextFloor: Floor = { ...activeFloor, notePins: snap.notePins };
+      await saveFloor(nextFloor);
+      setFloors((prev) => prev.map((f) => (f.id === floorId ? nextFloor : f)));
+      setNotesVersion((n) => n + 1);
+    },
+    [activeFloor, points],
+  );
+
+  const undoActive = mode === "field" || mode === "review";
+  const onUndo = useCallback(() => {
+    if (!undoActive) return;
+    const snap = history.undo();
+    if (snap) void applySnapshot(snap);
+  }, [undoActive, history, applySnapshot]);
+  const onRedo = useCallback(() => {
+    if (!undoActive) return;
+    const snap = history.redo();
+    if (snap) void applySnapshot(snap);
+  }, [undoActive, history, applySnapshot]);
+  useUndoRedoEvents(onUndo, onRedo);
 
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
@@ -110,6 +151,8 @@ function ProjectWorkspace() {
         onOpenSetup={() => setMode("setup")}
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
+        undoEnabled={undoActive && history.canUndo}
+        redoEnabled={undoActive && history.canRedo}
       />
       {floors.length > 1 && (
         <div className="flex items-center gap-2 px-2 h-7 text-xs border-b bg-background/70">
@@ -153,6 +196,12 @@ function ProjectWorkspace() {
             pointSize={pointSize}
             pointColor={pointColor}
             focusRequest={focusRequest}
+            notesVersion={notesVersion}
+            onCommit={(snap) => history.commit(snap)}
+            onFloorNotesChange={(notePins) => {
+              const nextFloor: Floor = { ...activeFloor, notePins };
+              setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
+            }}
           />
         )}
         {mode === "review" && (
@@ -163,6 +212,9 @@ function ProjectWorkspace() {
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             onClose={() => setMode("field")}
+            onCommit={(pts) =>
+              history.commit({ points: pts, notePins: activeFloor.notePins ?? [] })
+            }
           />
         )}
         {mode === "topo" && (
@@ -197,7 +249,9 @@ function ProjectWorkspace() {
           pointColor={pointColor}
           onPointColorChange={setPointColor}
           onPointsChange={setPoints}
-
+          onCommit={(pts) =>
+            history.commit({ points: pts, notePins: activeFloor.notePins ?? [] })
+          }
           onSelect={(pid, additive) => {
             if (additive) {
               const next = new Set(selectedIds);

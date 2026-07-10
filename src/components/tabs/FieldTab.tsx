@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 
 import type { Floor, NotePin, SurveyPoint } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
+import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 interface Props {
   projectId: string;
@@ -18,6 +19,9 @@ interface Props {
   pointSize: number;
   pointColor: string;
   focusRequest?: { x: number; y: number; nonce: number };
+  notesVersion?: number;
+  onCommit?: (snap: FloorSnapshot) => void;
+  onFloorNotesChange?: (notePins: NotePin[]) => void;
 }
 
 
@@ -56,7 +60,7 @@ const LONG_PRESS_MS = 400;
 const DOUBLE_TAP_MS = 350;
 const PIN_HIT_RADIUS = 18;
 
-export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest }: Props) {
+export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds, setSelectedIds, pointSize, pointColor, focusRequest, notesVersion, onCommit, onFloorNotesChange }: Props) {
 
   const scaleRef = useRef(1);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
@@ -75,7 +79,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
 
   useEffect(() => {
     setNotes(floor.notePins ?? []);
-  }, [floor.id]);
+  }, [floor.id, notesVersion]);
 
   useEffect(() => {
     function onAdd() { setArmed(true); }
@@ -86,6 +90,11 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
   async function persistNotes(next: NotePin[]) {
     setNotes(next);
     await saveFloor({ ...floor, notePins: next });
+    onFloorNotesChange?.(next);
+  }
+
+  function commitSnap(nextPoints: SurveyPoint[], nextNotes: NotePin[]) {
+    onCommit?.({ points: nextPoints, notePins: nextNotes });
   }
 
 
@@ -101,6 +110,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       const pin: NotePin = { id: uid(), index: idx, x, y, text: "", createdAt: Date.now() };
       const next = [...notes, pin];
       await persistNotes(next);
+      commitSnap(points, next);
       setArmed(false);
       setOpenNoteId(pin.id);
       return;
@@ -117,7 +127,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
       await savePoint(updated);
-      onPointsChange(points.map((p) => (p.id === updated.id ? updated : p)));
+      const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
+      onPointsChange(nextPts);
+      commitSnap(nextPts, notes);
       setEditingPoint(null);
       return;
     }
@@ -135,7 +147,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       createdAt: Date.now(),
     };
     await savePoint(point);
-    onPointsChange([...points, point]);
+    const nextPts = [...points, point];
+    onPointsChange(nextPts);
+    commitSnap(nextPts, notes);
     setPending(null);
     setBpPromptOpen(false);
   }
@@ -309,6 +323,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             if (g.dragMode && g.moved) {
               const next = notes.map((n) => (n.id === g.id ? { ...n, x: g.lastX, y: g.lastY } : n));
               await persistNotes(next);
+              commitSnap(points, next);
               lastTapRef.current = null;
               return;
             }
@@ -338,6 +353,9 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           }
           const updated = { ...point, x: finalX, y: finalY };
           await savePoint(updated);
+          const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
+          onPointsChange(nextPts);
+          commitSnap(nextPts, notes);
         }}
         drawOverlay={(ctx) => {
           // boundary
@@ -428,6 +446,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           await deletePoint(p.id);
           const reindexed = await reindexFloorPoints(floor.id);
           onPointsChange(reindexed);
+          commitSnap(reindexed, notes);
         } : undefined}
       />
 
@@ -439,6 +458,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           onSave={async (text) => {
             const next = notes.map((n) => (n.id === openNote.id ? { ...n, text } : n));
             await persistNotes(next);
+            commitSnap(points, next);
           }}
           onDelete={async () => {
             if (!confirm(`Delete note N${openNote.index}?`)) return;
@@ -446,6 +466,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
               .filter((n) => n.id !== openNote.id)
               .map((n, i) => ({ ...n, index: i + 1 }));
             await persistNotes(next);
+            commitSnap(points, next);
             setOpenNoteId(null);
           }}
         />

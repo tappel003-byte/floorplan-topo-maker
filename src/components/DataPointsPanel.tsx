@@ -14,6 +14,7 @@ interface Props {
   onPointSizeChange: (n: number) => void;
   pointColor: string;
   onPointColorChange: (c: string) => void;
+  onCommit?: (points: SurveyPoint[]) => void;
 }
 
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
@@ -44,7 +45,7 @@ function loadState(projectId: string): PanelState {
 }
 
 
-export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPointsChange, pointSize, onPointSizeChange, pointColor, onPointColorChange }: Props) {
+export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPointsChange, pointSize, onPointSizeChange, pointColor, onPointColorChange, onCommit }: Props) {
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
   const [detailId, setDetailId] = useState<string | null>(null);
   const [colorOpen, setColorOpen] = useState(false);
@@ -262,13 +263,16 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
         onClose={() => setDetailId(null)}
         onSave={async (updated) => {
           await savePoint(updated);
-          onPointsChange(points.map((x) => (x.id === updated.id ? updated : x)));
+          const next = points.map((x) => (x.id === updated.id ? updated : x));
+          onPointsChange(next);
+          onCommit?.(next);
         }}
         onDelete={async () => {
           if (!confirm(`Delete point #${detail.index}?`)) return;
           await deletePoint(detail.id);
           const reindexed = await reindexFloorPoints(detail.floorId);
           onPointsChange(reindexed);
+          onCommit?.(reindexed);
           setDetailId(null);
         }}
       />

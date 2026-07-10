@@ -12,9 +12,10 @@ interface Props {
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
   onClose?: () => void;
+  onCommit?: (points: SurveyPoint[]) => void;
 }
 
-export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds, onClose }: Props) {
+export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds, onClose, onCommit }: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
@@ -131,13 +132,16 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds,
           onClose={() => setDetailId(null)}
           onSave={async (updated) => {
             await savePoint(updated);
-            onPointsChange(points.map((x) => (x.id === updated.id ? updated : x)));
+            const next = points.map((x) => (x.id === updated.id ? updated : x));
+            onPointsChange(next);
+            onCommit?.(next);
           }}
           onDelete={async () => {
             if (!confirm(`Delete point #${detail.index}?`)) return;
             await deletePoint(detail.id);
             const reindexed = await reindexFloorPoints(detail.floorId);
             onPointsChange(reindexed);
+            onCommit?.(reindexed);
             setDetailId(null);
           }}
         />
