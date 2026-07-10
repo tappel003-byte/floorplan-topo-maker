@@ -1,11 +1,20 @@
-import { useRef, useState } from "react";
-import { PlanCanvas } from "../PlanCanvas";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { StickyNote } from "lucide-react";
+import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
+import { NoteOverlay } from "../NoteOverlay";
 
 import { Button } from "@/components/ui/button";
 
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, uid } from "@/lib/db";
+import {
+  loadNotePins,
+  saveNotePins,
+  reindexNotePins,
+  newNotePinId,
+  type NotePin,
+} from "@/lib/notePins";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 interface Props {
