@@ -343,6 +343,23 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             ctx.lineWidth = 3;
             ctx.stroke();
           }
+          // note pins (orange, numbered)
+          const s = scaleRef.current || 1;
+          const rNote = Math.max(7, 9 / s);
+          for (const n of notePins) {
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, rNote, 0, Math.PI * 2);
+            ctx.fillStyle = "#f59e0b";
+            ctx.fill();
+            ctx.strokeStyle = "#78350f";
+            ctx.lineWidth = 1.5 / s;
+            ctx.stroke();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = `bold ${Math.max(9, 11 / s)}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(n.index), n.x, n.y + 0.5 / s);
+          }
         }}
       />
 
