@@ -36,9 +36,11 @@ function loadState(projectId: string): PanelState {
 }
 
 
-export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPointsChange, pointSize, onPointSizeChange }: Props) {
+export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPointsChange, pointSize, onPointSizeChange, pointColor, onPointColorChange }: Props) {
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [colorOpen, setColorOpen] = useState(false);
+
   const dragRef = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null);
   const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
