@@ -309,22 +309,6 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         </div>
       )}
 
-      <DataPointsPanel
-        projectId={projectId}
-        points={points}
-        selectedIds={selectedIds}
-        pointSize={pointSize}
-        onPointSizeChange={setPointSize}
-        onSelect={(id, additive) => {
-          if (additive) {
-            const next = new Set(selectedIds);
-            next.has(id) ? next.delete(id) : next.add(id);
-            setSelectedIds(next);
-          } else {
-            setSelectedIds(new Set([id]));
-          }
-        }}
-      />
     </div>
   );
 }
