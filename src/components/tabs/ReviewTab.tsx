@@ -132,13 +132,16 @@ export function ReviewTab({ points, onPointsChange, selectedIds, setSelectedIds,
           onClose={() => setDetailId(null)}
           onSave={async (updated) => {
             await savePoint(updated);
-            onPointsChange(points.map((x) => (x.id === updated.id ? updated : x)));
+            const next = points.map((x) => (x.id === updated.id ? updated : x));
+            onPointsChange(next);
+            onCommit?.(next);
           }}
           onDelete={async () => {
             if (!confirm(`Delete point #${detail.index}?`)) return;
             await deletePoint(detail.id);
             const reindexed = await reindexFloorPoints(detail.floorId);
             onPointsChange(reindexed);
+            onCommit?.(reindexed);
             setDetailId(null);
           }}
         />
