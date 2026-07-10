@@ -446,6 +446,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           await deletePoint(p.id);
           const reindexed = await reindexFloorPoints(floor.id);
           onPointsChange(reindexed);
+          commitSnap(reindexed, notes);
         } : undefined}
       />
 
@@ -457,6 +458,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           onSave={async (text) => {
             const next = notes.map((n) => (n.id === openNote.id ? { ...n, text } : n));
             await persistNotes(next);
+            commitSnap(points, next);
           }}
           onDelete={async () => {
             if (!confirm(`Delete note N${openNote.index}?`)) return;
@@ -464,6 +466,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
               .filter((n) => n.id !== openNote.id)
               .map((n, i) => ({ ...n, index: i + 1 }));
             await persistNotes(next);
+            commitSnap(points, next);
             setOpenNoteId(null);
           }}
         />
