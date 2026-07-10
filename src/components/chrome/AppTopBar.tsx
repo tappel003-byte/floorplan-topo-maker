@@ -47,7 +47,9 @@ export function AppTopBar({
   const fire = (name: "app:undo" | "app:redo") => window.dispatchEvent(new CustomEvent(name));
 
   return (
-    <header className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b pt-[env(safe-area-inset-top)]">
+    <header
+      className="sticky top-0 z-50 bg-background/85 backdrop-blur border-b pt-[env(safe-area-inset-top)] landscape-short:pt-[max(env(safe-area-inset-top),1.5rem)] landscape-short:pl-[env(safe-area-inset-left)] landscape-short:pr-[env(safe-area-inset-right)]"
+    >
       <div className="flex items-center gap-1 px-2 h-9 text-xs">
         <Link
           to="/"
