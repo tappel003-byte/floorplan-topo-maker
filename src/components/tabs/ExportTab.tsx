@@ -1,11 +1,12 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
-import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
+import type { Floor, ProjectMeta, RenderSettings, SurveyNote, SurveyPoint } from "@/lib/types";
 import { buildGrid, computeContours } from "@/lib/topo";
 import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
+import { listNotes } from "@/lib/db";
 
 interface Props {
   project: ProjectMeta;
