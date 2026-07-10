@@ -1,26 +1,48 @@
-## Goal
-Bring back the ability to drag a point by its **elevation number label** instead of the dot itself, so your finger never covers the point you're trying to place.
+## Safety approach
 
-## The problem
-Right now, when you touch the 5.50 point to move it, the dot snaps under your fingertip and hides. You lose the reference of where the point actually is while you're placing it.
+Nothing existing gets deleted. Every change is either:
+- a **new component file** placed alongside the old one, or
+- a **swap at the render site** (one line in the parent) so the old component stays on disk and can be restored instantly.
 
-## The fix
-Two changes to how dragging works in `FieldTab.tsx`:
+No touching of `PlanCanvas`, gestures, elevation math, DB, transitions, or the keypad. All work is layout/chrome.
 
-1. **Label as a drag handle**
-   - Touching the elevation number (e.g. "5.50") starts a drag of its point — same as before.
-   - The dot stays offset from your finger (up and to the left of the label), so it remains visible the whole time you're dragging.
+**Checkpoint discipline:** I stop after each of the 4 steps below so you can test on the live preview before I move on. If anything looks wrong, one revert click restores that step.
 
-2. **Preserve the finger-to-point offset**
-   - Whether you grab the dot or the label, the point moves by the *delta* of your finger, not by snapping under it.
-   - So if you touch the label 30px below the dot, the dot stays 30px above your finger for the entire drag.
-   - You can see exactly where the dot is landing before you lift.
+---
 
-## What stays the same
-- Tap the dot (or label) → keypad opens with trash button. No change.
-- Pinch zoom, pan, drag-to-add — all untouched.
-- Delete lives only in the keypad. No drag-to-trash.
+## Step 1 — Top bar (shared, both screens)
 
-## What I will not touch
-- Transitions, topo, review, legend, layout, keypad UI.
-- Only the drag start + drag math in `FieldTab.tsx`.
+- New `AppTopBar.tsx`: title · Undo · Redo · `⋯` overflow (Review, Setup, Export, Clear, Delete).
+- Remove fit-to-screen button.
+- Old header component stays in the file tree, just unused.
+
+## Step 2 — Data screen corners
+
+- New `ReviewShortcut.tsx` — upper-left round icon. Tap opens a thin ribbon: point # · edit · delete. Tap point → detail window (edit value, delete, note).
+- New `NoteTool.tsx` — upper-right round icon. Tap to arm; next canvas tap drops a flag pin → text/dictation box. Flag pins are a new point type, stored separately, excluded from topo/exports.
+- New `ModeToggle.tsx` — lower-left **vertical** Data/Topo pill. Present on both screens.
+
+## Step 3 — Topo screen corners
+
+Three small round icons (same visual language as today's Topo gear), each closed by default:
+- **Upper-left — Contours:** Mode, Step, First, Count, Line thickness, Contours on/off
+- **Upper-right — Palette:** Palette picker, Reverse
+- **Lower-right — Labels & Layers:** Labels on/off, Decimals, Label bg, Label style, Floor plan, Points, Legend, High/low pins
+
+Old monolithic Topo panel component stays in the repo, just no longer mounted. Kill the "long-press… undo" hint block. Drop Reset.
+
+## Step 4 — Review view (from `⋯`)
+
+- Full-screen review. Notes render **inline on each point row** (not a separate section).
+- Tap row → detail window (edit / delete / note).
+- Add-note canvas pins listed separately at the top or bottom of the same view (TBD when we get there).
+
+---
+
+## Technical notes
+
+- New files under `src/components/chrome/` so nothing collides with existing components.
+- Point type gains an optional `kind: "elevation" | "note"` and optional `note: string`; default `"elevation"` so existing saved projects keep working untouched. No DB migration — IndexedDB schema is permissive.
+- Rendering swap happens in the screen container files only. Old components remain importable.
+
+If any step breaks something, use the revert button on that step's message — earlier steps stay intact.
