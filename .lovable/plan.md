@@ -1,44 +1,26 @@
-I understand why you’re discouraged. The app needs to feel reliable before we touch transitions or any new features again.
-
 ## Goal
-Make the canvas dependable again:
-- Pinch zoom stays zoomed.
-- Touching a point does not reset the view.
-- Tapping a point opens edit only when it is a real tap.
-- Dragging a point only starts after deliberate movement.
-- Drag-to-delete does not appear from normal touches.
-- Panning/zooming empty canvas does not get blocked by point editing.
+Bring back the ability to drag a point by its **elevation number label** instead of the dot itself, so your finger never covers the point you're trying to place.
 
-## Plan
-1. **Freeze feature work on the canvas**
-   - Do not change transitions, review screen, legend, or layout during this pass.
-   - Only touch the input/gesture behavior causing the current instability.
+## The problem
+Right now, when you touch the 5.50 point to move it, the dot snaps under your fingertip and hides. You lose the reference of where the point actually is while you're placing it.
 
-2. **Separate the finger actions clearly**
-   - One finger on empty canvas = pan or tap-to-add.
-   - Two fingers anywhere = pinch zoom, always.
-   - One finger on an existing point = select first, then wait.
-   - If the finger moves past a safe threshold = move the point.
-   - If the finger lifts without moving = edit the point.
-   - Delete only becomes possible after a real point move has started.
+## The fix
+Two changes to how dragging works in `FieldTab.tsx`:
 
-3. **Stop state changes from resetting zoom**
-   - Keep the current zoom/pan transform stable while selecting, editing, dragging, deleting, or opening the keypad.
-   - Fit-to-screen should only happen when the plan image changes, the canvas is first loaded, or the user taps Fit.
+1. **Label as a drag handle**
+   - Touching the elevation number (e.g. "5.50") starts a drag of its point — same as before.
+   - The dot stays offset from your finger (up and to the left of the label), so it remains visible the whole time you're dragging.
 
-4. **Make point dragging less fragile**
-   - Avoid relying on React state updates mid-drag for the critical drag decision.
-   - Store the active gesture in refs so fast touch movement does not use stale state.
-   - Save the final point position only after the drag finishes.
+2. **Preserve the finger-to-point offset**
+   - Whether you grab the dot or the label, the point moves by the *delta* of your finger, not by snapping under it.
+   - So if you touch the label 30px below the dot, the dot stays 30px above your finger for the entire drag.
+   - You can see exactly where the dot is landing before you lift.
 
-5. **Verify the actual field actions**
-   - Use browser testing against the running app for the exact flow: zoom in, touch an existing point, edit/delete/move it, and confirm the zoom does not jump back out.
-   - Also verify empty-canvas pinch zoom and pan still work.
+## What stays the same
+- Tap the dot (or label) → keypad opens with trash button. No change.
+- Pinch zoom, pan, drag-to-add — all untouched.
+- Delete lives only in the keypad. No drag-to-trash.
 
-## What I will not do in this pass
-- No redesign.
-- No transition workflow changes.
-- No new buttons.
-- No extra features.
-
-This is a reliability pass so the app can earn trust again before we continue.
+## What I will not touch
+- Transitions, topo, review, legend, layout, keypad UI.
+- Only the drag start + drag math in `FieldTab.tsx`.

@@ -34,6 +34,12 @@ type DragState = {
   moved: boolean;
   startClientX: number;
   startClientY: number;
+  /** Finger position in image coords at pointer-down. */
+  startImgX: number;
+  startImgY: number;
+  /** Point's original position at pointer-down. */
+  origX: number;
+  origY: number;
   lastX: number;
   lastY: number;
 };
@@ -499,6 +505,10 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
             moved: false,
             startClientX: event.clientX,
             startClientY: event.clientY,
+            startImgX: x,
+            startImgY: y,
+            origX: hp.x,
+            origY: hp.y,
             lastX: hp.x,
             lastY: hp.y,
           };
@@ -512,10 +522,13 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const screenDist = Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY);
           // Require deliberate finger movement in screen pixels before treating this as a drag.
           if (!drag.moved && screenDist < 18) return;
-          const nextDrag = { ...drag, moved: true, lastX: x, lastY: y };
+          // Preserve finger-to-point offset so the dot doesn't jump under the fingertip.
+          const nx = drag.origX + (x - drag.startImgX);
+          const ny = drag.origY + (y - drag.startImgY);
+          const nextDrag = { ...drag, moved: true, lastX: nx, lastY: ny };
           dragRef.current = nextDrag;
           setDragging(nextDrag);
-          onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x, y } : p)));
+          onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x: nx, y: ny } : p)));
         }}
         onImagePointerCancel={() => {
           // Pinch/zoom took over — abandon any in-progress point drag without deleting.
