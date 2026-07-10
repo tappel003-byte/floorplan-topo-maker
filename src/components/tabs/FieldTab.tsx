@@ -3,7 +3,7 @@ import { PlanCanvas } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 
 import { Button } from "@/components/ui/button";
-import { Undo2 } from "lucide-react";
+
 import type { Floor, SurveyPoint } from "@/lib/types";
 import { savePoint, deletePoint, uid } from "@/lib/db";
 
