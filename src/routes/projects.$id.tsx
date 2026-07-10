@@ -249,7 +249,9 @@ function ProjectWorkspace() {
           pointColor={pointColor}
           onPointColorChange={setPointColor}
           onPointsChange={setPoints}
-
+          onCommit={(pts) =>
+            history.commit({ points: pts, notePins: activeFloor.notePins ?? [] })
+          }
           onSelect={(pid, additive) => {
             if (additive) {
               const next = new Set(selectedIds);
