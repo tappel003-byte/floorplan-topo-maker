@@ -112,7 +112,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
   return (
     <>
     <div
-      className="fixed z-[65] bg-background border rounded-lg shadow-xl flex flex-col"
+      className="fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col"
       style={{
         left: state.x,
         top: state.y,
