@@ -391,7 +391,7 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               : null;
             renderTopoTop(ctx, floor, points, resolved, gridAndContours, {
               liveDrag: activeLabel,
-              highlightId: activeLabel?.id ?? null,
+              highlightId: activeLabel?.id ?? selectedId,
               livePinHigh: activePinHigh,
               livePinLow: activePinLow,
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
