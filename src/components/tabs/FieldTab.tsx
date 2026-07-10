@@ -163,8 +163,8 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Floating status chip (top-left) */}
-      <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs">
+      {/* Floating status chip (top-left, offset for note tool) */}
+      <div className="absolute top-2 left-14 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs">
         <span className="font-medium">{points.length}</span>
         <span className="text-muted-foreground">pts</span>
         {points.length > 0 && (
@@ -176,6 +176,19 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
         )}
       </div>
 
+      {/* Note tool (top-left corner) */}
+      <button
+        onClick={() => setNoteMode((v) => !v)}
+        aria-label={noteMode ? "Cancel note placement" : "Add note"}
+        aria-pressed={noteMode}
+        className={
+          "absolute top-2 left-2 z-30 h-9 w-9 rounded-full backdrop-blur border shadow-sm flex items-center justify-center " +
+          (noteMode ? "bg-amber-400 text-amber-950 border-amber-500" : "bg-background/90 hover:bg-background")
+        }
+      >
+        <StickyNote className="h-4 w-4" />
+      </button>
+
       {/* Floating Undo (top-right) */}
       <button
         onClick={undoLast}
@@ -185,6 +198,13 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
       >
         <Undo2 className="h-4 w-4" />
       </button>
+
+      {/* Note mode hint */}
+      {noteMode && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs px-3 py-1 shadow-sm">
+          Tap the plan to drop a note
+        </div>
+      )}
 
       {/* Dismissible boundary warning */}
       {floor.boundary.length < 3 && !warningDismissed && (
@@ -199,6 +219,7 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           </button>
         </div>
       )}
+
 
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
