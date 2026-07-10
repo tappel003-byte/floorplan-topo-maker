@@ -82,10 +82,6 @@ export async function listFloors(projectId: string): Promise<Floor[]> {
   const all = await db.getAllFromIndex("floors", "projectId", projectId);
   return all.sort((a, b) => a.order - b.order);
 }
-export async function getFloor(id: string) {
-  const db = await getDB();
-  return db.get("floors", id);
-}
 export async function saveFloor(f: Floor) {
   const db = await getDB();
   await db.put("floors", { ...f, updatedAt: Date.now() });

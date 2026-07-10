@@ -834,7 +834,7 @@ export function renderTopo(
 }
 
 // Base pass: contour fills / lines / boundary. Meant to sit UNDER the wall plan.
-export function renderTopoBase(
+function renderTopoBase(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   settings: RenderSettings,
@@ -929,7 +929,7 @@ export function renderTopoBase(
 }
 
 // Top pass: points, point labels, high/low pins, legend. Meant to sit OVER the wall plan.
-export function renderTopoTop(
+function renderTopoTop(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   points: SurveyPoint[],
@@ -1107,7 +1107,7 @@ function contourOptions(grid: Grid, settings: RenderSettings) {
   };
 }
 
-export function paletteColor(input: number, palette: RenderSettings["palette"], reverse: boolean) {
+function paletteColor(input: number, palette: RenderSettings["palette"], reverse: boolean) {
   const t = reverse ? 1 - input : input;
   const stops: Record<RenderSettings["palette"], Array<[number, number, number]>> = {
     brown: [
