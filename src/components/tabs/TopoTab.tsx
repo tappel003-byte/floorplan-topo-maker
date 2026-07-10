@@ -220,36 +220,35 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Floating status chip (top-left): mode + range */}
-      <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur border shadow-sm px-2.5 py-1 text-xs max-w-[calc(100%-4.5rem)]">
-        <span className="font-medium capitalize truncate">
-          {resolved.mode === "contour-fill" ? "Fill" : resolved.mode === "contour-cells" ? "Cells" : resolved.mode === "contour-bw" ? "B&W" : "Points"}
-        </span>
-        {gridAndContours?.grid && (
-          <>
-            <span className="text-muted-foreground/60">·</span>
-            <span className="text-muted-foreground tabular-nums truncate">
-              {gridAndContours.grid.minValue.toFixed(2)}"–{gridAndContours.grid.maxValue.toFixed(2)}"
-            </span>
-          </>
-        )}
-      </div>
-
-      {/* Floating settings toggle (top-right) */}
-      <button
-        onClick={() => setPanelOpen((v) => !v)}
-        aria-label={panelOpen ? "Hide controls" : "Show controls"}
-        className={
-          "absolute top-2 right-2 z-30 h-9 w-9 rounded-full backdrop-blur border shadow-sm flex items-center justify-center " +
-          (panelOpen ? "bg-primary text-primary-foreground border-primary" : "bg-background/90 hover:bg-background")
-        }
+      {/* Corner icons — closed by default, tap to open. */}
+      <CornerIcon
+        pos="top-2 left-2"
+        active={openCorner === "contours"}
+        onClick={() => setOpenCorner((c) => (c === "contours" ? null : "contours"))}
+        label="Contours"
       >
-        <SlidersHorizontal className="h-4 w-4" />
-      </button>
+        <Waves className="h-4 w-4" />
+      </CornerIcon>
+      <CornerIcon
+        pos="top-2 right-2"
+        active={openCorner === "palette"}
+        onClick={() => setOpenCorner((c) => (c === "palette" ? null : "palette"))}
+        label="Palette"
+      >
+        <Palette className="h-4 w-4" />
+      </CornerIcon>
+      <CornerIcon
+        pos="bottom-2 right-2"
+        active={openCorner === "labels"}
+        onClick={() => setOpenCorner((c) => (c === "labels" ? null : "labels"))}
+        label="Labels & layers"
+      >
+        <Tag className="h-4 w-4" />
+      </CornerIcon>
 
-      {/* Dismissible warning */}
+      {/* Warning */}
       {!canRender && !warningDismissed && (
-        <div className="absolute top-14 left-2 right-2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2 max-w-[calc(100%-6rem)]">
           <span className="flex-1">Need at least 3 points and a closed boundary to generate a topo.</span>
           <button onClick={() => setWarningDismissed(true)} aria-label="Dismiss" className="text-amber-700 shrink-0">
             <X className="h-3.5 w-3.5" />
@@ -257,9 +256,9 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
         </div>
       )}
 
-      {/* Legend size slider (appears when legend is tapped) */}
+      {/* Legend size (appears when the legend is tapped) */}
       {legendSelected && resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only" && (
-        <div className="absolute top-14 right-2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <Label className="text-xs">Legend size</Label>
             <div className="flex items-center gap-2">
