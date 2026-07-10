@@ -111,6 +111,27 @@ export function PlanCanvas({
     fit();
   }, [fit, planDataUrl, imgLoaded]);
 
+  // Programmatic focus: pan (and gently zoom in if too zoomed out) to center (x,y).
+  const focusNonceRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!focusRequest) return;
+    if (focusNonceRef.current === focusRequest.nonce) return;
+    focusNonceRef.current = focusRequest.nonce;
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const cw = wrap.clientWidth;
+    const ch = wrap.clientHeight;
+    const cur = transformRef.current;
+    const fitScale = Math.min(cw / imgW, ch / imgH);
+    // Zoom in to at least 1.5x the fit-scale so the point is clearly visible.
+    const minScale = fitScale * 1.5;
+    const scale = cur.scale < minScale ? minScale : cur.scale;
+    const tx = cw / 2 - focusRequest.x * scale;
+    const ty = ch / 2 - focusRequest.y * scale;
+    applyTransform({ scale, tx, ty });
+  }, [focusRequest, applyTransform, imgW, imgH]);
+
+
   useEffect(() => {
     const ro = new ResizeObserver(() => {
       setCanvasSizeTick((tick) => tick + 1);
