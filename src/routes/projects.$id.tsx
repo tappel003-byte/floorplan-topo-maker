@@ -81,10 +81,50 @@ function ProjectWorkspace() {
     [floors, activeFloorId],
   );
 
+  const history = useFloorHistory(activeFloorId);
+  const [notesVersion, setNotesVersion] = useState(0);
+
   useEffect(() => {
     if (!activeFloor) return;
-    (async () => setPoints(await listPoints(activeFloor.id)))();
+    (async () => {
+      const pts = await listPoints(activeFloor.id);
+      setPoints(pts);
+      history.seed({ points: pts, notePins: activeFloor.notePins ?? [] });
+    })();
   }, [activeFloor?.id]);
+
+  const applySnapshot = useCallback(
+    async (snap: FloorSnapshot) => {
+      if (!activeFloor) return;
+      const floorId = activeFloor.id;
+      // Diff points
+      const nextIds = new Set(snap.points.map((p) => p.id));
+      for (const p of points) {
+        if (!nextIds.has(p.id)) await deletePoint(p.id);
+      }
+      for (const p of snap.points) await savePoint(p);
+      setPoints(snap.points);
+      // Note pins live on the floor record
+      const nextFloor: Floor = { ...activeFloor, notePins: snap.notePins };
+      await saveFloor(nextFloor);
+      setFloors((prev) => prev.map((f) => (f.id === floorId ? nextFloor : f)));
+      setNotesVersion((n) => n + 1);
+    },
+    [activeFloor, points],
+  );
+
+  const undoActive = mode === "field" || mode === "review";
+  const onUndo = useCallback(() => {
+    if (!undoActive) return;
+    const snap = history.undo();
+    if (snap) void applySnapshot(snap);
+  }, [undoActive, history, applySnapshot]);
+  const onRedo = useCallback(() => {
+    if (!undoActive) return;
+    const snap = history.redo();
+    if (snap) void applySnapshot(snap);
+  }, [undoActive, history, applySnapshot]);
+  useUndoRedoEvents(onUndo, onRedo);
 
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
