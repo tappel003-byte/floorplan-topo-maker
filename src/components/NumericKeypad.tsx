@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X, Repeat2 } from "lucide-react";
+import { Delete, Check, X, Repeat2, Trash2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -14,6 +14,8 @@ interface Props {
   /** Optional secondary action rendered as a full-width button under the display,
    * e.g. "Add transition" or "Save as adjacent reading". */
   secondaryAction?: { label: string; onClick: (value: number) => void; disabled?: boolean };
+  /** When provided, shows a trash button in the header. Used for editing existing points. */
+  onDelete?: () => void;
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
