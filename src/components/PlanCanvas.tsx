@@ -34,6 +34,8 @@ interface Props {
   hidePlan?: boolean;
   /** Draw the plan ON TOP of the overlay using multiply blend, so walls stay crisp over color fills */
   planOnTop?: boolean;
+  /** When nonce changes, pan (and gently zoom in if too far out) so (x,y) is centered. */
+  focusRequest?: { x: number; y: number; nonce: number };
 }
 
 const IMPLIED_W = 1000;
