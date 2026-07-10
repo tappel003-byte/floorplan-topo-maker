@@ -15,7 +15,7 @@ export function ReviewShortcut({
 }) {
   const selected = points.find((p) => selectedIds.has(p.id));
   const label = selected
-    ? selected.elevation.toFixed(2)
+    ? selected.value.toFixed(2)
     : `${points.length} pt${points.length === 1 ? "" : "s"}`;
 
   return (
