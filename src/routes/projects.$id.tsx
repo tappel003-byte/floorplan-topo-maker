@@ -208,6 +208,8 @@ function ProjectWorkspace() {
               setSelectedIds(next);
             } else {
               setSelectedIds(new Set([pid]));
+              const p = points.find((pt) => pt.id === pid);
+              if (p) setFocusRequest({ x: p.x, y: p.y, nonce: Date.now() });
             }
           }}
         />
