@@ -53,7 +53,9 @@ function loadState(projectId: string): PanelState {
         sortMode: "index",
         ...JSON.parse(raw),
       };
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return { x: 8, y: 52, collapsed: false, hidden: false, sortMode: "index" };
 }
 
@@ -91,7 +93,9 @@ export function DataPointsPanel({
   useEffect(() => {
     try {
       localStorage.setItem(`dpp:${projectId}`, JSON.stringify(state));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [state, projectId]);
 
   useEffect(() => {

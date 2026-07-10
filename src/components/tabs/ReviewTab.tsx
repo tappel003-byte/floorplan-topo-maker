@@ -84,7 +84,8 @@ export function ReviewTab({
                   onClick={(e) => {
                     if (e.shiftKey || e.metaKey) {
                       const next = new Set(selectedIds);
-                      if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                      if (next.has(p.id)) next.delete(p.id);
+                      else next.add(p.id);
                       setSelectedIds(next);
                       return;
                     }
