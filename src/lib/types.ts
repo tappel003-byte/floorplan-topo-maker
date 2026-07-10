@@ -40,20 +40,6 @@ export interface Floor {
   highPinDy?: number;
   lowPinDx?: number;
   lowPinDy?: number;
-  // Data-mode note pins (kept per floor). Not shown on Topo/Review.
-  notePins?: NotePin[];
-}
-
-export interface NotePin {
-  id: string;
-  index: number; // 1..N, reindexed on delete
-  x: number;     // image coords
-  y: number;
-  text: string;
-  createdAt: number;
-
-  lowPinDx?: number;
-  lowPinDy?: number;
 }
 
 export interface SurveyPoint {

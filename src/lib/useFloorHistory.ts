@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { NotePin, SurveyPoint } from "./types";
+import type { SurveyPoint } from "./types";
 
 export type FloorSnapshot = {
   points: SurveyPoint[];
-  notePins: NotePin[];
 };
 
 type Stack = {
@@ -75,7 +74,6 @@ export function useFloorHistory(floorId: string | null) {
 function cloneSnap(s: FloorSnapshot): FloorSnapshot {
   return {
     points: s.points.map((p) => ({ ...p })),
-    notePins: s.notePins.map((n) => ({ ...n })),
   };
 }
 
