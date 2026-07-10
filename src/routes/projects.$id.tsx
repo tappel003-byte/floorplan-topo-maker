@@ -243,7 +243,7 @@ function ProjectWorkspace() {
           onSelect={(pid, additive) => {
             if (additive) {
               const next = new Set(selectedIds);
-              next.has(pid) ? next.delete(pid) : next.add(pid);
+              if (next.has(pid)) next.delete(pid); else next.add(pid);
               setSelectedIds(next);
             } else {
               setSelectedIds(new Set([pid]));
