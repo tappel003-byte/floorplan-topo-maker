@@ -514,20 +514,19 @@ export function FieldTab({
           for (const p of points) {
             const sel = selectedIds.has(p.id);
             const color = p.isBasePoint ? "#16a34a" : pointColor;
-            // White halo so dark dots stay visible over black walls/shadows
-            const haloR = pointSize + Math.max(2, pointSize * 0.9);
+            // White-filled point so it stays visible over black plan lines without an outer halo.
+            const markerR = Math.max(pointSize + 1, 3);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, haloR, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
             ctx.fillStyle = "#ffffff";
             ctx.fill();
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, pointSize, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
 
             if (sel) {
               ctx.beginPath();
-              ctx.arc(p.x, p.y, Math.max(12, pointSize + 8), 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, Math.max(12, markerR + 8), 0, Math.PI * 2);
               ctx.strokeStyle = "#2563eb";
               ctx.lineWidth = 2;
               ctx.stroke();
@@ -537,7 +536,7 @@ export function FieldTab({
             ctx.font = "bold 12px sans-serif";
             ctx.textAlign = "left";
             ctx.textBaseline = "top";
-            ctx.fillText(p.value.toFixed(2), p.x + pointSize + 4, p.y + pointSize + 3);
+            ctx.fillText(p.value.toFixed(2), p.x + markerR + 4, p.y + markerR + 3);
           }
           // Note pins (drawn on top of points visually is fine; they're field-only)
           for (let i = 0; i < notes.length; i++) {
