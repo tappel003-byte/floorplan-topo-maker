@@ -59,6 +59,16 @@ export interface SurveyPoint {
   labelDy?: number;
 }
 
+export interface SurveyNote {
+  id: string;
+  floorId: string;
+  x: number; // image coords
+  y: number;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface RenderSettings {
   mode: "contour-fill" | "contour-cells" | "contour-bw" | "points-only";
   interval: number; // legacy alias for contourStep
