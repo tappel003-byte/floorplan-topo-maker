@@ -220,7 +220,7 @@ function ProjectWorkspace() {
         )}
       </main>
 
-      {mode !== "setup" && mode !== "export" && (
+      {(mode === "field" || mode === "topo") && (
         <ModeToggle
           mode={mode === "topo" ? "topo" : "data"}
           onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
