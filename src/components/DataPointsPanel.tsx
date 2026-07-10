@@ -129,8 +129,14 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
       </div>
       {!state.collapsed && (
         <>
-          <div className="flex items-center gap-1.5 px-2 py-1 border-b bg-muted/20">
+          <div className="relative flex items-center gap-1.5 px-2 py-1 border-b bg-muted/20">
             <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">Dot</span>
+            <button
+              onClick={() => setColorOpen((v) => !v)}
+              className="h-5 w-5 rounded-full border shadow-sm shrink-0"
+              style={{ backgroundColor: pointColor }}
+              aria-label="Dot color"
+            />
             <button
               className="ml-auto h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
               onClick={() => onPointSizeChange(Math.max(1, pointSize - 1))}
@@ -148,7 +154,21 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
             >
               <Plus className="h-3 w-3" />
             </button>
+            {colorOpen && (
+              <div className="absolute z-50 top-full left-0 mt-1 rounded-lg border bg-popover shadow-lg p-2 flex gap-1.5">
+                {COLOR_PRESETS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => { onPointColorChange(c); setColorOpen(false); }}
+                    className={"h-6 w-6 rounded-full border-2 " + (c === pointColor ? "border-foreground" : "border-transparent")}
+                    style={{ backgroundColor: c }}
+                    aria-label={"Color " + c}
+                  />
+                ))}
+              </div>
+            )}
           </div>
+
           <div className="flex items-center px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-b bg-muted/30">
             <span className="w-8">#</span>
             <span className="flex-1">Value</span>
