@@ -144,7 +144,15 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] relative bg-background">
+    <div
+      className="flex flex-col h-[100dvh] relative bg-background"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
+    >
       <AppTopBar
         projectName={project.name}
         floorName={activeFloor.name}
