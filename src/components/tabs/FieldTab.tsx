@@ -528,16 +528,6 @@ export function FieldTab({
           commitSnap(nextPts);
         }}
         drawOverlay={(ctx) => {
-          if (floor.boundary.length > 1) {
-            ctx.beginPath();
-            floor.boundary.forEach((p, i) =>
-              i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y),
-            );
-            if (floor.boundary.length > 2) ctx.closePath();
-            ctx.strokeStyle = "rgba(37,99,235,0.6)";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
           for (const p of points) {
             const color = p.isBasePoint ? "#16a34a" : pointColor;
             // Point keeps the user's selected color; readability belongs to the label box.
