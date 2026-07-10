@@ -140,6 +140,7 @@ function ProjectWorkspace() {
             onPointsChange={setPoints}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
+            onClose={() => setMode("field")}
           />
         )}
         {mode === "topo" && (
