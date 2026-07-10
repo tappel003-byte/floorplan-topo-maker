@@ -10,6 +10,7 @@ import { TopoTab } from "@/components/tabs/TopoTab";
 import { ExportTab } from "@/components/tabs/ExportTab";
 import { AppTopBar } from "@/components/chrome/AppTopBar";
 import { ModeToggle } from "@/components/chrome/ModeToggle";
+import { NoteTool } from "@/components/chrome/NoteTool";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
 
 
@@ -111,7 +112,6 @@ function ProjectWorkspace() {
         onOpenSetup={() => setMode("setup")}
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
-        onAddNote={mode === "field" ? () => window.dispatchEvent(new CustomEvent("app:add-note")) : undefined}
         onPointsCleared={() => setPoints([])}
       />
       {floors.length > 1 && (
@@ -214,6 +214,9 @@ function ProjectWorkspace() {
           }}
         />
       )}
+
+      {mode === "field" && <NoteTool />}
+
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, MoreHorizontal, Undo2, Redo2, StickyNote } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Undo2, Redo2 } from "lucide-react";
 import { deleteProject, listPoints, deletePoint } from "@/lib/db";
 
 type Props = {
@@ -11,7 +11,6 @@ type Props = {
   onOpenSetup: () => void;
   onOpenReview: () => void;
   onOpenExport: () => void;
-  onAddNote?: () => void;
   onPointsCleared?: () => void;
 };
 
@@ -28,7 +27,6 @@ export function AppTopBar({
   onOpenSetup,
   onOpenReview,
   onOpenExport,
-  onAddNote,
   onPointsCleared,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -98,16 +96,6 @@ export function AppTopBar({
         >
           <Redo2 className="h-4 w-4" />
         </button>
-        {onAddNote && (
-          <button
-            type="button"
-            onClick={onAddNote}
-            className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
-            aria-label="Add note"
-          >
-            <StickyNote className="h-4 w-4" />
-          </button>
-        )}
         <div className="relative" ref={menuRef}>
           <button
             type="button"
