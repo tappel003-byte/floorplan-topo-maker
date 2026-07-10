@@ -526,24 +526,17 @@ export function FieldTab({ projectId, floor, points, onPointsChange, selectedIds
           const drag = dragRef.current;
           if (!drag) return;
           const screenDist = Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY);
-          // Require deliberate finger movement in screen pixels before treating this as a drag —
-          // stops normal taps / keypad touches from triggering the trash overlay.
+          // Require deliberate finger movement in screen pixels before treating this as a drag.
           if (!drag.moved && screenDist < 18) return;
           const nextDrag = { ...drag, moved: true, lastX: x, lastY: y };
           dragRef.current = nextDrag;
           setDragging(nextDrag);
-          const trashEl = trashRef.current;
-          if (trashEl) {
-            const r = trashEl.getBoundingClientRect();
-            setTrashHover(event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom);
-          }
           onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x, y } : p)));
         }}
         onImagePointerCancel={() => {
           // Pinch/zoom took over — abandon any in-progress point drag without deleting.
           dragRef.current = null;
           setDragging(null);
-          setTrashHover(false);
         }}
         onImagePointerUp={async (x, y, event) => {
           const drag = dragRef.current;
