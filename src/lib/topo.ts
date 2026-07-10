@@ -25,8 +25,7 @@ export function pointInPolygon(px: number, py: number, poly: Array<{ x: number; 
       yi = poly[i].y,
       xj = poly[j].x,
       yj = poly[j].y;
-    const intersect =
-      yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi + 1e-12) + xi;
+    const intersect = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi + 1e-12) + xi;
     if (intersect) inside = !inside;
   }
   return inside;
@@ -187,7 +186,8 @@ export function contourThresholds(grid: Grid, options: ContourOptions) {
   // Snap the first contour to the nearest tenth at or above the data min.
   // Data is entered in tenths, so contour levels should always land on tenths.
   const first = options.first ?? Math.ceil(min * 10 - 1e-6) / 10;
-  const count = options.count && options.count > 0 ? options.count : Math.ceil((max - first) / step) + 1;
+  const count =
+    options.count && options.count > 0 ? options.count : Math.ceil((max - first) / step) + 1;
   const thresholds: number[] = [];
   for (let i = 0; i < count; i++) {
     // Round to 3 decimals to avoid floating-point drift like 5.2000000001.
@@ -202,9 +202,10 @@ export function computeContours(grid: Grid, options: ContourOptions | number) {
   for (let i = 0; i < clean.length; i++) {
     clean[i] = grid.mask[i] ? grid.values[i] : NaN;
   }
-  const thresholds = typeof options === "number"
-    ? contourThresholds(grid, { step: options })
-    : contourThresholds(grid, options);
+  const thresholds =
+    typeof options === "number"
+      ? contourThresholds(grid, { step: options })
+      : contourThresholds(grid, options);
 
   const gen = contours().size([grid.width, grid.height]).thresholds(thresholds);
   return gen(Array.from(clean));

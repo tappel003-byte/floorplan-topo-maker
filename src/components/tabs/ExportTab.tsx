@@ -24,8 +24,17 @@ export function ExportTab({ project, floor, points, settings }: Props) {
   const [pointsOnly, setPointsOnly] = useState(false);
   const previewRef = useRef<HTMLCanvasElement | null>(null);
   const resolved = resolveSettings(settings);
-  const exportSettings = pointsOnly ? resolveSettings({ ...resolved, mode: "points-only", showContours: false, showLegend: false, showHighLow: false, showPoints: true, showLabels: false }) : resolved;
-
+  const exportSettings = pointsOnly
+    ? resolveSettings({
+        ...resolved,
+        mode: "points-only",
+        showContours: false,
+        showLegend: false,
+        showHighLow: false,
+        showPoints: true,
+        showLabels: false,
+      })
+    : resolved;
 
   const grid = useMemo(() => {
     if (points.length < 3 || floor.boundary.length < 3) return null;
@@ -44,7 +53,14 @@ export function ExportTab({ project, floor, points, settings }: Props) {
         max: resolved.maxClamp ?? grid.maxValue,
       }),
     };
-  }, [grid, resolved.firstContour, resolved.contourStep, resolved.contourCount, resolved.minClamp, resolved.maxClamp]);
+  }, [
+    grid,
+    resolved.firstContour,
+    resolved.contourStep,
+    resolved.contourCount,
+    resolved.minClamp,
+    resolved.maxClamp,
+  ]);
 
   const imgW = floor.planWidth ?? 1000;
   const imgH = floor.planHeight ?? 750;
@@ -90,15 +106,17 @@ export function ExportTab({ project, floor, points, settings }: Props) {
     for (const p of points) {
       const role = p.isBasePoint ? "base-point" : "normal";
       const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
-      rows.push([
-        p.index,
-        esc(p.label ?? ""),
-        p.x.toFixed(2),
-        p.y.toFixed(2),
-        p.value.toFixed(3),
-        role,
-        esc(p.notes ?? ""),
-      ].join(","));
+      rows.push(
+        [
+          p.index,
+          esc(p.label ?? ""),
+          p.x.toFixed(2),
+          p.y.toFixed(2),
+          p.value.toFixed(3),
+          role,
+          esc(p.notes ?? ""),
+        ].join(","),
+      );
     }
     const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -109,9 +127,11 @@ export function ExportTab({ project, floor, points, settings }: Props) {
     setStatus("CSV exported.");
   }
 
-
   async function doExport() {
-    if (format === "csv") { downloadCsv(); return; }
+    if (format === "csv") {
+      downloadCsv();
+      return;
+    }
     setStatus("Rendering…");
     const canvas = document.createElement("canvas");
     await renderTo(canvas, dpi);
@@ -188,7 +208,11 @@ export function ExportTab({ project, floor, points, settings }: Props) {
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm rounded-md border px-3 h-9">
-          <input type="checkbox" checked={pointsOnly} onChange={(e) => setPointsOnly(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={pointsOnly}
+            onChange={(e) => setPointsOnly(e.target.checked)}
+          />
           Points only
         </label>
         <div className="ml-auto flex gap-2">

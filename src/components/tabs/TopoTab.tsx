@@ -56,10 +56,17 @@ function labelAnchor(p: SurveyPoint) {
   };
 }
 
-
-
-export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings, onSettingsChange, selectedIds }: Props) {
-  const selectedId = selectedIds && selectedIds.size > 0 ? selectedIds.values().next().value ?? null : null;
+export function TopoTab({
+  floor,
+  points,
+  onPointsChange,
+  onFloorChange,
+  settings,
+  onSettingsChange,
+  selectedIds,
+}: Props) {
+  const selectedId =
+    selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
   const [openCorner, setOpenCorner] = useState<null | "contours" | "palette" | "labels">(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
@@ -93,14 +100,25 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
     if (!grid) return null;
     const cs = computeContours(grid, contourOptions(grid, resolved));
     return { grid, contours: cs };
-  }, [canRender, points, floor.boundary, resolved.firstContour, resolved.contourStep, resolved.contourCount, resolved.minClamp, resolved.maxClamp]);
+  }, [
+    canRender,
+    points,
+    floor.boundary,
+    resolved.firstContour,
+    resolved.contourStep,
+    resolved.contourCount,
+    resolved.minClamp,
+    resolved.maxClamp,
+  ]);
 
-  const update = (patch: Partial<RenderSettings>) => onSettingsChange(resolveSettings({ ...resolved, ...patch }));
+  const update = (patch: Partial<RenderSettings>) =>
+    onSettingsChange(resolveSettings({ ...resolved, ...patch }));
 
   // Compute current High / Low points (matches renderTopoTop logic).
   const hiLo = useMemo(() => {
     if (!points.length) return null;
-    let hi = points[0], lo = points[0];
+    let hi = points[0],
+      lo = points[0];
     for (const p of points) {
       if (p.value > hi.value) hi = p;
       if (p.value < lo.value) lo = p;
@@ -125,8 +143,10 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
       const hDy = floor.highPinDy ?? 0;
       const lDx = floor.lowPinDx ?? 0;
       const lDy = floor.lowPinDy ?? 0;
-      if (check("pin-high", hiLo.hi, hDx, hDy)) return { kind: "pin-high", point: hiLo.hi, dx: hDx, dy: hDy };
-      if (check("pin-low", hiLo.lo, lDx, lDy)) return { kind: "pin-low", point: hiLo.lo, dx: lDx, dy: lDy };
+      if (check("pin-high", hiLo.hi, hDx, hDy))
+        return { kind: "pin-high", point: hiLo.hi, dx: hDx, dy: hDy };
+      if (check("pin-low", hiLo.lo, lDx, lDy))
+        return { kind: "pin-low", point: hiLo.lo, dx: lDx, dy: lDy };
     }
     // Point-number labels
     if (resolved.showPoints) {
@@ -178,7 +198,10 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
     if (!lastMove) return;
     if (lastMove.kind === "label") {
       const p = points.find((pt) => pt.id === lastMove.id);
-      if (!p) { setLastMove(null); return; }
+      if (!p) {
+        setLastMove(null);
+        return;
+      }
       const updated: SurveyPoint = { ...p, labelDx: lastMove.prevDx, labelDy: lastMove.prevDy };
       onPointsChange(points.map((pt) => (pt.id === lastMove.id ? updated : pt)));
       savePoint(updated).catch(() => {});
@@ -204,21 +227,23 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
     }
     // Also clear pin offsets on this floor.
     if (
-      floor.highPinDx !== undefined || floor.highPinDy !== undefined ||
-      floor.lowPinDx !== undefined || floor.lowPinDy !== undefined
+      floor.highPinDx !== undefined ||
+      floor.highPinDy !== undefined ||
+      floor.lowPinDx !== undefined ||
+      floor.lowPinDy !== undefined
     ) {
       const cleared: Floor = {
         ...floor,
-        highPinDx: undefined, highPinDy: undefined,
-        lowPinDx: undefined, lowPinDy: undefined,
+        highPinDx: undefined,
+        highPinDy: undefined,
+        lowPinDx: undefined,
+        lowPinDy: undefined,
       };
       onFloorChange(cleared);
       saveFloor(cleared).catch(() => {});
     }
     setLastMove(null);
   }
-
-
 
   return (
     <div className="flex flex-col h-full relative">
@@ -257,39 +282,50 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
       {/* Warning */}
       {!canRender && !warningDismissed && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2 max-w-[calc(100%-6rem)]">
-          <span className="flex-1">Need at least 3 points and a closed boundary to generate a topo.</span>
-          <button onClick={() => setWarningDismissed(true)} aria-label="Dismiss" className="text-amber-700 shrink-0">
+          <span className="flex-1">
+            Need at least 3 points and a closed boundary to generate a topo.
+          </span>
+          <button
+            onClick={() => setWarningDismissed(true)}
+            aria-label="Dismiss"
+            className="text-amber-700 shrink-0"
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
 
       {/* Legend size (appears when the legend is tapped) */}
-      {legendSelected && resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only" && (
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs">Legend size</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground tabular-nums">{(resolved.legendScale ?? 1).toFixed(2)}×</span>
-              <button
-                onClick={() => setLegendSelected(false)}
-                aria-label="Close"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+      {legendSelected &&
+        resolved.showLegend &&
+        gridAndContours?.grid &&
+        resolved.mode !== "points-only" && (
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Legend size</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {(resolved.legendScale ?? 1).toFixed(2)}×
+                </span>
+                <button
+                  onClick={() => setLegendSelected(false)}
+                  aria-label="Close"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
+            <Slider
+              min={0.4}
+              max={4}
+              step={0.05}
+              value={[resolved.legendScale ?? 1]}
+              onValueChange={([v]) => update({ legendScale: v })}
+            />
+            <p className="text-[10px] text-muted-foreground">Drag the legend to move it.</p>
           </div>
-          <Slider
-            min={0.4}
-            max={4}
-            step={0.05}
-            value={[resolved.legendScale ?? 1]}
-            onValueChange={([v]) => update({ legendScale: v })}
-          />
-          <p className="text-[10px] text-muted-foreground">Drag the legend to move it.</p>
-        </div>
-      )}
+        )}
 
       <div className="flex-1 relative min-h-0 flex flex-col">
         <PlanCanvas
@@ -298,7 +334,6 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           planHeight={floor.planHeight}
           hidePlan={!resolved.showPlan}
           planOnTop
-
           onImagePointerDown={(x, y) => {
             // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
@@ -316,13 +351,9 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             const hit = hitDraggable(x, y);
             if (hit) {
               const startDx =
-                hit.kind === "label"
-                  ? hit.point.labelDx ?? DEFAULT_LABEL_DX
-                  : hit.dx;
+                hit.kind === "label" ? (hit.point.labelDx ?? DEFAULT_LABEL_DX) : hit.dx;
               const startDy =
-                hit.kind === "label"
-                  ? hit.point.labelDy ?? DEFAULT_LABEL_DY
-                  : hit.dy;
+                hit.kind === "label" ? (hit.point.labelDy ?? DEFAULT_LABEL_DY) : hit.dy;
               setDrag({
                 kind: hit.kind,
                 id: hit.kind === "label" ? hit.point.id : floor.id,
@@ -344,7 +375,10 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           }}
           onImagePointerMove={(x, y) => {
             if (legendDrag) {
-              update({ legendX: Math.max(0, x - legendDrag.dx), legendY: Math.max(0, y - legendDrag.dy) });
+              update({
+                legendX: Math.max(0, x - legendDrag.dx),
+                legendY: Math.max(0, y - legendDrag.dy),
+              });
               return;
             }
             if (drag) {
@@ -380,15 +414,14 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             renderTopoBase(ctx, floor, resolved, gridAndContours);
           }}
           drawOverlayTop={(ctx) => {
-            const activeLabel = drag && drag.active && drag.kind === "label"
-              ? { id: drag.id, dx: drag.dx, dy: drag.dy }
-              : null;
-            const activePinHigh = drag && drag.active && drag.kind === "pin-high"
-              ? { dx: drag.dx, dy: drag.dy }
-              : null;
-            const activePinLow = drag && drag.active && drag.kind === "pin-low"
-              ? { dx: drag.dx, dy: drag.dy }
-              : null;
+            const activeLabel =
+              drag && drag.active && drag.kind === "label"
+                ? { id: drag.id, dx: drag.dx, dy: drag.dy }
+                : null;
+            const activePinHigh =
+              drag && drag.active && drag.kind === "pin-high" ? { dx: drag.dx, dy: drag.dy } : null;
+            const activePinLow =
+              drag && drag.active && drag.kind === "pin-low" ? { dx: drag.dx, dy: drag.dy } : null;
             renderTopoTop(ctx, floor, points, resolved, gridAndContours, {
               liveDrag: activeLabel,
               highlightId: activeLabel?.id ?? selectedId,
@@ -405,7 +438,8 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
           <CornerPanel pos="top-12 left-2" onClose={() => setOpenCorner(null)} title="Contours">
             {gridAndContours?.grid && (
               <p className="text-[10px] text-muted-foreground tabular-nums -mt-1">
-                Range {gridAndContours.grid.minValue.toFixed(2)}"–{gridAndContours.grid.maxValue.toFixed(2)}"
+                Range {gridAndContours.grid.minValue.toFixed(2)}"–
+                {gridAndContours.grid.maxValue.toFixed(2)}"
               </p>
             )}
             <div>
@@ -429,7 +463,11 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                   step="0.05"
                   value={resolved.firstContour ?? ""}
                   placeholder="auto"
-                  onChange={(e) => update({ firstContour: e.target.value === "" ? null : parseFloat(e.target.value) })}
+                  onChange={(e) =>
+                    update({
+                      firstContour: e.target.value === "" ? null : parseFloat(e.target.value),
+                    })
+                  }
                   className="mt-1 h-9 text-xs"
                 />
               </div>
@@ -463,20 +501,36 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             <div>
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Line thickness</Label>
-                <span className="text-xs tabular-nums text-muted-foreground">{resolved.lineThickness.toFixed(1)}</span>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {resolved.lineThickness.toFixed(1)}
+                </span>
               </div>
-              <Slider min={0.5} max={4} step={0.1} value={[resolved.lineThickness]} onValueChange={(v) => update({ lineThickness: v[0] })} className="mt-2" />
+              <Slider
+                min={0.5}
+                max={4}
+                step={0.1}
+                value={[resolved.lineThickness]}
+                onValueChange={(v) => update({ lineThickness: v[0] })}
+                className="mt-2"
+              />
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs">Contours on</Label>
-              <Switch checked={resolved.showContours} onCheckedChange={(v) => update({ showContours: v })} />
+              <Switch
+                checked={resolved.showContours}
+                onCheckedChange={(v) => update({ showContours: v })}
+              />
             </div>
           </CornerPanel>
         )}
 
         {/* Palette popover — upper right */}
         {openCorner === "palette" && (
-          <CornerPanel pos="top-12 right-2 w-56" onClose={() => setOpenCorner(null)} title="Palette">
+          <CornerPanel
+            pos="top-12 right-2 w-56"
+            onClose={() => setOpenCorner(null)}
+            title="Palette"
+          >
             <div>
               <Label className="text-xs">Palette</Label>
               <select
@@ -492,28 +546,57 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs">Reverse</Label>
-              <Switch checked={resolved.reversePalette} onCheckedChange={(v) => update({ reversePalette: v })} />
+              <Switch
+                checked={resolved.reversePalette}
+                onCheckedChange={(v) => update({ reversePalette: v })}
+              />
             </div>
           </CornerPanel>
         )}
 
         {/* Labels & layers popover — lower right */}
         {openCorner === "labels" && (
-          <CornerPanel pos="bottom-14 right-3" onClose={() => setOpenCorner(null)} title="Labels & layers">
+          <CornerPanel
+            pos="bottom-14 right-3"
+            onClose={() => setOpenCorner(null)}
+            title="Labels & layers"
+          >
             <div className="grid grid-cols-2 gap-2">
-              <SwitchRow label="Labels" checked={resolved.showLabels} onChange={(v) => update({ showLabels: v })} />
+              <SwitchRow
+                label="Labels"
+                checked={resolved.showLabels}
+                onChange={(v) => update({ showLabels: v })}
+              />
               <NumberControl
                 label="Decimals"
                 value={resolved.decimalPlaces}
                 min={0}
                 max={3}
                 step={1}
-                onChange={(v) => update({ decimalPlaces: Math.max(0, Math.min(3, Math.round(v ?? 2))) })}
+                onChange={(v) =>
+                  update({ decimalPlaces: Math.max(0, Math.min(3, Math.round(v ?? 2))) })
+                }
               />
-              <SwitchRow label="Floor plan" checked={resolved.showPlan} onChange={(v) => update({ showPlan: v })} />
-              <SwitchRow label="Points" checked={resolved.showPoints} onChange={(v) => update({ showPoints: v, pointsOpacity: 1 })} />
-              <SwitchRow label="Legend" checked={resolved.showLegend} onChange={(v) => update({ showLegend: v })} />
-              <SwitchRow label="High / low" checked={resolved.showHighLow} onChange={(v) => update({ showHighLow: v })} />
+              <SwitchRow
+                label="Floor plan"
+                checked={resolved.showPlan}
+                onChange={(v) => update({ showPlan: v })}
+              />
+              <SwitchRow
+                label="Points"
+                checked={resolved.showPoints}
+                onChange={(v) => update({ showPoints: v, pointsOpacity: 1 })}
+              />
+              <SwitchRow
+                label="Legend"
+                checked={resolved.showLegend}
+                onChange={(v) => update({ showLegend: v })}
+              />
+              <SwitchRow
+                label="High / low"
+                checked={resolved.showHighLow}
+                onChange={(v) => update({ showHighLow: v })}
+              />
               <SwitchRow
                 label="Label bg"
                 checked={resolved.pointLabelBackground === "white"}
@@ -521,7 +604,9 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
               />
             </div>
             <details className="border-t pt-2">
-              <summary className="text-xs text-muted-foreground cursor-pointer select-none">Label style</summary>
+              <summary className="text-xs text-muted-foreground cursor-pointer select-none">
+                Label style
+              </summary>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <NumberControl
                   label="Font size"
@@ -529,13 +614,17 @@ export function TopoTab({ floor, points, onPointsChange, onFloorChange, settings
                   min={7}
                   max={28}
                   step={1}
-                  onChange={(v) => update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })}
+                  onChange={(v) =>
+                    update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })
+                  }
                 />
                 <div>
                   <Label className="text-xs">Weight</Label>
                   <select
                     value={resolved.pointLabelWeight}
-                    onChange={(e) => update({ pointLabelWeight: e.target.value as "normal" | "bold" })}
+                    onChange={(e) =>
+                      update({ pointLabelWeight: e.target.value as "normal" | "bold" })
+                    }
                     className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
                   >
                     <option value="normal">Normal</option>
@@ -596,8 +685,11 @@ function CornerIcon({
       aria-pressed={active}
       className={
         "absolute z-30 h-9 w-9 rounded-full backdrop-blur border shadow-sm flex items-center justify-center " +
-        pos + " " +
-        (active ? "bg-primary text-primary-foreground border-primary" : "bg-background/90 hover:bg-background")
+        pos +
+        " " +
+        (active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-background/90 hover:bg-background")
       }
     >
       {children}
@@ -658,13 +750,7 @@ function SwitchRow({
 
 // Free-form step input. Keeps local text state so partial input like "." or
 // "0." doesn't clobber the committed value mid-typing.
-function StepInput({
-  value,
-  onCommit,
-}: {
-  value: number;
-  onCommit: (v: number) => void;
-}) {
+function StepInput({ value, onCommit }: { value: number; onCommit: (v: number) => void }) {
   const [text, setText] = useState(String(value));
   const lastValueRef = useRef(value);
   // Sync external changes (e.g. Reset) into the text field
@@ -697,7 +783,6 @@ function StepInput({
     />
   );
 }
-
 
 function NumberControl({
   label,
@@ -732,7 +817,6 @@ function NumberControl({
     </div>
   );
 }
-
 
 // Exported so ExportTab can reuse the exact rendering pipeline.
 export function renderTopo(
@@ -787,7 +871,13 @@ export function renderTopoBase(
 
     // Contour polygons
     const cs = gridAndContours?.contours;
-    if (cs && g && resolved.showContours && resolved.mode !== "points-only" && resolved.mode !== "contour-cells") {
+    if (
+      cs &&
+      g &&
+      resolved.showContours &&
+      resolved.mode !== "points-only" &&
+      resolved.mode !== "contour-cells"
+    ) {
       ctx.save();
       ctx.translate(g.x0, g.y0);
       ctx.scale(g.step, g.step);
@@ -868,7 +958,6 @@ export function renderTopoTop(
   const weight = resolved.pointLabelWeight;
   const color = resolved.pointLabelColor;
 
-
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
     for (const p of points) {
@@ -894,8 +983,8 @@ export function renderTopoTop(
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const isLive = live && live.id === p.id;
-      const dx = isLive ? live!.dx : p.labelDx ?? DEFAULT_LABEL_DX;
-      const dy = isLive ? live!.dy : p.labelDy ?? DEFAULT_LABEL_DY;
+      const dx = isLive ? live!.dx : (p.labelDx ?? DEFAULT_LABEL_DX);
+      const dy = isLive ? live!.dy : (p.labelDy ?? DEFAULT_LABEL_DY);
       const tx = p.x + dx;
       const ty = p.y + dy;
       const tw = ctx.measureText(text).width;
@@ -945,17 +1034,25 @@ export function renderTopoTop(
 
   // Legend + High/Low pins
   if (g && resolved.mode !== "points-only") {
-    if (resolved.showLegend) drawLegend(ctx, resolved, g, gridAndContours?.contours ?? null, overlay?.legendSelected ?? false);
+    if (resolved.showLegend)
+      drawLegend(
+        ctx,
+        resolved,
+        g,
+        gridAndContours?.contours ?? null,
+        overlay?.legendSelected ?? false,
+      );
     if (resolved.showHighLow && points.length) {
-      let hi = points[0], lo = points[0];
+      let hi = points[0],
+        lo = points[0];
       for (const p of points) {
         if (p.value > hi.value) hi = p;
         if (p.value < lo.value) lo = p;
       }
-      const hDx = livePinHigh ? livePinHigh.dx : floor.highPinDx ?? 0;
-      const hDy = livePinHigh ? livePinHigh.dy : floor.highPinDy ?? 0;
-      const lDx = livePinLow ? livePinLow.dx : floor.lowPinDx ?? 0;
-      const lDy = livePinLow ? livePinLow.dy : floor.lowPinDy ?? 0;
+      const hDx = livePinHigh ? livePinHigh.dx : (floor.highPinDx ?? 0);
+      const hDy = livePinHigh ? livePinHigh.dy : (floor.highPinDy ?? 0);
+      const lDx = livePinLow ? livePinLow.dx : (floor.lowPinDx ?? 0);
+      const lDy = livePinLow ? livePinLow.dy : (floor.lowPinDy ?? 0);
       drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", highlightPin === "pin-high");
       drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", highlightPin === "pin-low");
     }
@@ -985,10 +1082,9 @@ function drawPin(
   ctx.fillText(letter, x, y + PIN_TOP_OFFSET + PIN_H / 2);
 }
 
-
-
 export function resolveSettings(settings: RenderSettings): RenderSettings {
-  const contourStep = settings.contourStep ?? settings.interval ?? defaultRenderSettings.contourStep;
+  const contourStep =
+    settings.contourStep ?? settings.interval ?? defaultRenderSettings.contourStep;
   return {
     ...defaultRenderSettings,
     ...settings,
@@ -1014,10 +1110,34 @@ function contourOptions(grid: Grid, settings: RenderSettings) {
 export function paletteColor(input: number, palette: RenderSettings["palette"], reverse: boolean) {
   const t = reverse ? 1 - input : input;
   const stops: Record<RenderSettings["palette"], Array<[number, number, number]>> = {
-    brown: [[92, 60, 35], [149, 99, 50], [201, 153, 83], [239, 213, 146], [116, 146, 118]],
-    rainbow: [[49, 75, 160], [46, 156, 202], [80, 177, 94], [245, 214, 79], [201, 65, 45]],
-    "blue-red": [[45, 86, 150], [120, 167, 204], [238, 222, 172], [206, 115, 73], [142, 45, 35]],
-    gray: [[42, 42, 42], [92, 92, 92], [145, 145, 145], [198, 198, 198], [238, 238, 238]],
+    brown: [
+      [92, 60, 35],
+      [149, 99, 50],
+      [201, 153, 83],
+      [239, 213, 146],
+      [116, 146, 118],
+    ],
+    rainbow: [
+      [49, 75, 160],
+      [46, 156, 202],
+      [80, 177, 94],
+      [245, 214, 79],
+      [201, 65, 45],
+    ],
+    "blue-red": [
+      [45, 86, 150],
+      [120, 167, 204],
+      [238, 222, 172],
+      [206, 115, 73],
+      [142, 45, 35],
+    ],
+    gray: [
+      [42, 42, 42],
+      [92, 92, 92],
+      [145, 145, 145],
+      [198, 198, 198],
+      [238, 238, 238],
+    ],
   };
   const s = stops[palette];
   const scaled = Math.max(0, Math.min(0.999, t)) * (s.length - 1);
@@ -1032,10 +1152,15 @@ export function paletteColor(input: number, palette: RenderSettings["palette"], 
 const LEGEND_BASE_W = 82;
 const LEGEND_BASE_H = 226;
 
-
 function legendBox(settings: RenderSettings) {
   const s = settings.legendScale ?? 1;
-  return { x: settings.legendX, y: settings.legendY, w: LEGEND_BASE_W * s, h: LEGEND_BASE_H * s, scale: s };
+  return {
+    x: settings.legendX,
+    y: settings.legendY,
+    w: LEGEND_BASE_W * s,
+    h: LEGEND_BASE_H * s,
+    scale: s,
+  };
 }
 
 function drawLegend(
@@ -1118,7 +1243,14 @@ function drawLegend(
   ctx.restore();
 }
 
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);

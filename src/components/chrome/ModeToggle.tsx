@@ -6,13 +6,7 @@ type Mode = "data" | "topo";
  * Vertical Data/Topo pill anchored to the lower-left corner on every screen.
  * The only wider control in the corner set — everything else is a round icon.
  */
-export function ModeToggle({
-  mode,
-  onChange,
-}: {
-  mode: Mode;
-  onChange: (m: Mode) => void;
-}) {
+export function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   return (
     <div
       className="fixed z-10 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-[calc(env(safe-area-inset-left)+0.75rem)] flex flex-row items-center rounded-full bg-background/90 backdrop-blur border shadow-lg p-1 gap-1"

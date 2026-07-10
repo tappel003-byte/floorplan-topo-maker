@@ -64,10 +64,26 @@ export function NumericKeypad({
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       const k = e.key;
-      if (k >= "0" && k <= "9") { e.preventDefault(); push(k); return; }
-      if (k === "." || k === ",") { e.preventDefault(); push("."); return; }
-      if (k === "Backspace") { e.preventDefault(); backspace(); return; }
-      if (k === "-") { e.preventDefault(); toggleSign(); return; }
+      if (k >= "0" && k <= "9") {
+        e.preventDefault();
+        push(k);
+        return;
+      }
+      if (k === "." || k === ",") {
+        e.preventDefault();
+        push(".");
+        return;
+      }
+      if (k === "Backspace") {
+        e.preventDefault();
+        backspace();
+        return;
+      }
+      if (k === "-") {
+        e.preventDefault();
+        toggleSign();
+        return;
+      }
       if (k === "Enter" || k === "=") {
         e.preventDefault();
         const n = parseFloat(text);
@@ -75,9 +91,16 @@ export function NumericKeypad({
         else if (repeatValue != null && isFinite(repeatValue)) onSubmit(repeatValue);
         return;
       }
-      if (k === "Escape") { e.preventDefault(); onClose(); return; }
+      if (k === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
       if (k === "r" || k === "R") {
-        if (repeatValue != null && isFinite(repeatValue)) { e.preventDefault(); onSubmit(repeatValue); }
+        if (repeatValue != null && isFinite(repeatValue)) {
+          e.preventDefault();
+          onSubmit(repeatValue);
+        }
       }
     }
     window.addEventListener("keydown", onKey);
@@ -133,7 +156,9 @@ export function NumericKeypad({
         )}
         <div className="grid grid-cols-3 gap-2">
           {keys.map((k) => (
-            <KeyBtn key={k} onClick={() => push(k)}>{k}</KeyBtn>
+            <KeyBtn key={k} onClick={() => push(k)}>
+              {k}
+            </KeyBtn>
           ))}
           <KeyBtn onClick={toggleSign}>±</KeyBtn>
           <KeyBtn onClick={() => push("0")}>0</KeyBtn>
