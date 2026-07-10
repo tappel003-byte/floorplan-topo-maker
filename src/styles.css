@@ -115,20 +115,8 @@
     border-color: var(--color-border);
   }
 
-  html,
-  body {
-    height: 100dvh;
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
-
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-  }
-
-  #root {
-    height: 100dvh;
-    overflow: hidden;
   }
 }
