@@ -111,6 +111,14 @@ export function ExportTab({ project, floor, points, settings }: Props) {
         esc(p.notes ?? ""),
       ].join(","));
     }
+    if (notes.length > 0) {
+      const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+      rows.push("");
+      rows.push(["type", "x", "y", "note"].join(","));
+      for (const n of notes) {
+        rows.push(["note", n.x.toFixed(2), n.y.toFixed(2), esc(n.text ?? "")].join(","));
+      }
+    }
     const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
