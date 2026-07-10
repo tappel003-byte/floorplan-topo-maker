@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Floor, ProjectMeta, SurveyPoint, Transition } from "./types";
+import type { Floor, ProjectMeta, SurveyPoint } from "./types";
 
 interface FloorSurveyDB extends DBSchema {
   projects: {
@@ -17,11 +17,6 @@ interface FloorSurveyDB extends DBSchema {
     value: SurveyPoint;
     indexes: { floorId: string };
   };
-  transitions: {
-    key: string;
-    value: Transition;
-    indexes: { floorId: string };
-  };
 }
 
 let dbPromise: Promise<IDBPDatabase<FloorSurveyDB>> | null = null;
@@ -31,8 +26,8 @@ function getDB() {
     throw new Error("IndexedDB not available");
   }
   if (!dbPromise) {
-    dbPromise = openDB<FloorSurveyDB>("floor-survey", 2, {
-      upgrade(db, oldVersion) {
+    dbPromise = openDB<FloorSurveyDB>("floor-survey", 3, {
+      upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const p = db.createObjectStore("projects", { keyPath: "id" });
           p.createIndex("updatedAt", "updatedAt");
@@ -41,9 +36,25 @@ function getDB() {
           const pt = db.createObjectStore("points", { keyPath: "id" });
           pt.createIndex("floorId", "floorId");
         }
-        if (oldVersion < 2) {
-          const t = db.createObjectStore("transitions", { keyPath: "id" });
-          t.createIndex("floorId", "floorId");
+        // v2 introduced a "transitions" store; v3 removes it and strips
+        // any transition-related fields left on existing points.
+        if (oldVersion < 3) {
+          if (db.objectStoreNames.contains("transitions" as never)) {
+            db.deleteObjectStore("transitions" as never);
+          }
+          // Scrub legacy transition fields from stored points.
+          const store = tx.objectStore("points");
+          store.openCursor().then(async function walk(cursor): Promise<void> {
+            if (!cursor) return;
+            const v = cursor.value as SurveyPoint & Record<string, unknown>;
+            let dirty = false;
+            for (const k of ["raw", "offset", "transitionId", "isTransitionAnchor"]) {
+              if (k in v) { delete v[k]; dirty = true; }
+            }
+            if (dirty) await cursor.update(v);
+            const next = await cursor.continue();
+            return walk(next);
+          });
         }
       },
     });
@@ -90,8 +101,6 @@ export async function deleteFloor(id: string) {
   const db = await getDB();
   const points = await listPoints(id);
   for (const p of points) await db.delete("points", p.id);
-  const transitions = await listTransitions(id);
-  for (const t of transitions) await db.delete("transitions", t.id);
   await db.delete("floors", id);
 }
 
@@ -108,21 +117,6 @@ export async function savePoint(p: SurveyPoint) {
 export async function deletePoint(id: string) {
   const db = await getDB();
   await db.delete("points", id);
-}
-
-// Transitions
-export async function listTransitions(floorId: string): Promise<Transition[]> {
-  const db = await getDB();
-  const all = await db.getAllFromIndex("transitions", "floorId", floorId);
-  return all.sort((a, b) => a.createdAt - b.createdAt);
-}
-export async function saveTransition(t: Transition) {
-  const db = await getDB();
-  await db.put("transitions", t);
-}
-export async function deleteTransition(id: string) {
-  const db = await getDB();
-  await db.delete("transitions", id);
 }
 
 export function uid() {
