@@ -11,9 +11,6 @@ interface Props {
   subtitle?: string;
   onSubmit: (value: number) => void;
   onClose: () => void;
-  /** Optional secondary action rendered as a full-width button under the display,
-   * e.g. "Add transition" or "Save as adjacent reading". */
-  secondaryAction?: { label: string; onClick: (value: number) => void; disabled?: boolean };
   /** When provided, shows a trash button in the header. Used for editing existing points. */
   onDelete?: () => void;
 }
