@@ -10,7 +10,7 @@ export function NoteTool() {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new CustomEvent("app:add-note"))}
-      className="fixed z-40 top-11 right-2 h-8 w-8 rounded-full bg-background/90 backdrop-blur border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent"
+      className="fixed z-[65] top-[calc(env(safe-area-inset-top)+2.75rem)] right-[calc(env(safe-area-inset-right)+0.5rem)] h-8 w-8 rounded-full bg-background/90 backdrop-blur border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent"
       aria-label="Add note"
     >
       <StickyNote className="h-4 w-4" />

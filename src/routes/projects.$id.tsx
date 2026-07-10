@@ -144,15 +144,7 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div
-      className="flex flex-col h-[100dvh] relative bg-background"
-      style={{
-        paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-        paddingLeft: "env(safe-area-inset-left)",
-        paddingRight: "env(safe-area-inset-right)",
-      }}
-    >
+    <div className="h-[100dvh] relative bg-background overflow-hidden">
       <AppTopBar
         projectName={project.name}
         floorName={activeFloor.name}
@@ -179,7 +171,7 @@ function ProjectWorkspace() {
         </div>
       )}
 
-      <main className="flex-1 min-h-0 overflow-hidden relative">
+      <main className="absolute left-0 right-0 bottom-0 overflow-hidden" style={{ top: "calc(env(safe-area-inset-top) + 2.25rem)" }}>
         {mode === "setup" && (
           <SetupTab
             project={project}

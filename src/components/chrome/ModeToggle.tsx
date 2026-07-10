@@ -15,7 +15,7 @@ export function ModeToggle({
 }) {
   return (
     <div
-      className="fixed z-40 bottom-3 left-3 flex flex-col rounded-full bg-background/90 backdrop-blur border shadow-lg p-1 gap-1"
+      className="fixed z-[65] bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-[calc(env(safe-area-inset-left)+0.75rem)] flex flex-col rounded-full bg-background/90 backdrop-blur border shadow-lg p-1 gap-1"
       role="tablist"
       aria-label="Mode"
     >

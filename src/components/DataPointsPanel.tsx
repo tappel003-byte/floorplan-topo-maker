@@ -99,7 +99,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
     return (
       <button
         onClick={() => setState((s) => ({ ...s, hidden: false }))}
-        className="fixed top-11 left-2 z-40 rounded-full bg-background/90 backdrop-blur border shadow-md h-7 px-2 flex items-center gap-1 text-[11px] font-medium"
+        className="fixed top-[calc(env(safe-area-inset-top)+2.75rem)] left-[calc(env(safe-area-inset-left)+0.5rem)] z-[65] rounded-full bg-background/90 backdrop-blur border shadow-md h-7 px-2 flex items-center gap-1 text-[11px] font-medium"
         aria-label="Show data points"
       >
         <Database className="h-3 w-3" />
@@ -112,7 +112,7 @@ export function DataPointsPanel({ projectId, points, selectedIds, onSelect, onPo
   return (
     <>
     <div
-      className="fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col"
+      className="fixed z-[65] bg-background border rounded-lg shadow-xl flex flex-col"
       style={{
         left: state.x,
         top: state.y,
