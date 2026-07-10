@@ -204,25 +204,3 @@ function KeyBtn({
     </button>
   );
 }
-
-function KeyBtn({
-  children,
-  onClick,
-  className = "",
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={
-        "h-16 rounded-lg bg-secondary hover:bg-secondary/80 text-2xl font-semibold active:scale-95 transition-transform " +
-        className
-      }
-    >
-      {children}
-    </button>
-  );
-}
