@@ -515,8 +515,9 @@ export function FieldTab({
             const sel = selectedIds.has(p.id);
             const color = p.isBasePoint ? "#16a34a" : pointColor;
             // White halo so dark dots stay visible over black walls/shadows
+            const haloR = pointSize + Math.max(2, pointSize * 0.9);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, pointSize + 1.5, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, haloR, 0, Math.PI * 2);
             ctx.fillStyle = "#ffffff";
             ctx.fill();
             ctx.beginPath();
