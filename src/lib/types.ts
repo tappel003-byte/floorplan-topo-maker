@@ -49,6 +49,9 @@ export interface NotePin {
   x: number; // image coords
   y: number;
   text: string;
+}
+
+
 
 
 export interface SurveyPoint {
