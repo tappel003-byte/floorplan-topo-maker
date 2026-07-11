@@ -34,7 +34,7 @@ function pointInPolygon(px: number, py: number, poly: Array<{ x: number; y: numb
 export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
-  targetCols = 190,
+  targetCols = 320,
 ): Grid | null {
   if (points.length < 3 || boundary.length < 3) return null;
 
@@ -56,8 +56,8 @@ export function buildGrid(
   let minV = Infinity;
   let maxV = -Infinity;
 
-  // Seed the surface with inverse-distance weighting. That gives the iterative
-  // relaxation a stable starting surface instead of a faceted triangulation.
+  // Seed the surface with inverse-distance weighting so relaxation starts from
+  // a smooth surface rather than a triangulation.
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const px = minX + c * step;
@@ -69,77 +69,33 @@ export function buildGrid(
       }
       let numerator = 0;
       let denominator = 0;
-      let exact: number | null = null;
       for (const p of points) {
         const d2 = (p.x - px) ** 2 + (p.y - py) ** 2;
-        if (d2 < step * step * 0.08) {
-          exact = p.value;
-          break;
-        }
         const weight = 1 / Math.max(d2, 1e-6);
         numerator += p.value * weight;
         denominator += weight;
       }
-      const v = exact ?? numerator / denominator;
-      values[idx] = v;
+      values[idx] = numerator / denominator;
       mask[idx] = 1;
-      if (exact !== null) fixed[idx] = 1;
     }
   }
 
-  // Anchor a small influence disk around every survey point. A single fixed
-  // cell gets flattened by relaxation; a disk sized to a fraction of the
-  // nearest-neighbor spacing preserves peaks and troughs so outlier readings
-  // (a "High" spot, a low spot) actually bend the surface.
-  let nnSum = 0;
-  let nnCount = 0;
-  for (let i = 0; i < points.length; i++) {
-    let best = Infinity;
-    for (let j = 0; j < points.length; j++) {
-      if (i === j) continue;
-      const d2 = (points[i].x - points[j].x) ** 2 + (points[i].y - points[j].y) ** 2;
-      if (d2 < best) best = d2;
-    }
-    if (isFinite(best)) {
-      nnSum += Math.sqrt(best);
-      nnCount++;
-    }
-  }
-  const avgNN = nnCount ? nnSum / nnCount : step * 4;
-  // Anchor radius: ~35% of average nearest-neighbor distance, clamped so it
-  // never collapses to a single cell and never dominates the plan.
-  const anchorRadius = Math.max(step * 1.5, Math.min(avgNN * 0.35, step * 8));
-  const anchorRadius2 = anchorRadius * anchorRadius;
-  const cellSpan = Math.ceil(anchorRadius / step);
+  // Anchor each survey point to its single nearest grid cell. A single fixed
+  // cell (rather than a disk) preserves the peak/trough exactly without
+  // creating a plateau that swallows the gradient between neighboring points.
+  // The high grid resolution + many relaxation iterations propagates the value
+  // outward smoothly, giving room for the expected number of contours.
   for (const p of points) {
-    const cc = Math.round((p.x - minX) / step);
-    const rc = Math.round((p.y - minY) / step);
-    for (let dr = -cellSpan; dr <= cellSpan; dr++) {
-      for (let dc = -cellSpan; dc <= cellSpan; dc++) {
-        const c = cc + dc;
-        const r = rc + dr;
-        if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
-        const idx = r * cols + c;
-        if (!mask[idx]) continue;
-        const px = minX + c * step;
-        const py = minY + r * step;
-        const d2 = (p.x - px) ** 2 + (p.y - py) ** 2;
-        if (d2 > anchorRadius2) continue;
-        // Blend toward the point's value with a falloff, then fix the cell.
-        // Cells closer than half the radius are pinned exactly to the reading.
-        const t = Math.min(1, Math.sqrt(d2) / (anchorRadius * 0.5));
-        const w = 1 - t; // 1 at center, 0 at half-radius
-        if (w >= 1) {
-          values[idx] = p.value;
-          fixed[idx] = 1;
-        } else if (!fixed[idx]) {
-          values[idx] = values[idx] * (1 - w) + p.value * w;
-        }
-      }
+    const cc = Math.max(0, Math.min(cols - 1, Math.round((p.x - minX) / step)));
+    const rc = Math.max(0, Math.min(rows - 1, Math.round((p.y - minY) / step)));
+    const idx = rc * cols + cc;
+    if (mask[idx]) {
+      values[idx] = p.value;
+      fixed[idx] = 1;
     }
   }
 
-  const relaxed = relaxMinimumCurvature(values, mask, fixed, cols, rows, 220);
+  const relaxed = relaxMinimumCurvature(values, mask, fixed, cols, rows, 600);
 
   for (let i = 0; i < relaxed.length; i++) {
     if (!mask[i]) continue;
