@@ -1,8 +1,9 @@
 // Topo interpolation and contouring.
-// Smooth IDW surface (Shepard's method) so contour lines are curved, not
-// triangulated. At each measured point the surface collapses to the exact
-// reading, so peaks/troughs stay sharp enough to produce the expected number
-// of intermediate contours between neighboring readings.
+// Thin-plate spline (TPS) surface — the minimum-curvature interpolant that
+// passes exactly through every measured reading. Unlike IDW, TPS does NOT
+// create bullseye rings around each data point: the gradient between two
+// neighboring points is monotonic, so between a 6.0 and a 6.2 you get one
+// clean 6.0 contour, not concentric bumps.
 
 import { contours } from "d3-contour";
 import type { SurveyPoint } from "./types";
@@ -32,6 +33,108 @@ function pointInPolygon(px: number, py: number, poly: Array<{ x: number; y: numb
   return inside;
 }
 
+// -------- Thin-plate spline --------
+// Basis: φ(r) = r² · ln(r).  Surface: f(x,y) = a0 + a1·x + a2·y + Σ wi·φ(‖p−pi‖).
+// With constraints Σwi = 0, Σwi·xi = 0, Σwi·yi = 0 and f(pi) = zi we get an
+// (N+3)×(N+3) symmetric linear system.
+
+interface TpsModel {
+  points: SurveyPoint[];
+  w: number[]; // length N
+  a: [number, number, number]; // a0, a1·x, a2·y
+}
+
+function tpsKernel(r2: number) {
+  if (r2 <= 1e-12) return 0;
+  return 0.5 * r2 * Math.log(r2); // r²·ln(r) = (r²/2)·ln(r²)
+}
+
+// Gaussian elimination with partial pivoting. n is small (# survey points + 3).
+function solveLinearSystem(A: number[][], b: number[]): number[] | null {
+  const n = b.length;
+  const M: number[][] = A.map((row, i) => [...row, b[i]]);
+  for (let i = 0; i < n; i++) {
+    let pivot = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(M[k][i]) > Math.abs(M[pivot][i])) pivot = k;
+    }
+    if (Math.abs(M[pivot][i]) < 1e-12) return null;
+    if (pivot !== i) [M[i], M[pivot]] = [M[pivot], M[i]];
+    for (let k = i + 1; k < n; k++) {
+      const f = M[k][i] / M[i][i];
+      for (let j = i; j <= n; j++) M[k][j] -= f * M[i][j];
+    }
+  }
+  const x = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    let s = M[i][n];
+    for (let j = i + 1; j < n; j++) s -= M[i][j] * x[j];
+    x[i] = s / M[i][i];
+  }
+  return x;
+}
+
+function fitTps(points: SurveyPoint[]): TpsModel | null {
+  const n = points.length;
+  if (n < 3) return null;
+  const size = n + 3;
+  const A: number[][] = Array.from({ length: size }, () => new Array(size).fill(0));
+  const b: number[] = new Array(size).fill(0);
+
+  // Small regularization (λ) on the diagonal of the K block — keeps the
+  // system well-conditioned when points are nearly collinear without
+  // meaningfully pulling the surface off the readings.
+  const lambda = 1e-8;
+
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const dx = points[i].x - points[j].x;
+      const dy = points[i].y - points[j].y;
+      A[i][j] = tpsKernel(dx * dx + dy * dy);
+    }
+    A[i][i] += lambda;
+    A[i][n] = 1;
+    A[i][n + 1] = points[i].x;
+    A[i][n + 2] = points[i].y;
+    A[n][i] = 1;
+    A[n + 1][i] = points[i].x;
+    A[n + 2][i] = points[i].y;
+    b[i] = points[i].value;
+  }
+
+  const sol = solveLinearSystem(A, b);
+  if (!sol) return null;
+  return {
+    points,
+    w: sol.slice(0, n),
+    a: [sol[n], sol[n + 1], sol[n + 2]],
+  };
+}
+
+function evalTps(model: TpsModel, x: number, y: number): number {
+  let v = model.a[0] + model.a[1] * x + model.a[2] * y;
+  for (let i = 0; i < model.points.length; i++) {
+    const dx = x - model.points[i].x;
+    const dy = y - model.points[i].y;
+    v += model.w[i] * tpsKernel(dx * dx + dy * dy);
+  }
+  return v;
+}
+
+// IDW fallback for degenerate cases (≤2 points, or singular TPS system).
+function interpolateIdw(x: number, y: number, points: SurveyPoint[], power = 2) {
+  let num = 0;
+  let den = 0;
+  for (const p of points) {
+    const d2 = (p.x - x) ** 2 + (p.y - y) ** 2;
+    if (d2 < 1e-6) return p.value;
+    const w = 1 / Math.pow(d2, power / 2);
+    num += p.value * w;
+    den += w;
+  }
+  return num / den;
+}
+
 export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
@@ -56,8 +159,8 @@ export function buildGrid(
   const minV = Math.min(...points.map((p) => p.value));
   const maxV = Math.max(...points.map((p) => p.value));
 
-  // Shepard IDW with power 2 → smooth curved contours. At a measured point
-  // d→0 collapses to that exact value so peaks/troughs remain sharp.
+  const tps = fitTps(points);
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const px = minX + c * step;
@@ -67,7 +170,7 @@ export function buildGrid(
         values[idx] = NaN;
         continue;
       }
-      values[idx] = interpolateIdw(px, py, points, 2);
+      values[idx] = tps ? evalTps(tps, px, py) : interpolateIdw(px, py, points, 2);
       mask[idx] = 1;
     }
   }
@@ -83,19 +186,6 @@ export function buildGrid(
     y0: minY,
     step,
   };
-}
-
-function interpolateIdw(x: number, y: number, points: SurveyPoint[], power = 2) {
-  let numerator = 0;
-  let denominator = 0;
-  for (const p of points) {
-    const d2 = (p.x - x) ** 2 + (p.y - y) ** 2;
-    if (d2 < 1e-6) return p.value;
-    const weight = 1 / Math.pow(d2, power / 2);
-    numerator += p.value * weight;
-    denominator += weight;
-  }
-  return numerator / denominator;
 }
 
 export interface ContourOptions {
