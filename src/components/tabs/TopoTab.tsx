@@ -260,7 +260,7 @@ export function TopoTab({
       )}
       {openCorner !== "palette" && (
         <CornerIcon
-          pos="top-2 right-2 landscape-short:top-auto landscape-short:right-auto landscape-short:left-[calc(env(safe-area-inset-left)+8rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)]"
+          pos="top-2 right-2 landscape-short:top-auto landscape-short:right-auto landscape-short:left-1/2 landscape-short:translate-x-[calc(1.5rem-50%)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)]"
           active={false}
           onClick={() => setOpenCorner("palette")}
           label="Palette"
