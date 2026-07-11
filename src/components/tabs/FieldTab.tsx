@@ -124,6 +124,13 @@ export function FieldTab({
     onFloorChange?.(nextFloor);
   }
 
+  async function persistTransitions(next: Transition[]) {
+    const nextFloor: Floor = { ...floor, transitions: next };
+    await saveFloor(nextFloor);
+    onFloorChange?.(nextFloor);
+  }
+
+
   void dragging;
 
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
@@ -191,6 +198,8 @@ export function FieldTab({
       isBasePoint: isBP,
       label: isBP ? "BP1" : undefined,
       createdAt: Date.now(),
+      // Tag with active transition (BP never gets tagged)
+      transitionId: !isBP && activeTransitionId ? activeTransitionId : undefined,
     };
     await savePoint(point);
     const nextPts = [...points, point];
@@ -199,6 +208,89 @@ export function FieldTab({
     setPending(null);
     setBpPromptOpen(false);
   }
+
+  /** Called from AddTransitionSheet. Creates the transition record and plots the diamond anchor at the pending location. */
+  async function handleAddTransition(data: {
+    surfaceA: string;
+    surfaceB: string;
+    readingA: number;
+    readingB: number;
+  }) {
+    if (!pending) return;
+    const isBP = isBasePointCapture;
+    const t: Transition = {
+      id: uid(),
+      x: pending.x,
+      y: pending.y,
+      surfaceA: data.surfaceA,
+      surfaceB: data.surfaceB,
+      readingA: data.readingA,
+      readingB: data.readingB,
+      createdAt: Date.now(),
+    };
+    // Anchor point uses readingA (reference-side value).
+    const anchor: SurveyPoint = {
+      id: uid(),
+      floorId: floor.id,
+      index: nextIndex,
+      x: pending.x,
+      y: pending.y,
+      value: data.readingA,
+      isBasePoint: isBP,
+      label: isBP ? "BP1" : undefined,
+      createdAt: Date.now(),
+      transitionId: t.id,
+      isTransitionAnchor: true,
+    };
+    await persistTransitions([...transitions, t]);
+    await savePoint(anchor);
+    const nextPts = [...points, anchor];
+    onPointsChange(nextPts);
+    commitSnap(nextPts);
+    setPending(null);
+    setBpPromptOpen(false);
+    setAddingTransition(false);
+    // Subsequent points on side B will be tagged with this transition.
+    setActiveTransitionId(t.id);
+  }
+
+  /** Save edits from TransitionDetailDialog. Anchor's stored value follows readingA. */
+  async function handleSaveTransition(updated: Transition) {
+    const nextTs = transitions.map((t) => (t.id === updated.id ? updated : t));
+    await persistTransitions(nextTs);
+    // Keep the anchor's value in sync with readingA.
+    const anchor = points.find((p) => p.transitionId === updated.id && p.isTransitionAnchor);
+    if (anchor && anchor.value !== updated.readingA) {
+      const nextAnchor = { ...anchor, value: updated.readingA };
+      await savePoint(nextAnchor);
+      const nextPts = points.map((p) => (p.id === nextAnchor.id ? nextAnchor : p));
+      onPointsChange(nextPts);
+      commitSnap(nextPts);
+    }
+    setViewingTransitionId(null);
+  }
+
+  /** Delete a transition. Removes the anchor point and detaches all downstream refs (raw values preserved). */
+  async function handleDeleteTransition(id: string) {
+    const nextTs = transitions.filter((t) => t.id !== id);
+    await persistTransitions(nextTs);
+    const anchorIds = points.filter((p) => p.transitionId === id && p.isTransitionAnchor).map((p) => p.id);
+    for (const aid of anchorIds) await deletePoint(aid);
+    // Detach downstream (strip tag; keep raw value).
+    const kept = points.filter((p) => !anchorIds.includes(p.id));
+    const detached = kept.map((p) =>
+      p.transitionId === id ? { ...p, transitionId: undefined } : p,
+    );
+    for (const p of detached) {
+      if (p.transitionId === undefined) await savePoint(p);
+    }
+    const reindexed = await reindexFloorPoints(floor.id);
+    onPointsChange(reindexed);
+    commitSnap(reindexed);
+    if (activeTransitionId === id) setActiveTransitionId(null);
+    setViewingTransitionId(null);
+  }
+
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
     const s = scaleRef.current || 1;
