@@ -220,6 +220,7 @@ function ProjectWorkspace() {
             settings={settings}
             onSettingsChange={setSettings}
             selectedIds={selectedIds}
+            pointSize={pointSize}
           />
         )}
         {mode === "export" && (
