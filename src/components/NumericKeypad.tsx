@@ -132,7 +132,7 @@ export function NumericKeypad({
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
 
   const hasRepeat = repeatValue != null && isFinite(repeatValue);
-  const showShortcutRow = !activeTransition && (hasRepeat || !!onAddTransition);
+  const showShortcutRow = hasRepeat || !!onAddTransition;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30" onClick={onClose}>
@@ -231,7 +231,8 @@ export function NumericKeypad({
                     onClick={onAddTransition}
                     className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
                   >
-                    <ArrowLeftRight className="h-4 w-4" /> Transition
+                    <ArrowLeftRight className="h-4 w-4" />
+                    {activeTransition ? "New transition" : "Transition"}
                   </button>
                 )}
                 {hasRepeat && (
