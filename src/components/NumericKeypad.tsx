@@ -126,45 +126,30 @@ export function NumericKeypad({
 
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
 
+  const hasRepeat = repeatValue != null && isFinite(repeatValue);
+  const showShortcutRow = !activeTransition && (hasRepeat || !!onAddTransition);
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30" onClick={onClose}>
       <div
         className="bg-background rounded-t-2xl shadow-2xl p-4 pb-6 landscape-short:p-3 landscape-short:pb-3 max-w-md landscape-short:max-w-2xl w-full mx-auto max-h-[95dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-2 gap-2">
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">{title}</div>
-            {subtitle && <div className="text-xs text-muted-foreground mt-0.5 landscape-short:hidden">{subtitle}</div>}
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {onAddTransition && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onAddTransition}
-                aria-label="Add transition"
-                className="text-primary hover:bg-primary/10 gap-1.5 px-2"
-              >
-                <ArrowLeftRight className="h-4 w-4" />
-                <span className="text-xs font-medium">Transition</span>
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onDelete}
-                aria-label="Delete point"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
-              <X className="h-5 w-5" />
+        <div className="flex items-center justify-end gap-1 mb-2">
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              aria-label="Delete point"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-5 w-5" />
             </Button>
-          </div>
+          )}
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
+            <X className="h-5 w-5" />
+          </Button>
         </div>
         {activeTransition && (
           <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs">
@@ -194,17 +179,29 @@ export function NumericKeypad({
             <div className="mb-3 landscape-short:mb-2 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
               {text || (
                 <span className="text-muted-foreground/60">
-                  {repeatValue != null ? repeatValue.toFixed(2) : "0.0"}
+                  {hasRepeat ? repeatValue!.toFixed(2) : "0.0"}
                 </span>
               )}
             </div>
-            {repeatValue != null && (
-              <button
-                onClick={repeatLast}
-                className="mb-3 landscape-short:mb-0 w-full h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99]"
-              >
-                <Repeat2 className="h-4 w-4" /> Repeat last ({repeatValue.toFixed(2)})
-              </button>
+            {showShortcutRow && (
+              <div className="mb-3 landscape-short:mb-0 flex gap-2">
+                {hasRepeat && (
+                  <button
+                    onClick={repeatLast}
+                    className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
+                  >
+                    <Repeat2 className="h-4 w-4" /> Repeat ({repeatValue!.toFixed(2)})
+                  </button>
+                )}
+                {onAddTransition && (
+                  <button
+                    onClick={onAddTransition}
+                    className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" /> Transition
+                  </button>
+                )}
+              </div>
             )}
           </div>
           <div className="grid grid-cols-3 gap-2 landscape-short:gap-1.5">
