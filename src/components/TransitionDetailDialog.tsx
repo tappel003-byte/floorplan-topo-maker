@@ -50,17 +50,23 @@ export function TransitionDetailDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
+      className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] w-[min(24rem,calc(100vw-1rem))] pointer-events-none"
     >
       <div
-        className="bg-background rounded-xl shadow-2xl w-full max-w-sm p-4"
+        className="bg-background rounded-xl shadow-2xl border p-4 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground">
               Transition
+            </div>
+            <div className="text-sm font-semibold">Anchor reference point</div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
             </div>
             <div className="text-sm font-semibold">Anchor reference point</div>
           </div>
