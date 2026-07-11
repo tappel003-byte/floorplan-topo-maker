@@ -74,6 +74,15 @@ export function DataPointsPanel({
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
   const [detailId, setDetailId] = useState<string | null>(null);
   const [colorOpen, setColorOpen] = useState(false);
+  // Track landscape-short reactively so rotation repositions the panel
+  // without a remount. Same media query the chip's Tailwind variant uses.
+  const [isLandscapeShort, setIsLandscapeShort] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches
+      : false,
+  );
+  const portraitPositionRef = useRef<{ x: number; y: number }>({ x: state.x, y: state.y });
+  const wasLandscapeShortRef = useRef(isLandscapeShort);
 
   const sortMode = state.sortMode ?? "index";
   const sortedPoints = useMemo(() => {
@@ -87,8 +96,29 @@ export function DataPointsPanel({
   const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
-    setState(loadState(projectId));
+    const next = loadState(projectId);
+    portraitPositionRef.current = { x: next.x, y: next.y };
+    setState(next);
   }, [projectId]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
+    const on = () => setIsLandscapeShort(mq.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+
+  useEffect(() => {
+    if (!isLandscapeShort) {
+      if (wasLandscapeShortRef.current) {
+        const { x, y } = portraitPositionRef.current;
+        setState((s) => ({ ...s, x, y }));
+      } else {
+        portraitPositionRef.current = { x: state.x, y: state.y };
+      }
+    }
+    wasLandscapeShortRef.current = isLandscapeShort;
+  }, [isLandscapeShort, state.x, state.y]);
 
   useEffect(() => {
     try {
@@ -106,6 +136,7 @@ export function DataPointsPanel({
   }, [selectedIds]);
 
   function onHeaderDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (isLandscapeShort) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     dragRef.current = { ox: e.clientX, oy: e.clientY, sx: state.x, sy: state.y };
   }
@@ -137,20 +168,6 @@ export function DataPointsPanel({
       </button>
     );
   }
-
-  // Track landscape-short reactively so rotation repositions the panel
-  // without a remount. Same media query the chip's Tailwind variant uses.
-  const [isLandscapeShort, setIsLandscapeShort] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches
-      : false,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
-    const on = () => setIsLandscapeShort(mq.matches);
-    mq.addEventListener?.("change", on);
-    return () => mq.removeEventListener?.("change", on);
-  }, []);
 
   const width = 150;
   // In landscape-short, anchor to bottom-right so the panel opens directly
