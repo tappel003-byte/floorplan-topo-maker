@@ -4,6 +4,7 @@ import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
 import { TransitionPickerSheet } from "../TransitionPickerSheet";
 import { TransitionDetailDialog } from "../TransitionDetailDialog";
+import { ProfileDiagram } from "../ProfileDiagram";
 
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
