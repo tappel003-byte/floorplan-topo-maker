@@ -222,6 +222,7 @@ function ProjectWorkspace() {
             settings={settings}
             onSettingsChange={setSettings}
             pointSize={pointSize}
+            selectedIds={topoHighlightIds}
           />
         )}
         {mode === "export" && (
@@ -230,10 +231,23 @@ function ProjectWorkspace() {
       </main>
 
       {(mode === "field" || mode === "topo") && (
-        <ModeToggle
-          mode={mode === "topo" ? "topo" : "data"}
-          onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
-        />
+        <>
+          <ModeToggle
+            mode={mode === "topo" ? "topo" : "data"}
+            onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
+          />
+          <StatsChip
+            points={points}
+            onHighlight={(p) => {
+              if (mode === "field") {
+                setSelectedIds(new Set([p.id]));
+                setFocusRequest({ x: p.x, y: p.y, nonce: Date.now() });
+              } else {
+                setTopoHighlightIds(new Set([p.id]));
+              }
+            }}
+          />
+        </>
       )}
       {mode === "field" && (
         <DataPointsPanel
