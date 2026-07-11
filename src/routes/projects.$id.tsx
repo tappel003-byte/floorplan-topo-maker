@@ -222,7 +222,7 @@ function ProjectWorkspace() {
         {mode === "topo" && (
           <TopoTab
             floor={activeFloor}
-            points={points}
+            points={correctedPoints}
             onPointsChange={setPoints}
             onFloorChange={(f) => setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)))}
             settings={settings}
@@ -232,7 +232,7 @@ function ProjectWorkspace() {
           />
         )}
         {mode === "export" && (
-          <ExportTab project={project} floor={activeFloor} points={points} settings={settings} />
+          <ExportTab project={project} floor={activeFloor} points={correctedPoints} settings={settings} />
         )}
       </main>
 
