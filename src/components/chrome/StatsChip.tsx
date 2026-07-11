@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import type { SurveyPoint } from "@/lib/types";
 
 interface Props {
@@ -9,8 +9,10 @@ interface Props {
 }
 
 /**
- * Draggable floating pill tracking High / Low / Delta of current floor points.
- * Position persists in localStorage. Tapping High or Low highlights that point.
+ * Floating pill: High / Low / Delta.
+ * - Drag anywhere on the chip to move it (5px threshold).
+ * - Quick tap on High/Low = highlight that point.
+ * - Position persists per storageKey and clamps to viewport on resize/rotate.
  */
 export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }: Props) {
   const stats = useMemo(() => {
@@ -24,6 +26,7 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     return { hi, lo, delta: hi.value - lo.value };
   }, [points]);
 
+  const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(() => {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -31,17 +34,15 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     } catch { /* ignore */ }
     return null;
   });
-  const ref = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ dx: number; dy: number; pointerId: number } | null>(null);
 
-  // Default position: below top bar, centered horizontally.
+  // Default: upper-right, safely under the top bar and clear of the canvas center.
   useEffect(() => {
     if (pos) return;
     const w = ref.current?.offsetWidth ?? 180;
-    setPos({ x: Math.max(8, window.innerWidth / 2 - w / 2), y: 52 });
+    setPos({ x: Math.max(8, window.innerWidth - w - 12), y: 52 });
   }, [pos]);
 
-  // Keep in viewport on resize/rotation.
+  // Clamp on resize / rotation.
   useEffect(() => {
     const clamp = () => {
       setPos((p) => {
@@ -49,7 +50,7 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
         const w = ref.current.offsetWidth;
         const h = ref.current.offsetHeight;
         const x = Math.min(Math.max(4, p.x), window.innerWidth - w - 4);
-        const y = Math.min(Math.max(4, p.y), window.innerHeight - h - 4);
+        const y = Math.min(Math.max(44, p.y), window.innerHeight - h - 60);
         return x === p.x && y === p.y ? p : { x, y };
       });
     };
@@ -61,70 +62,80 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     };
   }, []);
 
-  const savePos = (p: { x: number; y: number }) => {
-    try { localStorage.setItem(storageKey, JSON.stringify(p)); } catch { /* ignore */ }
-  };
+  const drag = useRef<{
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    pointerId: number;
+    moved: boolean;
+  } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!pos) return;
-    (e.target as Element).setPointerCapture(e.pointerId);
-    dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y, pointerId: e.pointerId };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    drag.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: pos.x,
+      originY: pos.y,
+      pointerId: e.pointerId,
+      moved: false,
+    };
   };
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current || dragRef.current.pointerId !== e.pointerId) return;
+    const d = drag.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) < 5) return;
+    d.moved = true;
     const w = ref.current?.offsetWidth ?? 0;
     const h = ref.current?.offsetHeight ?? 0;
-    const x = Math.min(Math.max(4, e.clientX - dragRef.current.dx), window.innerWidth - w - 4);
-    const y = Math.min(Math.max(4, e.clientY - dragRef.current.dy), window.innerHeight - h - 4);
+    const x = Math.min(Math.max(4, d.originX + dx), window.innerWidth - w - 4);
+    const y = Math.min(Math.max(4, d.originY + dy), window.innerHeight - h - 4);
     setPos({ x, y });
   };
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (!dragRef.current || dragRef.current.pointerId !== e.pointerId) return;
-    dragRef.current = null;
-    if (pos) savePos(pos);
+  const endDrag = (e: React.PointerEvent, target?: "hi" | "lo") => {
+    const d = drag.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    drag.current = null;
+    if (d.moved) {
+      try { localStorage.setItem(storageKey, JSON.stringify(pos)); } catch { /* ignore */ }
+      return;
+    }
+    if (target && stats) onHighlight?.(target === "hi" ? stats.hi : stats.lo);
   };
 
   if (!stats || !pos) {
-    return (
-      <div ref={ref} className="fixed opacity-0 pointer-events-none" style={{ left: -9999, top: -9999 }} />
-    );
+    return <div ref={ref} className="fixed pointer-events-none opacity-0" style={{ left: -9999, top: -9999 }} />;
   }
 
   return (
     <div
       ref={ref}
-      className="fixed z-40 h-6 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden text-[10px] font-medium tabular-nums select-none touch-none"
+      className="fixed z-40 h-6 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden text-[10px] font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing"
       style={{ left: pos.x, top: pos.y }}
-      aria-label="Elevation stats"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={(e) => endDrag(e)}
+      onPointerCancel={(e) => endDrag(e)}
+      aria-label="Elevation stats — drag to move"
     >
       <div
-        className="px-1 flex items-center text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        aria-label="Drag stats"
-      >
-        <GripVertical className="w-2.5 h-2.5" />
-      </div>
-      <button
-        type="button"
-        onClick={() => onHighlight?.(stats.hi)}
-        className="px-1.5 flex items-center gap-0.5 border-l border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-        aria-label={`Highlight high point ${stats.hi.value.toFixed(2)}`}
+        className="px-1.5 flex items-center gap-0.5 text-gray-700"
+        onPointerUp={(e) => endDrag(e, "hi")}
       >
         <ArrowUp className="w-2.5 h-2.5 text-emerald-600" />
         <span className="font-mono">{stats.hi.value.toFixed(2)}</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => onHighlight?.(stats.lo)}
-        className="px-1.5 flex items-center gap-0.5 border-l border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-        aria-label={`Highlight low point ${stats.lo.value.toFixed(2)}`}
+      </div>
+      <div
+        className="px-1.5 flex items-center gap-0.5 border-l border-gray-200 text-gray-700"
+        onPointerUp={(e) => endDrag(e, "lo")}
       >
         <ArrowDown className="w-2.5 h-2.5 text-sky-600" />
         <span className="font-mono">{stats.lo.value.toFixed(2)}</span>
-      </button>
+      </div>
       <div className="px-1.5 flex items-center gap-0.5 border-l border-gray-200 text-gray-500">
         <span className="font-mono">Δ{stats.delta.toFixed(2)}</span>
       </div>
