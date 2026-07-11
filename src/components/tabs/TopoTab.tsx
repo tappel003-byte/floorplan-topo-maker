@@ -8,7 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Undo2, X, Waves, Palette, Tag } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
-import { buildGrid, clampValue, computeContours, contourThresholds, type Grid } from "@/lib/topo";
+import {
+  TOPO_GRID_TARGET_COLS,
+  buildGrid,
+  clampValue,
+  computeContours,
+  contourThresholds,
+  type Grid,
+} from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
 
 interface Props {
@@ -98,7 +105,7 @@ export function TopoTab({
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(points, floor.boundary, 190);
+    const grid = buildGrid(points, floor.boundary, TOPO_GRID_TARGET_COLS);
     if (!grid) return null;
     const cs = computeContours(grid, contourOptions(grid, resolved));
     return { grid, contours: cs };
@@ -882,6 +889,13 @@ function renderTopoBase(
       resolved.mode !== "contour-cells"
     ) {
       ctx.save();
+      if (resolved.mode === "contour-fill") {
+        const minColorT = clampValue(paletteMin, paletteMin, paletteMax);
+        ctx.fillStyle = paletteColor(minColorT, resolved.palette, resolved.reversePalette);
+        ctx.globalAlpha = 0.7 * resolved.contourOpacity;
+        ctx.fillRect(g.x0, g.y0, g.width * g.step, g.height * g.step);
+        ctx.globalAlpha = 1;
+      }
       ctx.translate(g.x0, g.y0);
       ctx.scale(g.step, g.step);
       for (const c of cs) {

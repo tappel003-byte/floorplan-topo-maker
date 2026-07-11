@@ -8,6 +8,8 @@
 import { contours } from "d3-contour";
 import type { SurveyPoint } from "./types";
 
+export const TOPO_GRID_TARGET_COLS = 320;
+
 export interface Grid {
   values: Float64Array;
   mask: Uint8Array; // 1 = inside boundary
@@ -138,7 +140,7 @@ function interpolateIdw(x: number, y: number, points: SurveyPoint[], power = 2) 
 export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
-  targetCols = 320,
+  targetCols = TOPO_GRID_TARGET_COLS,
 ): Grid | null {
   if (points.length < 3 || boundary.length < 3) return null;
 
