@@ -527,7 +527,7 @@ export function TopoTab({
         {/* Palette popover — upper right */}
         {openCorner === "palette" && (
           <CornerPanel
-            pos="top-12 right-2 w-56"
+            pos="top-12 right-2 w-56 landscape-short:top-2"
             onClose={() => setOpenCorner(null)}
             title="Palette"
           >
