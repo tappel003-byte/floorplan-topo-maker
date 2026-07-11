@@ -315,11 +315,6 @@ export function FieldTab({
     return null;
   }
 
-  const keypadTitle = editingPoint
-    ? `Edit point #${editingPoint.index}`
-    : isBasePointCapture
-      ? "Base Point value (BP1)"
-      : `Point #${nextIndex}`;
 
   // Editor screen position (from image coords → wrapper coords).
   // The card is placed offset from the pin so it never covers the dot.
