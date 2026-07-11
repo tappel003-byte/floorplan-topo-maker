@@ -11,6 +11,8 @@ interface Props {
   onClose: () => void;
   onSave: (t: Transition) => void;
   onDelete: () => void;
+  /** Optional anchor-relative placement. When omitted, floats bottom-center. */
+  positionScreen?: { left: number; top: number };
 }
 
 /** Dialog opened when the diamond anchor is tapped. Edit readings/surfaces or delete. */
@@ -21,6 +23,7 @@ export function TransitionDetailDialog({
   onClose,
   onSave,
   onDelete,
+  positionScreen,
 }: Props) {
   const [surfaceA, setSurfaceA] = useState("");
   const [surfaceB, setSurfaceB] = useState("");
@@ -50,7 +53,16 @@ export function TransitionDetailDialog({
 
   return (
     <div
-      className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] w-[min(24rem,calc(100vw-1rem))] pointer-events-none"
+      className={
+        positionScreen
+          ? "fixed z-[60] pointer-events-none"
+          : "fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] w-[min(18rem,calc(100vw-1rem))] pointer-events-none"
+      }
+      style={
+        positionScreen
+          ? { left: positionScreen.left, top: positionScreen.top, width: 288 }
+          : undefined
+      }
     >
       <div
         className="bg-background rounded-xl shadow-2xl border p-4 pointer-events-auto"

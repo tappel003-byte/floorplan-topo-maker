@@ -354,6 +354,38 @@ export function FieldTab({
       })()
     : null;
 
+  // Transition detail card: place beside the anchor diamond, same rules as note editor.
+  const viewingTransition = viewingTransitionId
+    ? transitions.find((t) => t.id === viewingTransitionId)
+    : null;
+  const TCARD_W = 288;
+  const TCARD_H = 320;
+  const transitionScreen = viewingTransition
+    ? (() => {
+        const px = viewingTransition.x * transform.scale + transform.tx;
+        const py = viewingTransition.y * transform.scale + transform.ty;
+        const vw = wrapWidth() ?? 400;
+        const vh = wrapHeight() ?? 600;
+        const roomRight = vw - (px + PIN_GAP) - 8;
+        const roomLeft = px - PIN_GAP - 8;
+        let left: number;
+        let top: number;
+        if (roomRight >= TCARD_W) {
+          left = px + PIN_GAP;
+          top = Math.max(8, Math.min(py - TCARD_H / 2, vh - TCARD_H - 8));
+        } else if (roomLeft >= TCARD_W) {
+          left = px - PIN_GAP - TCARD_W;
+          top = Math.max(8, Math.min(py - TCARD_H / 2, vh - TCARD_H - 8));
+        } else {
+          left = Math.max(8, Math.min(px - TCARD_W / 2, vw - TCARD_W - 8));
+          const below = py + PIN_GAP;
+          const above = py - PIN_GAP - TCARD_H;
+          top = below + TCARD_H + 8 <= vh ? below : Math.max(8, above);
+        }
+        return { left, top };
+      })()
+    : null;
+
   async function saveNoteEditor() {
     if (!editingNote) return;
     const next = notes.map((n) => (n.id === editingNote.id ? { ...n, text: noteDraft } : n));
@@ -850,6 +882,7 @@ export function FieldTab({
           onClose={() => setViewingTransitionId(null)}
           onSave={handleSaveTransition}
           onDelete={() => handleDeleteTransition(viewingTransitionId)}
+          positionScreen={transitionScreen ?? undefined}
         />
       )}
 
