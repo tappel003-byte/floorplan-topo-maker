@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
+import { AddTransitionSheet } from "../AddTransitionSheet";
+import { TransitionDetailDialog } from "../TransitionDetailDialog";
 
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
 
-import type { Floor, NotePin, SurveyPoint } from "@/lib/types";
+import type { Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
+import { transitionDelta, formatDelta } from "@/lib/transitions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
+
 
 interface Props {
   projectId: string;
