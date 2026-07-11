@@ -929,13 +929,8 @@ export function FieldTab({
         open={addingTransition && !!pending}
         onClose={() => setAddingTransition(false)}
         onSave={handleAddTransition}
-        parentDelta={
-          activeTransition
-            ? activeTransition.readingA - activeTransition.readingB
-            : undefined
-        }
-        parentSurface={activeTransition ? activeTransition.surfaceB : undefined}
       />
+
 
 
       {/* Anchor diamond → detail dialog. */}
