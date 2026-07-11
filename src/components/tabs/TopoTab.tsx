@@ -955,10 +955,11 @@ function renderTopoTop(
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
+    const dotR = Math.max(1, overlay?.pointSize ?? 6);
     for (const p of points) {
       // dot
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
       ctx.fillStyle = p.isBasePoint ? "#16834a" : "#17130e";
       ctx.fill();
       ctx.strokeStyle = "#fff";
@@ -966,7 +967,7 @@ function renderTopoTop(
       ctx.stroke();
       if (highlightId === p.id) {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, dotR + 6, 0, Math.PI * 2);
         ctx.strokeStyle = "hsl(var(--primary))";
         ctx.lineWidth = 2.5;
         ctx.stroke();
