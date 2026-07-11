@@ -19,6 +19,7 @@ interface Props {
   settings: RenderSettings;
   onSettingsChange: (s: RenderSettings) => void;
   selectedIds?: Set<string>;
+  pointSize?: number;
 }
 
 const DEFAULT_LABEL_DX = 8;
