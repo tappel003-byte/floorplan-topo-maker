@@ -29,6 +29,7 @@ export function TransitionDetailDialog({
   const [surfaceB, setSurfaceB] = useState("");
   const [readingA, setReadingA] = useState("");
   const [readingB, setReadingB] = useState("");
+  const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
     if (open && transition) {
@@ -36,6 +37,7 @@ export function TransitionDetailDialog({
       setSurfaceB(transition.surfaceB);
       setReadingA(String(transition.readingA));
       setReadingB(String(transition.readingB));
+      setMinimized(false);
     }
   }, [open, transition]);
 
