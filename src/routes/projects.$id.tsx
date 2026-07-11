@@ -129,6 +129,11 @@ function ProjectWorkspace() {
   }, [undoActive, history, applySnapshot]);
   useUndoRedoEvents(onUndo, onRedo);
 
+  const correctedPoints = useMemo(
+    () => withCorrectedValues(points, activeFloor?.transitions),
+    [points, activeFloor?.transitions],
+  );
+
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   }
@@ -145,11 +150,6 @@ function ProjectWorkspace() {
   if (!activeFloor) {
     return <div className="p-6 text-sm">No floors in this project.</div>;
   }
-
-  const correctedPoints = useMemo(
-    () => withCorrectedValues(points, activeFloor?.transitions),
-    [points, activeFloor?.transitions],
-  );
 
   return (
     <div className="flex flex-col h-[100dvh] relative bg-background">
