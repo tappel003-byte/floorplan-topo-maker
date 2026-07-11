@@ -72,7 +72,7 @@ export function buildGrid(
         values[idx] = NaN;
         continue;
       }
-      values[idx] = interpolateTin(px, py, points, triangles) ?? interpolateIdw(px, py, points);
+      values[idx] = interpolateTin(px, py, triangles) ?? interpolateIdw(px, py, points);
       mask[idx] = 1;
     }
   }
@@ -137,7 +137,6 @@ function buildTriangleIndex(points: SurveyPoint[], triangles: Uint32Array | Int3
 function interpolateTin(
   x: number,
   y: number,
-  points: SurveyPoint[],
   triangles: TriangleSample[],
 ): number | null {
   for (const t of triangles) {
