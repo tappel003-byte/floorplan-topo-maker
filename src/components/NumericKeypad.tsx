@@ -176,29 +176,48 @@ export function NumericKeypad({
 
         <div className="landscape-short:grid landscape-short:grid-cols-[1fr_1.4fr] landscape-short:gap-3">
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
-            <div className="mb-3 landscape-short:mb-2 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
+            <div className="mb-1 landscape-short:mb-1 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
               {text || (
                 <span className="text-muted-foreground/60">
                   {hasRepeat ? repeatValue!.toFixed(2) : "0.0"}
                 </span>
               )}
             </div>
+            {activeTransition && (() => {
+              const rawNum = text ? parseFloat(text) : NaN;
+              const rawShown = isFinite(rawNum)
+                ? rawNum
+                : hasRepeat
+                  ? repeatValue!
+                  : NaN;
+              if (!isFinite(rawShown)) return null;
+              const corrected = rawShown + activeTransition.delta;
+              return (
+                <div className="mb-3 landscape-short:mb-2 px-1 text-right text-xs text-muted-foreground font-mono tabular-nums">
+                  = <span className="font-semibold text-foreground">{corrected.toFixed(2)}"</span>
+                  <span className="ml-1 opacity-70">
+                    ({rawShown.toFixed(2)} {activeTransition.delta >= 0 ? "+" : "−"}{" "}
+                    {Math.abs(activeTransition.delta).toFixed(1)} {activeTransition.label})
+                  </span>
+                </div>
+              );
+            })()}
             {showShortcutRow && (
               <div className="mb-3 landscape-short:mb-0 flex gap-2">
-                {hasRepeat && (
-                  <button
-                    onClick={repeatLast}
-                    className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
-                  >
-                    <Repeat2 className="h-4 w-4" /> Repeat ({repeatValue!.toFixed(2)})
-                  </button>
-                )}
                 {onAddTransition && (
                   <button
                     onClick={onAddTransition}
                     className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
                   >
                     <ArrowLeftRight className="h-4 w-4" /> Transition
+                  </button>
+                )}
+                {hasRepeat && (
+                  <button
+                    onClick={repeatLast}
+                    className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
+                  >
+                    <Repeat2 className="h-4 w-4" /> Repeat ({repeatValue!.toFixed(2)})
                   </button>
                 )}
               </div>
