@@ -11,6 +11,7 @@ import { ExportTab } from "@/components/tabs/ExportTab";
 import { AppTopBar } from "@/components/chrome/AppTopBar";
 import { ModeToggle } from "@/components/chrome/ModeToggle";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
+import { StatsChip } from "@/components/chrome/StatsChip";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
@@ -33,6 +34,7 @@ function ProjectWorkspace() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [topoHighlightIds, setTopoHighlightIds] = useState<Set<string>>(new Set());
   const [focusRequest, setFocusRequest] = useState<
     { x: number; y: number; nonce: number } | undefined
   >(undefined);
