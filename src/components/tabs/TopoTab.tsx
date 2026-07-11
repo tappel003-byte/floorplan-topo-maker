@@ -65,6 +65,7 @@ export function TopoTab({
   settings,
   onSettingsChange,
   selectedIds,
+  pointSize = 6,
 }: Props) {
   const selectedId =
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
