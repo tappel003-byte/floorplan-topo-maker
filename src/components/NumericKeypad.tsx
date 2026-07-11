@@ -200,7 +200,7 @@ export function NumericKeypad({
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
             <div className="mb-1 landscape-short:mb-1 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
               {text || (
-                <span className="text-muted-foreground/30">0.00</span>
+                <span className="text-muted-foreground/30">0.0</span>
               )}
             </div>
             {activeTransition && (() => {
@@ -214,9 +214,9 @@ export function NumericKeypad({
               const corrected = rawShown + activeTransition.delta;
               return (
                 <div className="mb-3 landscape-short:mb-2 px-1 text-right text-xs text-muted-foreground font-mono tabular-nums">
-                  = <span className="font-semibold text-foreground">{corrected.toFixed(2)}"</span>
+                  = <span className="font-semibold text-foreground">{corrected.toFixed(1)}"</span>
                   <span className="ml-1 opacity-70">
-                    ({rawShown.toFixed(2)} {activeTransition.delta >= 0 ? "+" : "−"}{" "}
+                    ({rawShown.toFixed(1)} {activeTransition.delta >= 0 ? "+" : "−"}{" "}
                     {Math.abs(activeTransition.delta).toFixed(1)} {activeTransition.label})
                   </span>
                 </div>
@@ -238,7 +238,7 @@ export function NumericKeypad({
                     onClick={repeatLast}
                     className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
                   >
-                    <Repeat2 className="h-4 w-4" /> Repeat ({repeatValue!.toFixed(2)})
+                    <Repeat2 className="h-4 w-4" /> Repeat ({repeatValue!.toFixed(1)})
                   </button>
                 )}
               </div>
