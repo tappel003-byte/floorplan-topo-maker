@@ -24,6 +24,9 @@ interface Props {
   activeTransition?: ActiveTransition | null;
   /** Called when the user taps the X on the active-transition chip. */
   onRemoveTransition?: () => void;
+  /** When provided, shows an Undo button in the header. */
+  onUndo?: () => void;
+  canUndo?: boolean;
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
