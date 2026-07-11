@@ -219,7 +219,6 @@ function ProjectWorkspace() {
             onFloorChange={(f) => setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)))}
             settings={settings}
             onSettingsChange={setSettings}
-            selectedIds={selectedIds}
             pointSize={pointSize}
           />
         )}
