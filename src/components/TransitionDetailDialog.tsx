@@ -120,7 +120,7 @@ export function TransitionDetailDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Surface A</span>
+            <span className="text-xs text-muted-foreground">From surface</span>
             <select
               value={surfaceA}
               onChange={(e) => setSurfaceA(e.target.value)}
@@ -134,7 +134,7 @@ export function TransitionDetailDialog({
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Surface B</span>
+            <span className="text-xs text-muted-foreground">To surface</span>
             <select
               value={surfaceB}
               onChange={(e) => setSurfaceB(e.target.value)}
@@ -149,7 +149,7 @@ export function TransitionDetailDialog({
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Reading A"</span>
+            <span className="text-xs text-muted-foreground">{surfaceA || "From"} reading"</span>
             <input
               type="number"
               inputMode="decimal"
@@ -160,7 +160,7 @@ export function TransitionDetailDialog({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Reading B"</span>
+            <span className="text-xs text-muted-foreground">{surfaceB || "To"} reading"</span>
             <input
               type="number"
               inputMode="decimal"
@@ -173,11 +173,14 @@ export function TransitionDetailDialog({
         </div>
 
         <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
-          <span className="text-muted-foreground">Delta (B → A)</span>
+          <span className="text-muted-foreground">
+            {surfaceA || "From"} → {surfaceB || "To"}
+          </span>
           <span className="font-mono tabular-nums font-semibold">
             {valid ? `${formatDelta(delta)}"` : "—"}
           </span>
         </div>
+
         {downstreamCount > 0 && (
           <p className="mt-2 text-[11px] text-muted-foreground">
             {downstreamCount} downstream point{downstreamCount === 1 ? "" : "s"} reference this
