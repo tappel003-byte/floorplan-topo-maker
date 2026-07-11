@@ -87,15 +87,55 @@ export function buildGrid(
     }
   }
 
-  // Anchor the nearest grid cell for every survey point, even if it did not land
-  // close to the center of a cell.
+  // Anchor a small influence disk around every survey point. A single fixed
+  // cell gets flattened by relaxation; a disk sized to a fraction of the
+  // nearest-neighbor spacing preserves peaks and troughs so outlier readings
+  // (a "High" spot, a low spot) actually bend the surface.
+  let nnSum = 0;
+  let nnCount = 0;
+  for (let i = 0; i < points.length; i++) {
+    let best = Infinity;
+    for (let j = 0; j < points.length; j++) {
+      if (i === j) continue;
+      const d2 = (points[i].x - points[j].x) ** 2 + (points[i].y - points[j].y) ** 2;
+      if (d2 < best) best = d2;
+    }
+    if (isFinite(best)) {
+      nnSum += Math.sqrt(best);
+      nnCount++;
+    }
+  }
+  const avgNN = nnCount ? nnSum / nnCount : step * 4;
+  // Anchor radius: ~35% of average nearest-neighbor distance, clamped so it
+  // never collapses to a single cell and never dominates the plan.
+  const anchorRadius = Math.max(step * 1.5, Math.min(avgNN * 0.35, step * 8));
+  const anchorRadius2 = anchorRadius * anchorRadius;
+  const cellSpan = Math.ceil(anchorRadius / step);
   for (const p of points) {
-    const c = Math.max(0, Math.min(cols - 1, Math.round((p.x - minX) / step)));
-    const r = Math.max(0, Math.min(rows - 1, Math.round((p.y - minY) / step)));
-    const idx = r * cols + c;
-    if (mask[idx]) {
-      values[idx] = p.value;
-      fixed[idx] = 1;
+    const cc = Math.round((p.x - minX) / step);
+    const rc = Math.round((p.y - minY) / step);
+    for (let dr = -cellSpan; dr <= cellSpan; dr++) {
+      for (let dc = -cellSpan; dc <= cellSpan; dc++) {
+        const c = cc + dc;
+        const r = rc + dr;
+        if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
+        const idx = r * cols + c;
+        if (!mask[idx]) continue;
+        const px = minX + c * step;
+        const py = minY + r * step;
+        const d2 = (p.x - px) ** 2 + (p.y - py) ** 2;
+        if (d2 > anchorRadius2) continue;
+        // Blend toward the point's value with a falloff, then fix the cell.
+        // Cells closer than half the radius are pinned exactly to the reading.
+        const t = Math.min(1, Math.sqrt(d2) / (anchorRadius * 0.5));
+        const w = 1 - t; // 1 at center, 0 at half-radius
+        if (w >= 1) {
+          values[idx] = p.value;
+          fixed[idx] = 1;
+        } else if (!fixed[idx]) {
+          values[idx] = values[idx] * (1 - w) + p.value * w;
+        }
+      }
     }
   }
 
