@@ -97,66 +97,82 @@ export function ReviewTab({
             No points captured yet. Switch to Data mode.
           </div>
         ) : (
-          <ul className="divide-y">
-            {sortedPoints.map((p) => {
-              const selected = selectedIds.has(p.id);
-              const isOutlier = outliers.has(p.id);
-              return (
-                <li
-                  key={p.id}
-                  onClick={(e) => {
-                    if (e.shiftKey || e.metaKey) {
-                      const next = new Set(selectedIds);
-                      if (next.has(p.id)) next.delete(p.id);
-                      else next.add(p.id);
-                      setSelectedIds(next);
-                      return;
+          <table className="w-full text-sm border-collapse">
+            <thead className="sticky top-0 bg-background border-b">
+              <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <th className="text-left font-medium px-3 py-2 w-10">Pin</th>
+                <th className="text-right font-medium px-2 py-2">Elev</th>
+                <th className="text-right font-medium px-2 py-2">X</th>
+                <th className="text-right font-medium px-3 py-2">Y</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedPoints.map((p) => {
+                const selected = selectedIds.has(p.id);
+                const isOutlier = outliers.has(p.id);
+                return (
+                  <tr
+                    key={p.id}
+                    onClick={(e) => {
+                      if (e.shiftKey || e.metaKey) {
+                        const next = new Set(selectedIds);
+                        if (next.has(p.id)) next.delete(p.id);
+                        else next.add(p.id);
+                        setSelectedIds(next);
+                        return;
+                      }
+                      setSelectedIds(new Set([p.id]));
+                      setDetailId(p.id);
+                    }}
+                    className={
+                      "border-b cursor-pointer " +
+                      (selected ? "bg-primary/10" : "hover:bg-muted/30")
                     }
-                    setSelectedIds(new Set([p.id]));
-                    setDetailId(p.id);
-                  }}
-                  className={
-                    "flex items-start gap-2 px-3 py-2 cursor-pointer " +
-                    (selected ? "bg-primary/10" : "hover:bg-muted/30")
-                  }
-                  title={isOutlier ? "Outlier" : undefined}
-                >
-                  <span className="font-mono text-xs text-muted-foreground w-6 pt-0.5 tabular-nums">
-                    {p.index}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={
-                          "font-mono font-semibold tabular-nums " +
-                          (isOutlier ? "text-amber-600" : "")
-                        }
-                      >
-                        {p.value.toFixed(2)}"
-                      </span>
-                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
-                        x {Math.round(p.x)}, y {Math.round(p.y)}
-                      </span>
-                      {p.isBasePoint && (
-                        <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-[10px] font-medium">
-                          {p.label ?? "BP"}
-                        </span>
+                    title={isOutlier ? "Outlier" : undefined}
+                  >
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground tabular-nums align-top">
+                      {p.index}
+                    </td>
+                    <td
+                      className={
+                        "px-2 py-2 text-right font-mono font-semibold tabular-nums align-top " +
+                        (isOutlier ? "text-amber-600" : "")
+                      }
+                    >
+                      <div className="flex items-center justify-end gap-1.5">
+                        {p.isBasePoint && (
+                          <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-[10px] font-medium">
+                            {p.label ?? "BP"}
+                          </span>
+                        )}
+                        {p.notes && (
+                          <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />
+                        )}
+                        <span>{p.value.toFixed(2)}"</span>
+                      </div>
+                      {p.notes && (
+                        <p className="text-[11px] font-sans font-normal text-muted-foreground mt-0.5 whitespace-pre-wrap break-words text-left">
+                          {p.notes}
+                        </p>
                       )}
-                      {p.notes && <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />}
-                    </div>
-                    {p.notes && (
-                      <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap break-words">
-                        {p.notes}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-            <li className="h-24" />
-          </ul>
+                    </td>
+                    <td className="px-2 py-2 text-right font-mono text-xs text-muted-foreground tabular-nums align-top">
+                      {Math.round(p.x)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground tabular-nums align-top">
+                      {Math.round(p.y)}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr>
+                <td colSpan={4} className="h-24" />
+              </tr>
+            </tbody>
+          </table>
         )}
       </div>
+
 
       {detail && (
         <PointDetail
