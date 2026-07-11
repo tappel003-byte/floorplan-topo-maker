@@ -171,6 +171,7 @@ export function NumericKeypad({
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
             <X className="h-5 w-5" />
           </Button>
+          </div>
         </div>
         {activeTransition && (
           <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs">
