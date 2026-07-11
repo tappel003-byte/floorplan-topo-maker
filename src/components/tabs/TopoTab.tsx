@@ -19,6 +19,7 @@ interface Props {
   settings: RenderSettings;
   onSettingsChange: (s: RenderSettings) => void;
   selectedIds?: Set<string>;
+  pointSize?: number;
 }
 
 const DEFAULT_LABEL_DX = 8;
@@ -64,6 +65,7 @@ export function TopoTab({
   settings,
   onSettingsChange,
   selectedIds,
+  pointSize = 6,
 }: Props) {
   const selectedId =
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
@@ -429,6 +431,7 @@ export function TopoTab({
               livePinLow: activePinLow,
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
               legendSelected,
+              pointSize,
             });
           }}
         />
@@ -936,6 +939,7 @@ function renderTopoTop(
     livePinLow?: { dx: number; dy: number } | null;
     highlightPin?: "pin-high" | "pin-low" | null;
     legendSelected?: boolean;
+    pointSize?: number;
   },
 ) {
   const resolved = resolveSettings(settings);
@@ -951,10 +955,11 @@ function renderTopoTop(
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
+    const dotR = Math.max(1, overlay?.pointSize ?? 6);
     for (const p of points) {
       // dot
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
       ctx.fillStyle = p.isBasePoint ? "#16834a" : "#17130e";
       ctx.fill();
       ctx.strokeStyle = "#fff";
@@ -962,7 +967,7 @@ function renderTopoTop(
       ctx.stroke();
       if (highlightId === p.id) {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, dotR + 6, 0, Math.PI * 2);
         ctx.strokeStyle = "hsl(var(--primary))";
         ctx.lineWidth = 2.5;
         ctx.stroke();
