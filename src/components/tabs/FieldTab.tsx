@@ -626,9 +626,16 @@ export function FieldTab({
           setDragging(null);
           if (!point) return;
           if (!moved) {
+            // Tap on a diamond anchor opens the transition detail dialog,
+            // not the numeric keypad. (Anchor's value is edited via readingA there.)
+            if (point.isTransitionAnchor && point.transitionId) {
+              setViewingTransitionId(point.transitionId);
+              return;
+            }
             setEditingPoint(point);
             return;
           }
+
           const updated = { ...point, x: finalX, y: finalY };
           await savePoint(updated);
           const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
@@ -638,17 +645,41 @@ export function FieldTab({
         drawOverlay={(ctx) => {
           for (const p of points) {
             const color = p.isBasePoint ? "#16a34a" : pointColor;
-            // Point keeps the user's selected color; readability belongs to the label box.
             const markerR = Math.max(pointSize, 2);
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
+            const isAnchor = !!p.isTransitionAnchor;
+            const linkedT = p.transitionId
+              ? transitions.find((t) => t.id === p.transitionId)
+              : null;
+            const isDownstream = !!linkedT && !isAnchor;
 
-            // Label background so elevation is legible over black plan lines.
-            const label = p.value.toFixed(2);
-            const lx = p.x + markerR + 4;
-            const ly = p.y + markerR + 3;
+            // Marker: diamond for anchors, filled circle with white core otherwise.
+            if (isAnchor) {
+              const r = Math.max(markerR + 3, 6);
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y - r);
+              ctx.lineTo(p.x + r, p.y);
+              ctx.lineTo(p.x, p.y + r);
+              ctx.lineTo(p.x - r, p.y);
+              ctx.closePath();
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            } else {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
+              ctx.fillStyle = color;
+              ctx.fill();
+            }
+
+            // Label — anchors show only the raw reading, downstream points show `raw+delta`.
+            const label = isDownstream
+              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
+              : p.value.toFixed(2);
+            const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
+            const lx = p.x + markerHalo + 4;
+            const ly = p.y + markerHalo + 3;
             ctx.font = "bold 12px sans-serif";
             const tm = ctx.measureText(label);
             const padX = 3;
@@ -658,14 +689,7 @@ export function FieldTab({
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
             ctx.strokeStyle = "#111827";
-            ctx.lineWidth = 1;
-            ctx.stroke();
 
-            ctx.fillStyle = "#111827";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(label, lx + tm.width / 2, ly - padY + (12 + padY * 2) / 2);
-          }
           // Note pins (drawn on top of points visually is fine; they're field-only)
           for (let i = 0; i < notes.length; i++) {
             const n = notes[i];
