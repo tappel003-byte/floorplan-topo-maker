@@ -420,16 +420,9 @@ export function FieldTab({
         </div>
       )}
 
-      {/* Profile diagram — floating top-left when a chain is active. */}
-      {activeTransitionId && (
-        <div className="absolute z-20 top-2 left-2 landscape-short:top-auto landscape-short:left-[calc(env(safe-area-inset-left)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] max-w-[70vw] overflow-x-auto">
-          <ProfileDiagram
-            activeId={activeTransitionId}
-            transitions={transitions}
-            onDismiss={() => setActiveTransitionId(null)}
-          />
-        </div>
-      )}
+      {/* Profile diagram lives inside the NumericKeypad (see below) — it only
+          exists while a point is being entered against the active chain. */}
+
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
       <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
