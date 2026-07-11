@@ -217,9 +217,12 @@ export function FieldTab({
     surfaceB: string;
     readingA: number;
     readingB: number;
+    readingARawOnParent?: number;
   }) {
     if (!pending) return;
     const isBP = isBasePointCapture;
+    // Chain to the active transition (if any) for traceability.
+    const parentId = !isBP && activeTransitionId ? activeTransitionId : undefined;
     const t: Transition = {
       id: uid(),
       x: pending.x,
@@ -229,8 +232,10 @@ export function FieldTab({
       readingA: data.readingA,
       readingB: data.readingB,
       createdAt: Date.now(),
+      parentId,
+      readingARawOnParent: data.readingARawOnParent,
     };
-    // Anchor point uses readingA (reference-side value).
+    // Anchor point uses readingA (base-frame value).
     const anchor: SurveyPoint = {
       id: uid(),
       floorId: floor.id,
@@ -892,6 +897,12 @@ export function FieldTab({
         open={addingTransition && !!pending}
         onClose={() => setAddingTransition(false)}
         onSave={handleAddTransition}
+        parentDelta={
+          activeTransition
+            ? activeTransition.readingA - activeTransition.readingB
+            : undefined
+        }
+        parentSurface={activeTransition ? activeTransition.surfaceB : undefined}
       />
 
 
