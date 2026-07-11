@@ -435,7 +435,7 @@ export function TopoTab({
 
         {/* Contours popover — upper left */}
         {openCorner === "contours" && (
-          <CornerPanel pos="top-12 left-2" onClose={() => setOpenCorner(null)} title="Contours">
+          <CornerPanel pos="top-12 left-2 landscape-short:top-2 landscape-short:left-auto landscape-short:right-2" onClose={() => setOpenCorner(null)} title="Contours">
             {gridAndContours?.grid && (
               <p className="text-[10px] text-muted-foreground tabular-nums -mt-1">
                 Range {gridAndContours.grid.minValue.toFixed(2)}"–
