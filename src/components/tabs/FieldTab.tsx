@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
+import { TransitionPickerSheet } from "../TransitionPickerSheet";
 import { TransitionDetailDialog } from "../TransitionDetailDialog";
 
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,7 @@ export function FieldTab({
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
   const [addingTransition, setAddingTransition] = useState(false);
+  const [pickingTransition, setPickingTransition] = useState(false);
   const [viewingTransitionId, setViewingTransitionId] = useState<string | null>(null);
 
   const notes: NotePin[] = floor.notes ?? [];
@@ -313,11 +315,6 @@ export function FieldTab({
     return null;
   }
 
-  const keypadTitle = editingPoint
-    ? `Edit point #${editingPoint.index}`
-    : isBasePointCapture
-      ? "Base Point value (BP1)"
-      : `Point #${nextIndex}`;
 
   // Editor screen position (from image coords → wrapper coords).
   // The card is placed offset from the pin so it never covers the dot.
@@ -819,13 +816,11 @@ export function FieldTab({
       )}
 
       <NumericKeypad
-        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition}
+        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition && !pickingTransition}
         initialValue={editingPoint ? editingPoint.value : isBasePointCapture ? 9.0 : undefined}
         repeatValue={
           !editingPoint && !isBasePointCapture ? points[points.length - 1]?.value : undefined
         }
-        title={keypadTitle}
-        subtitle="Inches. Positive = higher, negative = lower."
         onClose={() => {
           setPending(null);
           setEditingPoint(null);
@@ -859,10 +854,25 @@ export function FieldTab({
           activeTransitionId && !editingPoint ? () => setActiveTransitionId(null) : undefined
         }
         onAddTransition={
-          !editingPoint && pending && !isBasePointCapture
-            ? () => setAddingTransition(true)
+          !editingPoint && pending && !isBasePointCapture && !activeTransitionId
+            ? () => setPickingTransition(true)
             : undefined
         }
+      />
+
+      {/* Transition picker — recent reuse + New. */}
+      <TransitionPickerSheet
+        open={pickingTransition && !!pending}
+        transitions={transitions}
+        onClose={() => setPickingTransition(false)}
+        onReuse={(id) => {
+          setActiveTransitionId(id);
+          setPickingTransition(false);
+        }}
+        onNew={() => {
+          setPickingTransition(false);
+          setAddingTransition(true);
+        }}
       />
 
       {/* Add-Transition sheet — captures both readings at a doorway. */}
