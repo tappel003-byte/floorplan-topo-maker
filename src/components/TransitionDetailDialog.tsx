@@ -11,6 +11,8 @@ interface Props {
   onClose: () => void;
   onSave: (t: Transition) => void;
   onDelete: () => void;
+  /** Optional anchor-relative placement. When omitted, floats bottom-center. */
+  positionScreen?: { left: number; top: number };
 }
 
 /** Dialog opened when the diamond anchor is tapped. Edit readings/surfaces or delete. */
