@@ -132,7 +132,7 @@ export function NumericKeypad({
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
 
   const hasRepeat = repeatValue != null && isFinite(repeatValue);
-  const showShortcutRow = !activeTransition && (hasRepeat || !!onAddTransition);
+  const showShortcutRow = hasRepeat || !!onAddTransition;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30" onClick={onClose}>
