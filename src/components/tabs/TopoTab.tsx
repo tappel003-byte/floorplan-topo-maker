@@ -250,7 +250,7 @@ export function TopoTab({
       {/* Corner icons — closed by default, tap to open. Hidden while their own panel is open. */}
       {openCorner !== "contours" && (
         <CornerIcon
-          pos="top-2 left-2"
+          pos="top-2 left-2 landscape-short:top-auto landscape-short:left-[calc(env(safe-area-inset-left)+5rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)]"
           active={false}
           onClick={() => setOpenCorner("contours")}
           label="Contours"
