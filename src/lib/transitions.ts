@@ -1,0 +1,55 @@
+// Flooring transition helpers — pure functions. See mem://features/transitions-spec-locked.
+
+import type { SurveyPoint, Transition } from "./types";
+
+/** Common flooring surfaces in the surface dropdowns. Extendable via "Other". */
+export const COMMON_SURFACES = [
+  "Tile",
+  "Carpet",
+  "Hardwood",
+  "LVP",
+  "Vinyl",
+  "Laminate",
+  "Concrete",
+  "Stone",
+  "Other",
+] as const;
+
+/** delta = readingA − readingB. Add to a raw B-side reading to get the A-frame value. */
+export function transitionDelta(t: Transition): number {
+  return t.readingA - t.readingB;
+}
+
+/** Corrected value used by topo/stats/export. Anchor keeps its stored value (already A-frame). */
+export function correctedValue(
+  p: SurveyPoint,
+  transitions: readonly Transition[] | undefined,
+): number {
+  if (!p.transitionId || p.isTransitionAnchor) return p.value;
+  const t = transitions?.find((x) => x.id === p.transitionId);
+  if (!t) return p.value;
+  return p.value + transitionDelta(t);
+}
+
+/** Returns a new array of points with `value` replaced by the corrected value. */
+export function withCorrectedValues(
+  points: readonly SurveyPoint[],
+  transitions: readonly Transition[] | undefined,
+): SurveyPoint[] {
+  if (!transitions || transitions.length === 0) return points.slice();
+  return points.map((p) => {
+    const cv = correctedValue(p, transitions);
+    return cv === p.value ? p : { ...p, value: cv };
+  });
+}
+
+/** Format a signed delta like "+0.4" / "-0.4". Trims to 1 decimal for label brevity. */
+export function formatDelta(d: number): string {
+  const sign = d >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(d).toFixed(1)}`;
+}
+
+/** Short label for the transition chip / detail dialog: "Tile → Carpet +0.4"" */
+export function transitionLabel(t: Transition): string {
+  return `${t.surfaceA} → ${t.surfaceB} ${formatDelta(transitionDelta(t))}"`;
+}

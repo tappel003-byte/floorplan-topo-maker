@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X, Repeat2, Trash2 } from "lucide-react";
+import { Delete, Check, X, Repeat2, Trash2, ArrowLeftRight } from "lucide-react";
+
+interface ActiveTransition {
+  label: string; // e.g. "→ Carpet"
+  delta: number; // signed
+}
 
 interface Props {
   open: boolean;
@@ -13,6 +18,12 @@ interface Props {
   onClose: () => void;
   /** When provided, shows a trash button in the header. Used for editing existing points. */
   onDelete?: () => void;
+  /** When provided, shows an "Add Transition" button in the header. Only used when placing new points. */
+  onAddTransition?: () => void;
+  /** When set, keypad shows an active-transition chip and reflects delta on the Enter button. */
+  activeTransition?: ActiveTransition | null;
+  /** Called when the user taps the X on the active-transition chip. */
+  onRemoveTransition?: () => void;
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
@@ -25,7 +36,11 @@ export function NumericKeypad({
   onSubmit,
   onClose,
   onDelete,
+  onAddTransition,
+  activeTransition,
+  onRemoveTransition,
 }: Props) {
+
   const [text, setText] = useState<string>("");
 
   useEffect(() => {
@@ -123,6 +138,18 @@ export function NumericKeypad({
             {subtitle && <div className="text-xs text-muted-foreground mt-0.5 landscape-short:hidden">{subtitle}</div>}
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {onAddTransition && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onAddTransition}
+                aria-label="Add transition"
+                className="text-primary hover:bg-primary/10 gap-1.5 px-2"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                <span className="text-xs font-medium">Transition</span>
+              </Button>
+            )}
             {onDelete && (
               <Button
                 variant="ghost"
@@ -139,6 +166,29 @@ export function NumericKeypad({
             </Button>
           </div>
         </div>
+        {activeTransition && (
+          <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs">
+            <ArrowLeftRight className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="flex-1 min-w-0 truncate">
+              <span className="text-muted-foreground">Transition active · </span>
+              <span className="font-mono font-semibold">
+                {activeTransition.delta >= 0 ? "+" : "-"}
+                {Math.abs(activeTransition.delta).toFixed(1)}
+              </span>{" "}
+              <span className="text-muted-foreground">{activeTransition.label}</span>
+            </span>
+            {onRemoveTransition && (
+              <button
+                onClick={onRemoveTransition}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+                aria-label="Remove active transition"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="landscape-short:grid landscape-short:grid-cols-[1fr_1.4fr] landscape-short:gap-3">
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
             <div className="mb-3 landscape-short:mb-2 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
@@ -174,8 +224,20 @@ export function NumericKeypad({
               disabled={!text || !isFinite(parseFloat(text))}
               className="col-span-2 h-16 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground text-xl landscape-short:text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
             >
-              <Check className="h-6 w-6 landscape-short:h-5 landscape-short:w-5" /> Enter
+              <Check className="h-6 w-6 landscape-short:h-5 landscape-short:w-5" />
+              {activeTransition ? (
+                <span>
+                  Enter{" "}
+                  <span className="font-mono text-base landscape-short:text-sm opacity-90">
+                    ({activeTransition.delta >= 0 ? "+" : "-"}
+                    {Math.abs(activeTransition.delta).toFixed(1)})
+                  </span>
+                </span>
+              ) : (
+                "Enter"
+              )}
             </button>
+
           </div>
         </div>
       </div>

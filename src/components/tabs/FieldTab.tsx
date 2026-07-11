@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
+import { AddTransitionSheet } from "../AddTransitionSheet";
+import { TransitionDetailDialog } from "../TransitionDetailDialog";
 
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
 
-import type { Floor, NotePin, SurveyPoint } from "@/lib/types";
+import type { Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
+import { transitionDelta, formatDelta } from "@/lib/transitions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
+
 
 interface Props {
   projectId: string;
@@ -89,13 +93,25 @@ export function FieldTab({
   const [, setNoteDragTick] = useState(0);
   const longPressTimerRef = useRef<number | null>(null);
 
+  // Transitions state
+  const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
+  const [addingTransition, setAddingTransition] = useState(false);
+  const [viewingTransitionId, setViewingTransitionId] = useState<string | null>(null);
+
   const notes: NotePin[] = floor.notes ?? [];
+  const transitions: Transition[] = floor.transitions ?? [];
+  const activeTransition = activeTransitionId
+    ? (transitions.find((t) => t.id === activeTransitionId) ?? null)
+    : null;
 
   useEffect(() => {
     setPending(null);
     setEditingPoint(null);
     setEditingNoteId(null);
     setNoteMode(false);
+    setActiveTransitionId(null);
+    setViewingTransitionId(null);
+
   }, [floor.id]);
 
   function commitSnap(nextPoints: SurveyPoint[]) {
@@ -107,6 +123,13 @@ export function FieldTab({
     await saveFloor(nextFloor);
     onFloorChange?.(nextFloor);
   }
+
+  async function persistTransitions(next: Transition[]) {
+    const nextFloor: Floor = { ...floor, transitions: next };
+    await saveFloor(nextFloor);
+    onFloorChange?.(nextFloor);
+  }
+
 
   void dragging;
 
@@ -175,6 +198,8 @@ export function FieldTab({
       isBasePoint: isBP,
       label: isBP ? "BP1" : undefined,
       createdAt: Date.now(),
+      // Tag with active transition (BP never gets tagged)
+      transitionId: !isBP && activeTransitionId ? activeTransitionId : undefined,
     };
     await savePoint(point);
     const nextPts = [...points, point];
@@ -183,6 +208,89 @@ export function FieldTab({
     setPending(null);
     setBpPromptOpen(false);
   }
+
+  /** Called from AddTransitionSheet. Creates the transition record and plots the diamond anchor at the pending location. */
+  async function handleAddTransition(data: {
+    surfaceA: string;
+    surfaceB: string;
+    readingA: number;
+    readingB: number;
+  }) {
+    if (!pending) return;
+    const isBP = isBasePointCapture;
+    const t: Transition = {
+      id: uid(),
+      x: pending.x,
+      y: pending.y,
+      surfaceA: data.surfaceA,
+      surfaceB: data.surfaceB,
+      readingA: data.readingA,
+      readingB: data.readingB,
+      createdAt: Date.now(),
+    };
+    // Anchor point uses readingA (reference-side value).
+    const anchor: SurveyPoint = {
+      id: uid(),
+      floorId: floor.id,
+      index: nextIndex,
+      x: pending.x,
+      y: pending.y,
+      value: data.readingA,
+      isBasePoint: isBP,
+      label: isBP ? "BP1" : undefined,
+      createdAt: Date.now(),
+      transitionId: t.id,
+      isTransitionAnchor: true,
+    };
+    await persistTransitions([...transitions, t]);
+    await savePoint(anchor);
+    const nextPts = [...points, anchor];
+    onPointsChange(nextPts);
+    commitSnap(nextPts);
+    setPending(null);
+    setBpPromptOpen(false);
+    setAddingTransition(false);
+    // Subsequent points on side B will be tagged with this transition.
+    setActiveTransitionId(t.id);
+  }
+
+  /** Save edits from TransitionDetailDialog. Anchor's stored value follows readingA. */
+  async function handleSaveTransition(updated: Transition) {
+    const nextTs = transitions.map((t) => (t.id === updated.id ? updated : t));
+    await persistTransitions(nextTs);
+    // Keep the anchor's value in sync with readingA.
+    const anchor = points.find((p) => p.transitionId === updated.id && p.isTransitionAnchor);
+    if (anchor && anchor.value !== updated.readingA) {
+      const nextAnchor = { ...anchor, value: updated.readingA };
+      await savePoint(nextAnchor);
+      const nextPts = points.map((p) => (p.id === nextAnchor.id ? nextAnchor : p));
+      onPointsChange(nextPts);
+      commitSnap(nextPts);
+    }
+    setViewingTransitionId(null);
+  }
+
+  /** Delete a transition. Removes the anchor point and detaches all downstream refs (raw values preserved). */
+  async function handleDeleteTransition(id: string) {
+    const nextTs = transitions.filter((t) => t.id !== id);
+    await persistTransitions(nextTs);
+    const anchorIds = points.filter((p) => p.transitionId === id && p.isTransitionAnchor).map((p) => p.id);
+    for (const aid of anchorIds) await deletePoint(aid);
+    // Detach downstream (strip tag; keep raw value).
+    const kept = points.filter((p) => !anchorIds.includes(p.id));
+    const detached = kept.map((p) =>
+      p.transitionId === id ? { ...p, transitionId: undefined } : p,
+    );
+    for (const p of detached) {
+      if (p.transitionId === undefined) await savePoint(p);
+    }
+    const reindexed = await reindexFloorPoints(floor.id);
+    onPointsChange(reindexed);
+    commitSnap(reindexed);
+    if (activeTransitionId === id) setActiveTransitionId(null);
+    setViewingTransitionId(null);
+  }
+
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
     const s = scaleRef.current || 1;
@@ -518,9 +626,16 @@ export function FieldTab({
           setDragging(null);
           if (!point) return;
           if (!moved) {
+            // Tap on a diamond anchor opens the transition detail dialog,
+            // not the numeric keypad. (Anchor's value is edited via readingA there.)
+            if (point.isTransitionAnchor && point.transitionId) {
+              setViewingTransitionId(point.transitionId);
+              return;
+            }
             setEditingPoint(point);
             return;
           }
+
           const updated = { ...point, x: finalX, y: finalY };
           await savePoint(updated);
           const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
@@ -530,17 +645,41 @@ export function FieldTab({
         drawOverlay={(ctx) => {
           for (const p of points) {
             const color = p.isBasePoint ? "#16a34a" : pointColor;
-            // Point keeps the user's selected color; readability belongs to the label box.
             const markerR = Math.max(pointSize, 2);
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
+            const isAnchor = !!p.isTransitionAnchor;
+            const linkedT = p.transitionId
+              ? transitions.find((t) => t.id === p.transitionId)
+              : null;
+            const isDownstream = !!linkedT && !isAnchor;
 
-            // Label background so elevation is legible over black plan lines.
-            const label = p.value.toFixed(2);
-            const lx = p.x + markerR + 4;
-            const ly = p.y + markerR + 3;
+            // Marker: diamond for anchors, filled circle with white core otherwise.
+            if (isAnchor) {
+              const r = Math.max(markerR + 3, 6);
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y - r);
+              ctx.lineTo(p.x + r, p.y);
+              ctx.lineTo(p.x, p.y + r);
+              ctx.lineTo(p.x - r, p.y);
+              ctx.closePath();
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            } else {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
+              ctx.fillStyle = color;
+              ctx.fill();
+            }
+
+            // Label — anchors show only the raw reading, downstream points show `raw+delta`.
+            const label = isDownstream
+              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
+              : p.value.toFixed(2);
+            const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
+            const lx = p.x + markerHalo + 4;
+            const ly = p.y + markerHalo + 3;
             ctx.font = "bold 12px sans-serif";
             const tm = ctx.measureText(label);
             const padX = 3;
@@ -549,6 +688,7 @@ export function FieldTab({
             ctx.beginPath();
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
+
             ctx.strokeStyle = "#111827";
             ctx.lineWidth = 1;
             ctx.stroke();
@@ -558,6 +698,9 @@ export function FieldTab({
             ctx.textBaseline = "middle";
             ctx.fillText(label, lx + tm.width / 2, ly - padY + (12 + padY * 2) / 2);
           }
+
+
+
           // Note pins (drawn on top of points visually is fine; they're field-only)
           for (let i = 0; i < notes.length; i++) {
             const n = notes[i];
@@ -649,7 +792,49 @@ export function FieldTab({
               }
             : undefined
         }
+        activeTransition={
+          activeTransitionId && !editingPoint
+            ? (() => {
+                const t = transitions.find((x) => x.id === activeTransitionId);
+                if (!t) return undefined;
+                return {
+                  label: `→ ${t.surfaceB}`,
+                  delta: transitionDelta(t),
+                };
+              })()
+            : undefined
+        }
+        onRemoveTransition={
+          activeTransitionId && !editingPoint ? () => setActiveTransitionId(null) : undefined
+        }
+        onAddTransition={
+          !editingPoint && pending && !isBasePointCapture
+            ? () => setAddingTransition(true)
+            : undefined
+        }
       />
+
+      {/* Add-Transition sheet — captures both readings at a doorway. */}
+      <AddTransitionSheet
+        open={addingTransition && !!pending}
+        onClose={() => setAddingTransition(false)}
+        onSave={handleAddTransition}
+      />
+
+
+      {/* Anchor diamond → detail dialog. */}
+      {viewingTransitionId && (
+        <TransitionDetailDialog
+          transition={transitions.find((t) => t.id === viewingTransitionId)!}
+          open={!!viewingTransitionId}
+          downstreamCount={points.filter((p) => p.transitionId === viewingTransitionId && !p.isTransitionAnchor).length}
+          onClose={() => setViewingTransitionId(null)}
+          onSave={handleSaveTransition}
+          onDelete={() => handleDeleteTransition(viewingTransitionId)}
+        />
+      )}
+
+
 
       {bpPromptOpen && pending && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

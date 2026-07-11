@@ -1,0 +1,160 @@
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Trash2, X } from "lucide-react";
+import { COMMON_SURFACES, formatDelta } from "@/lib/transitions";
+import type { Transition } from "@/lib/types";
+
+interface Props {
+  open: boolean;
+  transition: Transition | null;
+  downstreamCount: number;
+  onClose: () => void;
+  onSave: (t: Transition) => void;
+  onDelete: () => void;
+}
+
+/** Dialog opened when the diamond anchor is tapped. Edit readings/surfaces or delete. */
+export function TransitionDetailDialog({
+  open,
+  transition,
+  downstreamCount,
+  onClose,
+  onSave,
+  onDelete,
+}: Props) {
+  const [surfaceA, setSurfaceA] = useState("");
+  const [surfaceB, setSurfaceB] = useState("");
+  const [readingA, setReadingA] = useState("");
+  const [readingB, setReadingB] = useState("");
+
+  useEffect(() => {
+    if (open && transition) {
+      setSurfaceA(transition.surfaceA);
+      setSurfaceB(transition.surfaceB);
+      setReadingA(String(transition.readingA));
+      setReadingB(String(transition.readingB));
+    }
+  }, [open, transition]);
+
+  if (!open || !transition) return null;
+
+  const a = parseFloat(readingA);
+  const b = parseFloat(readingB);
+  const valid = isFinite(a) && isFinite(b);
+  const delta = valid ? a - b : 0;
+
+  function submit() {
+    if (!valid || !transition) return;
+    onSave({ ...transition, surfaceA, surfaceB, readingA: a, readingB: b });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background rounded-xl shadow-2xl w-full max-w-sm p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              Transition
+            </div>
+            <div className="text-sm font-semibold">Anchor reference point</div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Surface A</span>
+            <select
+              value={surfaceA}
+              onChange={(e) => setSurfaceA(e.target.value)}
+              className="h-10 rounded-md border px-2 bg-background text-sm"
+            >
+              {COMMON_SURFACES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Surface B</span>
+            <select
+              value={surfaceB}
+              onChange={(e) => setSurfaceB(e.target.value)}
+              className="h-10 rounded-md border px-2 bg-background text-sm"
+            >
+              {COMMON_SURFACES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Reading A"</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={readingA}
+              onChange={(e) => setReadingA(e.target.value)}
+              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Reading B"</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={readingB}
+              onChange={(e) => setReadingB(e.target.value)}
+              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+            />
+          </label>
+        </div>
+
+        <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
+          <span className="text-muted-foreground">Delta (B → A)</span>
+          <span className="font-mono tabular-nums font-semibold">
+            {valid ? `${formatDelta(delta)}"` : "—"}
+          </span>
+        </div>
+        {downstreamCount > 0 && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {downstreamCount} downstream point{downstreamCount === 1 ? "" : "s"} reference this
+            transition. Editing readings updates all of them.
+          </p>
+        )}
+
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDelete}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={submit} disabled={!valid}>
+              Save
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

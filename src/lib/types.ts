@@ -42,6 +42,10 @@ export interface Floor {
   lowPinDy?: number;
   // Room notes — orange pins visible only on the field/data entry screen.
   notes?: NotePin[];
+  // Flooring transitions — per-doorway anchor records. Each transition creates
+  // one anchor SurveyPoint (isTransitionAnchor + transitionId) at (x, y) and
+  // may be referenced by downstream points (transitionId set, not anchor).
+  transitions?: Transition[];
 }
 
 export interface NotePin {
@@ -51,13 +55,25 @@ export interface NotePin {
   text: string;
 }
 
+export interface Transition {
+  id: string;
+  x: number; // image coords of the anchor
+  y: number;
+  surfaceA: string; // reference side (anchor is captured here)
+  surfaceB: string; // other side (downstream points live here)
+  readingA: number; // e.g. 9.0 on tile
+  readingB: number; // e.g. 8.6 on carpet
+  createdAt: number;
+}
+
+
 export interface SurveyPoint {
   id: string;
   floorId: string;
   index: number; // display number, 1..n
   x: number; // image coords
   y: number;
-  value: number; // elevation in inches (BP default 9.0)
+  value: number; // raw elevation reading in inches (BP default 9.0)
   isBasePoint?: boolean;
   label?: string; // BP1, BP2, etc.
   notes?: string;
@@ -66,7 +82,16 @@ export interface SurveyPoint {
   // undefined = use default offset (+8, +6).
   labelDx?: number;
   labelDy?: number;
+  // Transition tagging.
+  // - Anchor point: isTransitionAnchor = true AND transitionId set. `value`
+  //   stores readingA (reference side); no offset applied.
+  // - Downstream point on the "other" surface: transitionId set (no anchor
+  //   flag). `value` is the raw reading; corrected value = value + delta,
+  //   where delta = readingA − readingB.
+  transitionId?: string;
+  isTransitionAnchor?: boolean;
 }
+
 
 export interface RenderSettings {
   mode: "contour-fill" | "contour-cells" | "contour-bw" | "points-only";
