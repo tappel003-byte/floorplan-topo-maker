@@ -140,16 +140,22 @@ export function DataPointsPanel({
 
   const width = 150;
 
+  // In landscape-short (phone landscape / small tablet landscape), the
+  // Database chip lives at the bottom-center — opening the panel at the
+  // stored top-left coords would cover the plan. Anchor it to the right
+  // edge instead and let it hug the top so the plan stays visible.
+  const isLandscapeShort =
+    typeof window !== "undefined" &&
+    window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches;
+  const posStyle = isLandscapeShort
+    ? { right: 8, top: 8, maxHeight: state.collapsed ? undefined : "calc(100dvh - 5.5rem)" }
+    : { left: state.x, top: state.y, maxHeight: state.collapsed ? undefined : "38dvh" };
+
   return (
     <>
       <div
         className="fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col"
-        style={{
-          left: state.x,
-          top: state.y,
-          width,
-          maxHeight: state.collapsed ? undefined : "38dvh",
-        }}
+        style={{ width, ...posStyle }}
       >
         <div
           className="flex items-center gap-1 border-b px-2 py-1 cursor-move select-none touch-none"
