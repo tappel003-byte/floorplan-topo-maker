@@ -23,6 +23,7 @@ export function ReviewTab({
   onCommit,
 }: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<"index" | "high" | "low">("index");
 
   const stats = useMemo(() => {
     if (points.length === 0) return null;
