@@ -869,7 +869,7 @@ export function FieldTab({
               : undefined
         }
         onAddTransition={
-          !editingPoint && pending && !isBasePointCapture && !activeTransitionId
+          !editingPoint && pending && !isBasePointCapture
             ? () => setPickingTransition(true)
             : undefined
         }
