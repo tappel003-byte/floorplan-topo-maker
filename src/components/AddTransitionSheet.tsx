@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Link2 } from "lucide-react";
+import { X } from "lucide-react";
 import { COMMON_SURFACES, formatDelta } from "@/lib/transitions";
+
+const SOFT_SURFACES = new Set(["Carpet", "Pad", "Rug"]);
 
 interface Props {
   open: boolean;
@@ -9,54 +11,57 @@ interface Props {
   onSave: (data: {
     surfaceA: string;
     surfaceB: string;
-    readingA: number; // base-frame (already includes parentDelta if chained)
+    readingA: number;
     readingB: number;
-    readingARawOnParent?: number; // what the user typed, if chained
+    readingAFar?: number;
+    readingBFar?: number;
   }) => void;
-  /** When creating a transition while an existing transition is active, the
-   * doorway "reference" reading is taken on the parent's surfaceB. We add the
-   * parent's delta to it so the stored readingA remains base-frame. */
-  parentDelta?: number;
-  parentSurface?: string; // e.g. "Carpet" — display only
 }
 
 /**
  * Sheet for creating a flooring transition. User picks two surfaces and
- * enters both raw readings taken at the doorway. If a parent transition is
- * active, Reading A is interpreted as a raw reading on the parent surface
- * and converted to base-frame before storage.
+ * enters raw readings taken at the doorway. Soft surfaces (carpet) also
+ * accept an optional far-side reading — the manometer probes through carpet
+ * to the slab, and the slab can dip across the room.
  */
-export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentSurface }: Props) {
-  const chained = typeof parentDelta === "number" && parentSurface != null;
-  const [surfaceA, setSurfaceA] = useState<string>(chained ? parentSurface! : "Tile");
+export function AddTransitionSheet({ open, onClose, onSave }: Props) {
+  const [surfaceA, setSurfaceA] = useState<string>("Tile");
   const [surfaceB, setSurfaceB] = useState<string>("Carpet");
   const [readingA, setReadingA] = useState<string>("");
   const [readingB, setReadingB] = useState<string>("");
+  const [readingAFar, setReadingAFar] = useState<string>("");
+  const [readingBFar, setReadingBFar] = useState<string>("");
 
   useEffect(() => {
     if (open) {
       setReadingA("");
       setReadingB("");
-      if (chained) setSurfaceA(parentSurface!);
+      setReadingAFar("");
+      setReadingBFar("");
     }
-  }, [open, chained, parentSurface]);
+  }, [open]);
 
   if (!open) return null;
 
-  const aRaw = parseFloat(readingA);
+  const aSoft = SOFT_SURFACES.has(surfaceA);
+  const bSoft = SOFT_SURFACES.has(surfaceB);
+
+  const a = parseFloat(readingA);
   const b = parseFloat(readingB);
-  const valid = isFinite(aRaw) && isFinite(b);
-  const aBase = valid ? aRaw + (parentDelta ?? 0) : 0;
-  const delta = valid ? aBase - b : 0;
+  const aFar = parseFloat(readingAFar);
+  const bFar = parseFloat(readingBFar);
+  const valid = isFinite(a) && isFinite(b);
+  const delta = valid ? a - b : 0;
 
   function submit() {
     if (!valid) return;
     onSave({
       surfaceA,
       surfaceB,
-      readingA: aBase,
+      readingA: a,
       readingB: b,
-      readingARawOnParent: chained ? aRaw : undefined,
+      readingAFar: aSoft && isFinite(aFar) ? aFar : undefined,
+      readingBFar: bSoft && isFinite(bFar) ? bFar : undefined,
     });
   }
 
@@ -81,29 +86,13 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
           </Button>
         </div>
 
-        {chained && (
-          <div className="mb-3 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs flex items-start gap-2">
-            <Link2 className="h-3.5 w-3.5 mt-0.5 text-amber-600" />
-            <div>
-              <div className="font-medium text-amber-900 dark:text-amber-200">
-                Chained from {parentSurface} ({formatDelta(parentDelta!)}")
-              </div>
-              <div className="text-amber-800/80 dark:text-amber-200/70">
-                Enter both raw readings from your manometer. Reading A is on {parentSurface}; the
-                app converts it to the base datum automatically.
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">From surface (reference)</span>
             <select
               value={surfaceA}
               onChange={(e) => setSurfaceA(e.target.value)}
-              disabled={chained}
-              className="h-10 rounded-md border px-2 bg-background text-sm disabled:opacity-70"
+              className="h-10 rounded-md border px-2 bg-background text-sm"
             >
               {COMMON_SURFACES.map((s) => (
                 <option key={s} value={s}>
@@ -129,7 +118,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
 
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">
-              {surfaceA || "From"} reading" {chained ? "(raw)" : ""}
+              {surfaceA} reading" {aSoft ? "(near door)" : ""}
             </span>
             <input
               type="number"
@@ -137,18 +126,15 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
               step="0.01"
               value={readingA}
               onChange={(e) => setReadingA(e.target.value)}
-              placeholder={chained ? "8.3" : "9.0"}
+              placeholder="9.0"
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
               autoFocus
             />
-            {chained && valid && (
-              <span className="text-[10px] text-muted-foreground font-mono">
-                = {aBase.toFixed(2)}" corrected
-              </span>
-            )}
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{surfaceB || "To"} reading" (raw)</span>
+            <span className="text-xs text-muted-foreground">
+              {surfaceB} reading" {bSoft ? "(near door)" : ""}
+            </span>
             <input
               type="number"
               inputMode="decimal"
@@ -159,21 +145,53 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
             />
           </label>
+
+          {aSoft && (
+            <label className="flex flex-col gap-1 col-span-1">
+              <span className="text-xs text-muted-foreground">
+                {surfaceA} reading" (far side, optional)
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={readingAFar}
+                onChange={(e) => setReadingAFar(e.target.value)}
+                placeholder="—"
+                className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+              />
+            </label>
+          )}
+          {bSoft && (
+            <label className={`flex flex-col gap-1 ${aSoft ? "" : "col-start-2"}`}>
+              <span className="text-xs text-muted-foreground">
+                {surfaceB} reading" (far side, optional)
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={readingBFar}
+                onChange={(e) => setReadingBFar(e.target.value)}
+                placeholder="—"
+                className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+              />
+            </label>
+          )}
         </div>
 
         <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
           <span className="text-muted-foreground">
-            {surfaceA || "From"} → {surfaceB || "To"}
+            {surfaceA} → {surfaceB}
           </span>
           <span className="font-mono tabular-nums font-semibold">
             {valid ? `${formatDelta(delta)}"` : "—"}
           </span>
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Plots a diamond anchor. Subsequent points on {surfaceB || "the other side"} display as{" "}
+          Plots a diamond anchor. Subsequent points on {surfaceB} display as{" "}
           <span className="font-mono">raw{formatDelta(delta || 0.4)}</span>.
         </p>
-
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
