@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X, Repeat2, Trash2, ArrowLeftRight } from "lucide-react";
+import { Delete, Check, X, Repeat2, Trash2, ArrowLeftRight, Undo2 } from "lucide-react";
 
 interface ActiveTransition {
   label: string; // e.g. "→ Carpet"
@@ -24,6 +24,9 @@ interface Props {
   activeTransition?: ActiveTransition | null;
   /** Called when the user taps the X on the active-transition chip. */
   onRemoveTransition?: () => void;
+  /** When provided, shows an Undo button in the header. */
+  onUndo?: () => void;
+  canUndo?: boolean;
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
@@ -39,6 +42,8 @@ export function NumericKeypad({
   onAddTransition,
   activeTransition,
   onRemoveTransition,
+  onUndo,
+  canUndo,
 }: Props) {
 
   const [text, setText] = useState<string>("");
@@ -135,7 +140,23 @@ export function NumericKeypad({
         className="bg-background rounded-t-2xl shadow-2xl p-4 pb-6 landscape-short:p-3 landscape-short:pb-3 max-w-md landscape-short:max-w-2xl w-full mx-auto max-h-[95dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-end gap-1 mb-2">
+        <div className="flex items-center justify-between gap-1 mb-2">
+          <div>
+            {onUndo && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onUndo}
+                disabled={!canUndo}
+                aria-label="Undo"
+                className="gap-1.5 h-9 px-2 text-muted-foreground disabled:opacity-40"
+              >
+                <Undo2 className="h-4 w-4" />
+                <span className="text-xs">Undo</span>
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
           {onDelete && (
             <Button
               variant="ghost"
@@ -150,6 +171,7 @@ export function NumericKeypad({
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close keypad">
             <X className="h-5 w-5" />
           </Button>
+          </div>
         </div>
         {activeTransition && (
           <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs">
