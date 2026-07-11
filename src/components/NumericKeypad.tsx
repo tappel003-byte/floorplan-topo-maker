@@ -232,7 +232,7 @@ export function NumericKeypad({
                     className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
                   >
                     <ArrowLeftRight className="h-4 w-4" />
-                    {activeTransition ? "New transition" : "Transition"}
+                    {activeTransition ? "Add transition" : "Transition"}
                   </button>
                 )}
                 {hasRepeat && (
