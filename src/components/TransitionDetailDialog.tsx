@@ -53,6 +53,37 @@ export function TransitionDetailDialog({
     onSave({ ...transition, surfaceA, surfaceB, readingA: a, readingB: b });
   }
 
+  if (minimized) {
+    const deltaLabel = valid ? formatDelta(delta) : formatDelta(transition.readingA - transition.readingB);
+    return (
+      <div
+        className={
+          positionScreen
+            ? "fixed z-[60] pointer-events-none"
+            : "fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] pointer-events-none"
+        }
+        style={positionScreen ? { left: positionScreen.left, top: positionScreen.top } : undefined}
+      >
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background shadow-lg pl-3 pr-1 h-9">
+          <button
+            onClick={() => setMinimized(false)}
+            className="flex items-center gap-1.5 text-xs font-medium"
+            aria-label="Expand transition"
+          >
+            <span className="text-muted-foreground">{transition.surfaceA}→{transition.surfaceB}</span>
+            <span className="font-mono font-semibold">{deltaLabel}"</span>
+          </button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMinimized(false)} aria-label="Expand">
+            <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label="Close">
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={
@@ -77,9 +108,14 @@ export function TransitionDetailDialog({
             </div>
             <div className="text-sm font-semibold">Anchor reference point</div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setMinimized(true)} aria-label="Minimize">
+              <Minus className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
