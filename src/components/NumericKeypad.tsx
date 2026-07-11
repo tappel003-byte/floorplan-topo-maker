@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X, Repeat2, Trash2, ArrowLeftRight } from "lucide-react";
+import { Delete, Check, X, Repeat2, Trash2, ArrowLeftRight, Undo2 } from "lucide-react";
 
 interface ActiveTransition {
   label: string; // e.g. "→ Carpet"
