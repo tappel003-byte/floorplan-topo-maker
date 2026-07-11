@@ -200,9 +200,7 @@ export function NumericKeypad({
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
             <div className="mb-1 landscape-short:mb-1 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
               {text || (
-                <span className="text-muted-foreground/60">
-                  {hasRepeat ? repeatValue!.toFixed(2) : "0.0"}
-                </span>
+                <span className="text-muted-foreground/30">0.00</span>
               )}
             </div>
             {activeTransition && (() => {
