@@ -140,7 +140,23 @@ export function NumericKeypad({
         className="bg-background rounded-t-2xl shadow-2xl p-4 pb-6 landscape-short:p-3 landscape-short:pb-3 max-w-md landscape-short:max-w-2xl w-full mx-auto max-h-[95dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-end gap-1 mb-2">
+        <div className="flex items-center justify-between gap-1 mb-2">
+          <div>
+            {onUndo && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onUndo}
+                disabled={!canUndo}
+                aria-label="Undo"
+                className="gap-1.5 h-9 px-2 text-muted-foreground disabled:opacity-40"
+              >
+                <Undo2 className="h-4 w-4" />
+                <span className="text-xs">Undo</span>
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
           {onDelete && (
             <Button
               variant="ghost"
