@@ -661,10 +661,15 @@ export function FieldTab({
           if (!point) return;
           if (!moved) {
             // Tap on a diamond anchor opens the transition detail dialog,
-            // not the numeric keypad. (Anchor's value is edited via readingA there.)
+            // but only if the underlying transition still exists. Orphaned
+            // anchors (transition deleted / undo mismatch) fall through to
+            // the normal keypad so the user can edit or delete them.
             if (point.isTransitionAnchor && point.transitionId) {
-              setViewingTransitionId(point.transitionId);
-              return;
+              const stillExists = transitions.some((t) => t.id === point.transitionId);
+              if (stillExists) {
+                setViewingTransitionId(point.transitionId);
+                return;
+              }
             }
             setEditingPoint(point);
             return;
