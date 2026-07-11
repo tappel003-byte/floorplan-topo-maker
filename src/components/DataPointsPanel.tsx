@@ -138,17 +138,26 @@ export function DataPointsPanel({
     );
   }
 
-  const width = 150;
+  // Track landscape-short reactively so rotation repositions the panel
+  // without a remount. Same media query the chip's Tailwind variant uses.
+  const [isLandscapeShort, setIsLandscapeShort] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches
+      : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
+    const on = () => setIsLandscapeShort(mq.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
 
-  // In landscape-short (phone landscape / small tablet landscape), the
-  // Database chip lives at the bottom-center — opening the panel at the
-  // stored top-left coords would cover the plan. Anchor it to the right
-  // edge instead and let it hug the top so the plan stays visible.
-  const isLandscapeShort =
-    typeof window !== "undefined" &&
-    window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches;
+  const width = 150;
+  // In landscape-short, anchor to bottom-right so the panel opens directly
+  // above the Database chip and never hides behind the top chrome.
+  // In portrait, use the user's stored drag position.
   const posStyle = isLandscapeShort
-    ? { maxHeight: state.collapsed ? undefined : "calc(100dvh - 6rem)" }
+    ? { maxHeight: state.collapsed ? undefined : "calc(100dvh - 5rem)" }
     : { left: state.x, top: state.y, maxHeight: state.collapsed ? undefined : "38dvh" };
 
   return (
