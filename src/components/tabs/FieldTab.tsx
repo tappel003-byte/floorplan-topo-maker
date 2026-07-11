@@ -643,14 +643,22 @@ export function FieldTab({
           commitSnap(nextPts);
         }}
         drawOverlay={(ctx) => {
+          const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
           for (const p of points) {
-            const color = p.isBasePoint ? "#16a34a" : pointColor;
-            const markerR = Math.max(pointSize, 2);
             const isAnchor = !!p.isTransitionAnchor;
             const linkedT = p.transitionId
               ? transitions.find((t) => t.id === p.transitionId)
               : null;
             const isDownstream = !!linkedT && !isAnchor;
+            const isHighlighted =
+              !!viewingTransitionId && p.transitionId === viewingTransitionId;
+
+            const color = isAnchor
+              ? TRANSITION_COLOR
+              : p.isBasePoint
+                ? "#16a34a"
+                : pointColor;
+            const markerR = Math.max(pointSize, 2);
 
             // Marker: diamond for anchors, filled circle with white core otherwise.
             if (isAnchor) {
@@ -661,9 +669,9 @@ export function FieldTab({
               ctx.lineTo(p.x, p.y + r);
               ctx.lineTo(p.x - r, p.y);
               ctx.closePath();
-              ctx.fillStyle = "#ffffff";
+              ctx.fillStyle = TRANSITION_COLOR;
               ctx.fill();
-              ctx.strokeStyle = color;
+              ctx.strokeStyle = "#a16207";
               ctx.lineWidth = 2;
               ctx.stroke();
             } else {
@@ -671,6 +679,16 @@ export function FieldTab({
               ctx.arc(p.x, p.y, markerR, 0, Math.PI * 2);
               ctx.fillStyle = color;
               ctx.fill();
+            }
+
+            // Highlight ring for downstream points when their transition is selected.
+            if (isHighlighted && isDownstream) {
+              const r = markerR + 5;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+              ctx.strokeStyle = TRANSITION_COLOR;
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
             }
 
             // Label — anchors show only the raw reading, downstream points show `raw+delta`.
@@ -689,8 +707,8 @@ export function FieldTab({
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
 
-            ctx.strokeStyle = "#111827";
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
+            ctx.lineWidth = isHighlighted ? 1.5 : 1;
             ctx.stroke();
 
             ctx.fillStyle = "#111827";
@@ -698,6 +716,7 @@ export function FieldTab({
             ctx.textBaseline = "middle";
             ctx.fillText(label, lx + tm.width / 2, ly - padY + (12 + padY * 2) / 2);
           }
+
 
 
 
