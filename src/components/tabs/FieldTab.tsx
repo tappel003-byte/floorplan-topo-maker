@@ -838,20 +838,30 @@ export function FieldTab({
               }
             : undefined
         }
-        activeTransition={
-          activeTransitionId && !editingPoint
-            ? (() => {
-                const t = transitions.find((x) => x.id === activeTransitionId);
-                if (!t) return undefined;
-                return {
-                  label: `→ ${t.surfaceB}`,
-                  delta: transitionDelta(t),
-                };
-              })()
-            : undefined
-        }
+        activeTransition={(() => {
+          const tid = editingPoint
+            ? (!editingPoint.isTransitionAnchor ? editingPoint.transitionId : undefined)
+            : activeTransitionId;
+          if (!tid) return undefined;
+          const t = transitions.find((x) => x.id === tid);
+          if (!t) return undefined;
+          return { label: `→ ${t.surfaceB}`, delta: transitionDelta(t) };
+        })()}
         onRemoveTransition={
-          activeTransitionId && !editingPoint ? () => setActiveTransitionId(null) : undefined
+          editingPoint
+            ? (editingPoint.transitionId && !editingPoint.isTransitionAnchor
+                ? async () => {
+                    const detached = { ...editingPoint, transitionId: undefined };
+                    await savePoint(detached);
+                    const nextPts = points.map((p) => (p.id === detached.id ? detached : p));
+                    onPointsChange(nextPts);
+                    commitSnap(nextPts);
+                    setEditingPoint(detached);
+                  }
+                : undefined)
+            : activeTransitionId
+              ? () => setActiveTransitionId(null)
+              : undefined
         }
         onAddTransition={
           !editingPoint && pending && !isBasePointCapture && !activeTransitionId
