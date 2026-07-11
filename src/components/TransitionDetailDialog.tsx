@@ -67,13 +67,6 @@ export function TransitionDetailDialog({
             <X className="h-5 w-5" />
           </Button>
         </div>
-            </div>
-            <div className="text-sm font-semibold">Anchor reference point</div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
