@@ -33,7 +33,7 @@ export function TransitionPickerSheet({ open, transitions, onClose, onReuse, onN
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold">Apply a transition</div>
+          <div className="text-sm font-semibold">Transitions in this house</div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
             <X className="h-5 w-5" />
           </Button>
