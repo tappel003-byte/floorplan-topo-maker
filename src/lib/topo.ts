@@ -1,8 +1,10 @@
 // Topo interpolation and contouring.
-// Uses a minimum-curvature-style relaxation grid seeded by inverse-distance
-// weighting, with survey readings held as fixed control cells.
+// Uses a TIN-style linear surface inside measured triangles, with IDW only for
+// boundary areas outside the point hull. This keeps contours faithful between
+// actual readings instead of smoothing peaks/lows away.
 
 import { contours } from "d3-contour";
+import Delaunator from "delaunator";
 import type { SurveyPoint } from "./types";
 
 export interface Grid {
@@ -52,12 +54,15 @@ export function buildGrid(
 
   const values = new Float64Array(cols * rows);
   const mask = new Uint8Array(cols * rows);
-  const fixed = new Uint8Array(cols * rows);
-  let minV = Infinity;
-  let maxV = -Infinity;
+  const pointCoords = points.map((p) => [p.x, p.y] as [number, number]);
+  const delaunay = Delaunator.from(pointCoords);
+  const triangles = buildTriangleIndex(points, delaunay.triangles);
+  let minV = Math.min(...points.map((p) => p.value));
+  let maxV = Math.max(...points.map((p) => p.value));
 
-  // Seed the surface with inverse-distance weighting so relaxation starts from
-  // a smooth surface rather than a triangulation.
+  // Build a measured surface. Inside a triangle, interpolate linearly between
+  // the three readings. Outside the convex hull but still inside the room
+  // boundary, fall back to IDW so the filled surface reaches the edges.
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const px = minX + c * step;
@@ -67,15 +72,7 @@ export function buildGrid(
         values[idx] = NaN;
         continue;
       }
-      let numerator = 0;
-      let denominator = 0;
-      for (const p of points) {
-        const d2 = (p.x - px) ** 2 + (p.y - py) ** 2;
-        const weight = 1 / Math.max(d2, 1e-6);
-        numerator += p.value * weight;
-        denominator += weight;
-      }
-      values[idx] = numerator / denominator;
+      values[idx] = interpolateTin(px, py, points, triangles) ?? interpolateIdw(px, py, points);
       mask[idx] = 1;
     }
   }
@@ -91,23 +88,11 @@ export function buildGrid(
     const idx = rc * cols + cc;
     if (mask[idx]) {
       values[idx] = p.value;
-      fixed[idx] = 1;
-    }
-  }
-
-  const relaxed = relaxMinimumCurvature(values, mask, fixed, cols, rows, 600);
-
-  for (let i = 0; i < relaxed.length; i++) {
-    if (!mask[i]) continue;
-    const v = relaxed[i];
-    if (Number.isFinite(v)) {
-      if (v < minV) minV = v;
-      if (v > maxV) maxV = v;
     }
   }
 
   return {
-    values: relaxed,
+    values,
     mask,
     width: cols,
     height: rows,
@@ -119,52 +104,79 @@ export function buildGrid(
   };
 }
 
-function relaxMinimumCurvature(
-  values: Float64Array,
-  mask: Uint8Array,
-  fixed: Uint8Array,
-  w: number,
-  h: number,
-  iterations: number,
-): Float64Array {
-  let src: Float64Array = values;
-  let dst: Float64Array = new Float64Array(values.length);
-  const omega = 0.58;
-  for (let pass = 0; pass < iterations; pass++) {
-    for (let r = 0; r < h; r++) {
-      for (let c = 0; c < w; c++) {
-        const i = r * w + c;
-        if (!mask[i]) {
-          dst[i] = NaN;
-          continue;
-        }
-        if (fixed[i]) {
-          dst[i] = values[i];
-          continue;
-        }
-        let sum = 0;
-        let n = 0;
-        const neighbors = [i - 1, i + 1, i - w, i + w];
-        for (const j of neighbors) {
-          if (j < 0 || j >= src.length || !mask[j]) continue;
-          if ((j === i - 1 && c === 0) || (j === i + 1 && c === w - 1)) continue;
-          sum += src[j];
-          n++;
-        }
-        if (!n) {
-          dst[i] = src[i];
-        } else {
-          const average = sum / n;
-          dst[i] = src[i] + omega * (average - src[i]);
-          if (!Number.isFinite(dst[i])) dst[i] = src[i];
-        }
-      }
-    }
-    const tmp = src;
-    src = dst;
-    dst = tmp;
+interface TriangleSample {
+  a: SurveyPoint;
+  b: SurveyPoint;
+  c: SurveyPoint;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+function buildTriangleIndex(points: SurveyPoint[], triangles: Uint32Array | Int32Array) {
+  const out: TriangleSample[] = [];
+  for (let i = 0; i < triangles.length; i += 3) {
+    const a = points[triangles[i]];
+    const b = points[triangles[i + 1]];
+    const c = points[triangles[i + 2]];
+    if (!a || !b || !c) continue;
+    out.push({
+      a,
+      b,
+      c,
+      minX: Math.min(a.x, b.x, c.x),
+      maxX: Math.max(a.x, b.x, c.x),
+      minY: Math.min(a.y, b.y, c.y),
+      maxY: Math.max(a.y, b.y, c.y),
+    });
   }
-  return src;
+  return out;
+}
+
+function interpolateTin(
+  x: number,
+  y: number,
+  points: SurveyPoint[],
+  triangles: TriangleSample[],
+): number | null {
+  for (const t of triangles) {
+    if (x < t.minX || x > t.maxX || y < t.minY || y > t.maxY) continue;
+    const weights = barycentric(x, y, t.a, t.b, t.c);
+    if (!weights) continue;
+    const [wa, wb, wc] = weights;
+    return wa * t.a.value + wb * t.b.value + wc * t.c.value;
+  }
+  return null;
+}
+
+function barycentric(
+  x: number,
+  y: number,
+  a: SurveyPoint,
+  b: SurveyPoint,
+  c: SurveyPoint,
+): [number, number, number] | null {
+  const det = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
+  if (Math.abs(det) < 1e-9) return null;
+  const wa = ((b.y - c.y) * (x - c.x) + (c.x - b.x) * (y - c.y)) / det;
+  const wb = ((c.y - a.y) * (x - c.x) + (a.x - c.x) * (y - c.y)) / det;
+  const wc = 1 - wa - wb;
+  const eps = -1e-7;
+  return wa >= eps && wb >= eps && wc >= eps ? [wa, wb, wc] : null;
+}
+
+function interpolateIdw(x: number, y: number, points: SurveyPoint[]) {
+  let numerator = 0;
+  let denominator = 0;
+  for (const p of points) {
+    const d2 = (p.x - x) ** 2 + (p.y - y) ** 2;
+    if (d2 < 1e-6) return p.value;
+    const weight = 1 / d2;
+    numerator += p.value * weight;
+    denominator += weight;
+  }
+  return numerator / denominator;
 }
 
 export interface ContourOptions {
@@ -179,11 +191,11 @@ export function contourThresholds(grid: Grid, options: ContourOptions) {
   const step = Math.max(0.01, options.step || 0.2);
   const min = options.min ?? grid.minValue;
   const max = options.max ?? grid.maxValue;
-  // Snap the first contour to the nearest tenth at or above the data min.
-  // Data is entered in tenths, so contour levels should always land on tenths.
-  const first = options.first ?? Math.ceil(min * 10 - 1e-6) / 10;
+  // Snap automatic contours to the interval grid, not to the data minimum.
+  // Example: min 9.30, max 10.30, step 0.20 => 9.40, 9.60, 9.80, 10.00, 10.20.
+  const first = options.first ?? Math.ceil((min - 1e-6) / step) * step;
   const count =
-    options.count && options.count > 0 ? options.count : Math.ceil((max - first) / step) + 1;
+    options.count && options.count > 0 ? options.count : Math.floor((max - first + 1e-6) / step) + 1;
   const thresholds: number[] = [];
   for (let i = 0; i < count; i++) {
     // Round to 3 decimals to avoid floating-point drift like 5.2000000001.
