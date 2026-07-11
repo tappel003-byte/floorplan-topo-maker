@@ -146,6 +146,11 @@ function ProjectWorkspace() {
     return <div className="p-6 text-sm">No floors in this project.</div>;
   }
 
+  const correctedPoints = useMemo(
+    () => withCorrectedValues(points, activeFloor?.transitions),
+    [points, activeFloor?.transitions],
+  );
+
   return (
     <div className="flex flex-col h-[100dvh] relative bg-background">
       <AppTopBar
