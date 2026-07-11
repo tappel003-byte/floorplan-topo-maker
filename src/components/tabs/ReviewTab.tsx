@@ -51,16 +51,29 @@ export function ReviewTab({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between border-b px-3 h-9">
         <span className="text-xs font-semibold">Review</span>
-        {onClose && (
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={onClose}
-            className="inline-flex items-center justify-center h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
-            aria-label="Close review"
+            onClick={() =>
+              setSortMode((m) => (m === "index" ? "high" : m === "high" ? "low" : "index"))
+            }
+            className="inline-flex items-center gap-1 h-7 px-2 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent"
+            aria-label="Sort points"
           >
-            <X className="h-4 w-4" />
+            <ArrowUpDown className="h-3 w-3" />
+            {sortMode === "index" ? "Pin #" : sortMode === "high" ? "High" : "Low"}
           </button>
-        )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+              aria-label="Close review"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
       {stats && (
         <div className="border-b p-3 grid grid-cols-4 gap-2 text-center text-xs">
@@ -77,8 +90,9 @@ export function ReviewTab({
           </div>
         ) : (
           <ul className="divide-y">
-            {points.map((p) => {
+            {sortedPoints.map((p) => {
               const selected = selectedIds.has(p.id);
+              const isOutlier = outliers.has(p.id);
               return (
                 <li
                   key={p.id}
@@ -97,24 +111,27 @@ export function ReviewTab({
                     "flex items-start gap-2 px-3 py-2 cursor-pointer " +
                     (selected ? "bg-primary/10" : "hover:bg-muted/30")
                   }
+                  title={isOutlier ? "Outlier" : undefined}
                 >
                   <span className="font-mono text-xs text-muted-foreground w-6 pt-0.5 tabular-nums">
                     {p.index}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-semibold tabular-nums">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={
+                          "font-mono font-semibold tabular-nums " +
+                          (isOutlier ? "text-amber-600" : "")
+                        }
+                      >
                         {p.value.toFixed(2)}"
+                      </span>
+                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                        x {Math.round(p.x)}, y {Math.round(p.y)}
                       </span>
                       {p.isBasePoint && (
                         <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-[10px] font-medium">
                           {p.label ?? "BP"}
-                        </span>
-                      )}
-                      {outliers.has(p.id) && (
-                        <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px]">
-                          <AlertTriangle className="h-3 w-3" />
-                          outlier
                         </span>
                       )}
                       {p.notes && <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />}
