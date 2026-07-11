@@ -23,6 +23,7 @@ export function TransitionDetailDialog({
   onClose,
   onSave,
   onDelete,
+  positionScreen,
 }: Props) {
   const [surfaceA, setSurfaceA] = useState("");
   const [surfaceB, setSurfaceB] = useState("");
