@@ -243,7 +243,7 @@ function ProjectWorkspace() {
             onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
           />
           <StatsChip
-            points={points}
+            points={correctedPoints}
             onHighlight={(p) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
