@@ -98,7 +98,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Surface A (reference)</span>
+            <span className="text-xs text-muted-foreground">From surface (reference)</span>
             <select
               value={surfaceA}
               onChange={(e) => setSurfaceA(e.target.value)}
@@ -113,7 +113,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Surface B (other side)</span>
+            <span className="text-xs text-muted-foreground">To surface (other side)</span>
             <select
               value={surfaceB}
               onChange={(e) => setSurfaceB(e.target.value)}
@@ -129,7 +129,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
 
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">
-              Reading A" {chained ? "(raw)" : ""}
+              {surfaceA || "From"} reading" {chained ? "(raw)" : ""}
             </span>
             <input
               type="number"
@@ -143,12 +143,12 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
             />
             {chained && valid && (
               <span className="text-[10px] text-muted-foreground font-mono">
-                = {aBase.toFixed(2)}" base
+                = {aBase.toFixed(2)}" corrected
               </span>
             )}
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Reading B" (raw)</span>
+            <span className="text-xs text-muted-foreground">{surfaceB || "To"} reading" (raw)</span>
             <input
               type="number"
               inputMode="decimal"
@@ -162,7 +162,9 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
         </div>
 
         <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
-          <span className="text-muted-foreground">Delta (B → base)</span>
+          <span className="text-muted-foreground">
+            {surfaceA || "From"} → {surfaceB || "To"}
+          </span>
           <span className="font-mono tabular-nums font-semibold">
             {valid ? `${formatDelta(delta)}"` : "—"}
           </span>
@@ -171,6 +173,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
           Plots a diamond anchor. Subsequent points on {surfaceB || "the other side"} display as{" "}
           <span className="font-mono">raw{formatDelta(delta || 0.4)}</span>.
         </p>
+
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
