@@ -170,7 +170,11 @@ export function buildGrid(
         values[idx] = NaN;
         continue;
       }
-      values[idx] = tps ? evalTps(tps, px, py) : interpolateIdw(px, py, points, 2);
+      const rawValue = tps ? evalTps(tps, px, py) : interpolateIdw(px, py, points, 2);
+      // The topo should never invent elevations beyond the measured high/low.
+      // TPS can mathematically overshoot near an edge; clamping keeps every
+      // rendered color and contour inside the same range shown in the legend.
+      values[idx] = Math.max(minV, Math.min(maxV, rawValue));
       mask[idx] = 1;
     }
   }
