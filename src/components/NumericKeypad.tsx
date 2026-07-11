@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete, Check, X, Repeat2, Trash2 } from "lucide-react";
+import { Delete, Check, X, Repeat2, Trash2, ArrowLeftRight } from "lucide-react";
+
+interface ActiveTransition {
+  label: string; // e.g. "→ Carpet"
+  delta: number; // signed
+}
 
 interface Props {
   open: boolean;
@@ -13,6 +18,12 @@ interface Props {
   onClose: () => void;
   /** When provided, shows a trash button in the header. Used for editing existing points. */
   onDelete?: () => void;
+  /** When provided, shows an "Add Transition" button in the header. Only used when placing new points. */
+  onAddTransition?: () => void;
+  /** When set, keypad shows an active-transition chip and reflects delta on the Enter button. */
+  activeTransition?: ActiveTransition | null;
+  /** Called when the user taps the X on the active-transition chip. */
+  onRemoveTransition?: () => void;
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
@@ -25,7 +36,11 @@ export function NumericKeypad({
   onSubmit,
   onClose,
   onDelete,
+  onAddTransition,
+  activeTransition,
+  onRemoveTransition,
 }: Props) {
+
   const [text, setText] = useState<string>("");
 
   useEffect(() => {
