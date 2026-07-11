@@ -45,6 +45,14 @@ export function ReviewTab({
     return set;
   }, [points, stats]);
 
+  const sortedPoints = useMemo(() => {
+    const arr = [...points];
+    if (sortMode === "high") arr.sort((a, b) => b.value - a.value);
+    else if (sortMode === "low") arr.sort((a, b) => a.value - b.value);
+    else arr.sort((a, b) => a.index - b.index);
+    return arr;
+  }, [points, sortMode]);
+
   const detail = detailId ? (points.find((p) => p.id === detailId) ?? null) : null;
 
   return (
