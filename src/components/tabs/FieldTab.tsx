@@ -93,13 +93,25 @@ export function FieldTab({
   const [, setNoteDragTick] = useState(0);
   const longPressTimerRef = useRef<number | null>(null);
 
+  // Transitions state
+  const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
+  const [addingTransition, setAddingTransition] = useState(false);
+  const [viewingTransitionId, setViewingTransitionId] = useState<string | null>(null);
+
   const notes: NotePin[] = floor.notes ?? [];
+  const transitions: Transition[] = floor.transitions ?? [];
+  const activeTransition = activeTransitionId
+    ? (transitions.find((t) => t.id === activeTransitionId) ?? null)
+    : null;
 
   useEffect(() => {
     setPending(null);
     setEditingPoint(null);
     setEditingNoteId(null);
     setNoteMode(false);
+    setActiveTransitionId(null);
+    setViewingTransitionId(null);
+
   }, [floor.id]);
 
   function commitSnap(nextPoints: SurveyPoint[]) {
