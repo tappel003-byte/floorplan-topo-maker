@@ -868,6 +868,8 @@ export function FieldTab({
             ? () => setPickingTransition(true)
             : undefined
         }
+        onUndo={() => window.dispatchEvent(new Event("app:undo"))}
+        canUndo
       />
 
       {/* Transition picker — recent reuse + New. */}
