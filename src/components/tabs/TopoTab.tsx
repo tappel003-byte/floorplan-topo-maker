@@ -431,6 +431,7 @@ export function TopoTab({
               livePinLow: activePinLow,
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
               legendSelected,
+              pointSize,
             });
           }}
         />
