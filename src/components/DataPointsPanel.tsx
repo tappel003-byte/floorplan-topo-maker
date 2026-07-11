@@ -174,7 +174,11 @@ export function DataPointsPanel({
   // above the Database chip and never hides behind the top chrome.
   // In portrait, use the user's stored drag position.
   const posStyle = isLandscapeShort
-    ? { maxHeight: state.collapsed ? undefined : "calc(100dvh - 5rem)" }
+    ? {
+        maxHeight: state.collapsed
+          ? undefined
+          : "calc(100dvh - max(env(safe-area-inset-top), 1.5rem) - env(safe-area-inset-bottom) - 6rem)",
+      }
     : { left: state.x, top: state.y, maxHeight: state.collapsed ? undefined : "38dvh" };
 
   return (
