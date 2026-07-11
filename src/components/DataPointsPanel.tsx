@@ -166,7 +166,7 @@ export function DataPointsPanel({
         className={
           "fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col " +
           (isLandscapeShort
-            ? "top-[calc(env(safe-area-inset-top)+3rem)] right-[calc(env(safe-area-inset-right)+0.5rem)]"
+            ? "bottom-[calc(env(safe-area-inset-bottom)+3.5rem)] right-[calc(env(safe-area-inset-right)+0.5rem)]"
             : "")
         }
         style={{ width, ...posStyle }}
