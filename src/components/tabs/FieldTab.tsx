@@ -768,7 +768,7 @@ export function FieldTab({
       )}
 
       <NumericKeypad
-        open={(!!pending && !bpPromptOpen) || !!editingPoint}
+        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition}
         initialValue={editingPoint ? editingPoint.value : isBasePointCapture ? 9.0 : undefined}
         repeatValue={
           !editingPoint && !isBasePointCapture ? points[points.length - 1]?.value : undefined
