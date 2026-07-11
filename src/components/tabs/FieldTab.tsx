@@ -820,13 +820,11 @@ export function FieldTab({
       )}
 
       <NumericKeypad
-        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition}
+        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition && !pickingTransition}
         initialValue={editingPoint ? editingPoint.value : isBasePointCapture ? 9.0 : undefined}
         repeatValue={
           !editingPoint && !isBasePointCapture ? points[points.length - 1]?.value : undefined
         }
-        title={keypadTitle}
-        subtitle="Inches. Positive = higher, negative = lower."
         onClose={() => {
           setPending(null);
           setEditingPoint(null);
@@ -860,10 +858,25 @@ export function FieldTab({
           activeTransitionId && !editingPoint ? () => setActiveTransitionId(null) : undefined
         }
         onAddTransition={
-          !editingPoint && pending && !isBasePointCapture
-            ? () => setAddingTransition(true)
+          !editingPoint && pending && !isBasePointCapture && !activeTransitionId
+            ? () => setPickingTransition(true)
             : undefined
         }
+      />
+
+      {/* Transition picker — recent reuse + New. */}
+      <TransitionPickerSheet
+        open={pickingTransition && !!pending}
+        transitions={transitions}
+        onClose={() => setPickingTransition(false)}
+        onReuse={(id) => {
+          setActiveTransitionId(id);
+          setPickingTransition(false);
+        }}
+        onNew={() => {
+          setPickingTransition(false);
+          setAddingTransition(true);
+        }}
       />
 
       {/* Add-Transition sheet — captures both readings at a doorway. */}
