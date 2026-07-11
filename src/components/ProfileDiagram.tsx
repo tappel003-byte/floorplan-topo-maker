@@ -1,28 +1,34 @@
-import { X } from "lucide-react";
 import type { Transition } from "@/lib/types";
 
 interface Props {
   activeId: string;
   transitions: readonly Transition[];
-  onDismiss?: () => void;
 }
 
 /** One surface strip in the stacked profile. */
 interface Surface {
   name: string;
-  raw: number; // manometer reading on this surface at its doorway
-  corrected: number; // base-frame equivalent (== slab datum)
+  raw: number; // manometer reading as taken at that doorway
+  delta: number; // signed offset from base (readingA) frame
+  probedToSlab: boolean; // true = manometer tip went through to slab (label at slab)
 }
 
 /**
- * Renders the active flooring chain as a small profile diagram:
- * a dashed slab reference line with a colored block per surface, each
- * labeled with its raw reading, and non-reference blocks tagged with
- * their offset (+0.4, −1.0, etc.).
+ * Compact profile of the active flooring chain, drawn to match what the
+ * manometer actually measures:
  *
- * The diagram IS the state — no extra chip needed.
+ *   - Dashed slab line = shared datum for all readings.
+ *   - Each surface = a block sitting on the slab (thicker = softer/taller).
+ *   - Raw reading label sits WHERE THE PROBE TOUCHED:
+ *       * anchor (root, hard surface like tile) → top of block
+ *       * soft surface (delta > 0, probed through) → at the slab line
+ *       * hard downstream surface → top of block
+ *   - Delta chip shows the correction added to reach base-frame.
+ *
+ * Meant to render inside the NumericKeypad — the diagram only exists while
+ * the user is actively logging a point in the chain.
  */
-export function ProfileDiagram({ activeId, transitions, onDismiss }: Props) {
+export function ProfileDiagram({ activeId, transitions }: Props) {
   // Walk parentId chain up to the root.
   const chain: Transition[] = [];
   {
@@ -37,71 +43,67 @@ export function ProfileDiagram({ activeId, transitions, onDismiss }: Props) {
   }
   if (chain.length === 0) return null;
 
-  // Build ordered surface list: root.A, root.B, next.B, next.B, …
   const root = chain[0];
+  // Build ordered surface list. Anchor = surfaceA of root (measured on top).
+  // Every next surface B in the chain: raw reading, delta from base.
   const surfaces: Surface[] = [
-    { name: root.surfaceA, raw: root.readingA, corrected: root.readingA },
+    { name: root.surfaceA, raw: root.readingA, delta: 0, probedToSlab: false },
   ];
   for (const t of chain) {
-    surfaces.push({ name: t.surfaceB, raw: t.readingB, corrected: t.readingA });
+    const delta = t.readingA - t.readingB; // add to raw to get base-frame
+    surfaces.push({
+      name: t.surfaceB,
+      raw: t.readingB,
+      delta,
+      // Heuristic: positive delta means raw < ref → probed through soft cover.
+      probedToSlab: delta > 0.05,
+    });
   }
 
-  // Reference (slab) = root readingA — everything is normalized to this.
-  const reference = root.readingA;
+  // Visual "thickness" per surface — pure decoration to communicate soft vs hard.
+  const THICKNESS: Record<string, number> = {
+    Tile: 14,
+    Hardwood: 22,
+    Wood: 22,
+    LVP: 12,
+    Vinyl: 10,
+    Laminate: 16,
+    Stone: 16,
+    Concrete: 4,
+    Carpet: 40,
+    Other: 20,
+  };
 
-  // Vertical scale — pixels per inch of delta from reference.
-  // Cap so a very deep chain doesn't explode the card.
-  const deltas = surfaces.map((s) => Math.abs(s.corrected - s.raw));
-  const maxDelta = Math.max(0.4, ...deltas);
-  const PX_PER_INCH = Math.min(50, 70 / maxDelta);
-
-  // Layout constants
-  const BLOCK_W = 74;
-  const GAP = 8;
-  const PAD_X = 14;
-  const REF_Y = 30; // y of the dashed slab line
-  const BLOCK_BASE = 108; // y of the bottom of every block
+  const BLOCK_W = 66;
+  const GAP = 6;
+  const PAD_X = 10;
+  const SLAB_Y = 78; // dashed slab line — reserve room above for tall blocks + labels
   const width = PAD_X * 2 + surfaces.length * BLOCK_W + (surfaces.length - 1) * GAP;
-  const height = BLOCK_BASE + 22; // space for bottom surface label
+  const height = SLAB_Y + 26; // room below slab for probed-through reading
 
-  // Assign block colors per surface index (stable palette).
   const PALETTE = ["#c4a484", "#a67c52", "#8b6f47", "#6b5537", "#4a3c26"];
 
   return (
-    <div className="pointer-events-auto rounded-xl bg-white/95 backdrop-blur shadow-lg border border-gray-200 px-2 py-2">
-      <div className="flex items-center justify-between mb-1 px-1">
-        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-          Chain
-        </span>
-        {onDismiss && (
-          <button
-            onClick={onDismiss}
-            aria-label="Dismiss chain"
-            className="text-gray-400 hover:text-gray-700"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+    <div className="rounded-md border border-gray-200 bg-white/95 px-1 py-1 overflow-x-auto">
       <svg
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         className="block"
       >
-        {/* Dashed slab reference line, running across all blocks */}
+        {/* Dashed slab reference line */}
         <line
           x1={PAD_X - 4}
           x2={width - PAD_X + 4}
-          y1={REF_Y}
-          y2={REF_Y}
+          y1={SLAB_Y}
+          y2={SLAB_Y}
           stroke="#6b7280"
           strokeWidth={1.25}
           strokeDasharray="4 3"
         />
         <text
           x={width - PAD_X + 4}
-          y={REF_Y - 4}
+          y={SLAB_Y + 12}
           textAnchor="end"
           fontSize={9}
           fill="#6b7280"
@@ -112,28 +114,15 @@ export function ProfileDiagram({ activeId, transitions, onDismiss }: Props) {
 
         {surfaces.map((s, i) => {
           const x = PAD_X + i * (BLOCK_W + GAP);
-          // Delta = corrected - raw. Positive = raw was lower than slab.
-          const delta = s.corrected - s.raw;
-          // Block top: shift downward from REF_Y proportional to delta.
-          // If delta = 0, top sits at REF_Y (flush with slab line).
-          const topY = REF_Y + delta * PX_PER_INCH;
-          const blockH = Math.max(28, BLOCK_BASE - topY);
+          const blockH = THICKNESS[s.name] ?? 20;
+          const topY = SLAB_Y - blockH;
           const color = PALETTE[i % PALETTE.length];
-          const isRef = i === 0;
+          const labelY = s.probedToSlab ? SLAB_Y + 12 : topY - 5;
+          const tickY1 = s.probedToSlab ? SLAB_Y : topY;
+          const tickY2 = s.probedToSlab ? SLAB_Y + 3 : topY - 3;
+
           return (
             <g key={i}>
-              {/* Raw reading label above the block top */}
-              <text
-                x={x + BLOCK_W / 2}
-                y={topY - 6}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={600}
-                fill="#111827"
-                fontFamily="ui-monospace, monospace"
-              >
-                {s.raw.toFixed(1)}
-              </text>
               {/* Block */}
               <rect
                 x={x}
@@ -148,7 +137,7 @@ export function ProfileDiagram({ activeId, transitions, onDismiss }: Props) {
               {/* Surface name inside block */}
               <text
                 x={x + BLOCK_W / 2}
-                y={topY + Math.min(blockH / 2 + 4, blockH - 6)}
+                y={topY + blockH / 2 + 4}
                 textAnchor="middle"
                 fontSize={11}
                 fontWeight={600}
@@ -156,20 +145,40 @@ export function ProfileDiagram({ activeId, transitions, onDismiss }: Props) {
               >
                 {s.name}
               </text>
-              {/* Delta chip — skip for reference (delta = 0). Positioned in
-                  the gap between the raw label and the slab line. */}
-              {!isRef && Math.abs(delta) > 0.001 && (
+              {/* Tick showing where probe touched */}
+              <line
+                x1={x + BLOCK_W / 2}
+                x2={x + BLOCK_W / 2}
+                y1={tickY1}
+                y2={tickY2}
+                stroke="#111827"
+                strokeWidth={1.25}
+              />
+              {/* Raw reading */}
+              <text
+                x={x + BLOCK_W / 2}
+                y={labelY}
+                textAnchor="middle"
+                fontSize={11}
+                fontWeight={700}
+                fill="#111827"
+                fontFamily="ui-monospace, monospace"
+              >
+                {s.raw.toFixed(1)}
+              </text>
+              {/* Delta chip — skip for anchor */}
+              {i > 0 && Math.abs(s.delta) > 0.001 && (
                 <text
                   x={x + BLOCK_W / 2}
-                  y={REF_Y - 5}
+                  y={s.probedToSlab ? SLAB_Y + 22 : topY - 16}
                   textAnchor="middle"
-                  fontSize={10}
+                  fontSize={9}
                   fontWeight={700}
-                  fill={delta >= 0 ? "#15803d" : "#b91c1c"}
+                  fill={s.delta >= 0 ? "#15803d" : "#b91c1c"}
                   fontFamily="ui-monospace, monospace"
                 >
-                  {delta >= 0 ? "+" : "−"}
-                  {Math.abs(delta).toFixed(1)}
+                  {s.delta >= 0 ? "+" : "−"}
+                  {Math.abs(s.delta).toFixed(1)}
                 </text>
               )}
             </g>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Delete, Check, X, Repeat2, Trash2, ArrowLeftRight, Undo2 } from "lucide-react";
 
@@ -27,6 +27,8 @@ interface Props {
   /** When provided, shows an Undo button in the header. */
   onUndo?: () => void;
   canUndo?: boolean;
+  /** Optional visual profile diagram shown above the input display. */
+  diagramSlot?: ReactNode;
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
@@ -44,8 +46,12 @@ export function NumericKeypad({
   onRemoveTransition,
   onUndo,
   canUndo,
+  diagramSlot,
 }: Props) {
   void onRemoveTransition;
+  void title;
+  void subtitle;
+
 
 
   const [text, setText] = useState<string>("");
@@ -175,9 +181,11 @@ export function NumericKeypad({
           </Button>
           </div>
         </div>
-        {/* Active-transition chip removed — the on-canvas ProfileDiagram
-            is the visible state. The corrected-value preview and the
-            Enter (+delta) label below still reflect the active transition. */}
+        {/* Profile diagram — only visible while this keypad is open, i.e.,
+            only while the user is actively logging a point in the chain. */}
+        {diagramSlot && (
+          <div className="mb-2 flex justify-center">{diagramSlot}</div>
+        )}
 
         <div className="landscape-short:grid landscape-short:grid-cols-[1fr_1.4fr] landscape-short:gap-3">
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
