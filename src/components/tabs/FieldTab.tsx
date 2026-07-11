@@ -827,11 +827,13 @@ export function FieldTab({
         <TransitionDetailDialog
           transition={transitions.find((t) => t.id === viewingTransitionId)!}
           open={!!viewingTransitionId}
+          downstreamCount={points.filter((p) => p.transitionId === viewingTransitionId && !p.isTransitionAnchor).length}
           onClose={() => setViewingTransitionId(null)}
           onSave={handleSaveTransition}
           onDelete={() => handleDeleteTransition(viewingTransitionId)}
         />
       )}
+
 
 
       {bpPromptOpen && pending && (
