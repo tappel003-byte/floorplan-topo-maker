@@ -61,9 +61,16 @@ export interface Transition {
   y: number;
   surfaceA: string; // reference side (anchor is captured here)
   surfaceB: string; // other side (downstream points live here)
-  readingA: number; // e.g. 9.0 on tile
-  readingB: number; // e.g. 8.6 on carpet
+  readingA: number; // ALWAYS base-frame (already includes any parent-chain delta)
+  readingB: number; // raw reading on surfaceB at the doorway
   createdAt: number;
+  // Chaining: when this transition was measured while an existing transition
+  // was active, parentId links to that parent. readingA is stored base-frame,
+  // so delta math stays flat (no recursive resolution at read time).
+  parentId?: string;
+  // The raw reading typed on the parent surface (before parent delta added).
+  // Kept for display and for re-deriving readingA if the parent is edited.
+  readingARawOnParent?: number;
 }
 
 
