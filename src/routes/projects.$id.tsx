@@ -13,6 +13,7 @@ import { ModeToggle } from "@/components/chrome/ModeToggle";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
 import { StatsChip } from "@/components/chrome/StatsChip";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
+import { withCorrectedValues } from "@/lib/transitions";
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
