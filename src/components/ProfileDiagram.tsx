@@ -5,83 +5,71 @@ interface Props {
   transitions: readonly Transition[];
 }
 
-/** One surface strip in the stacked profile. */
+/** Soft surfaces are probed through — reading is taken AT the slab. */
+const SOFT_SURFACES = new Set(["Carpet", "Pad", "Rug"]);
+
+/** Visual "block" heights for hard surfaces (purely decorative). */
+const HARD_THICKNESS: Record<string, number> = {
+  Tile: 16,
+  Hardwood: 22,
+  Wood: 22,
+  LVP: 14,
+  Vinyl: 12,
+  Laminate: 16,
+  Stone: 18,
+  Concrete: 6,
+  Other: 18,
+};
+
 interface Surface {
   name: string;
-  raw: number; // manometer reading as taken at that doorway
-  delta: number; // signed offset from base (readingA) frame
-  probedToSlab: boolean; // true = manometer tip went through to slab (label at slab)
+  reading: number;
+  readingFar?: number;
+  soft: boolean;
 }
 
 /**
- * Compact profile of the active flooring chain, drawn to match what the
+ * Compact profile of the active doorway transition. Rebuilt to match how the
  * manometer actually measures:
  *
- *   - Dashed slab line = shared datum for all readings.
- *   - Each surface = a block sitting on the slab (thicker = softer/taller).
- *   - Raw reading label sits WHERE THE PROBE TOUCHED:
- *       * anchor (root, hard surface like tile) → top of block
- *       * soft surface (delta > 0, probed through) → at the slab line
- *       * hard downstream surface → top of block
- *   - Delta chip shows the correction added to reach base-frame.
+ *   - Dashed slab line = shared datum.
+ *   - Hard surfaces (tile / wood / etc) = colored block sitting ON the slab,
+ *     with the reading labeled on top and a probe tick at the top of the block.
+ *   - Soft surfaces (carpet) = thin strip flush WITH the slab (no block above),
+ *     because the probe goes through the carpet to the slab. Readings sit at
+ *     the slab line. Soft surfaces can have TWO readings (near-door and
+ *     far-side of the room) — both are shown as separate ticks/labels.
  *
- * Meant to render inside the NumericKeypad — the diagram only exists while
- * the user is actively logging a point in the chain.
+ * Only shows the single active transition — no parent-chain walking.
  */
 export function ProfileDiagram({ activeId, transitions }: Props) {
-  // Walk parentId chain up to the root.
-  const chain: Transition[] = [];
-  {
-    const byId = new Map(transitions.map((t) => [t.id, t]));
-    let cur = byId.get(activeId);
-    const guard = new Set<string>();
-    while (cur && !guard.has(cur.id)) {
-      chain.unshift(cur);
-      guard.add(cur.id);
-      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-    }
-  }
-  if (chain.length === 0) return null;
+  const t = transitions.find((x) => x.id === activeId);
+  if (!t) return null;
 
-  const root = chain[0];
-  // Build ordered surface list. Anchor = surfaceA of root (measured on top).
-  // Every next surface B in the chain: raw reading, delta from base.
   const surfaces: Surface[] = [
-    { name: root.surfaceA, raw: root.readingA, delta: 0, probedToSlab: false },
-  ];
-  for (const t of chain) {
-    const delta = t.readingA - t.readingB; // add to raw to get base-frame
-    surfaces.push({
+    {
+      name: t.surfaceA,
+      reading: t.readingA,
+      readingFar: t.readingAFar,
+      soft: SOFT_SURFACES.has(t.surfaceA),
+    },
+    {
       name: t.surfaceB,
-      raw: t.readingB,
-      delta,
-      // Heuristic: positive delta means raw < ref → probed through soft cover.
-      probedToSlab: delta > 0.05,
-    });
-  }
+      reading: t.readingB,
+      readingFar: t.readingBFar,
+      soft: SOFT_SURFACES.has(t.surfaceB),
+    },
+  ];
 
-  // Visual "thickness" per surface — pure decoration to communicate soft vs hard.
-  const THICKNESS: Record<string, number> = {
-    Tile: 14,
-    Hardwood: 22,
-    Wood: 22,
-    LVP: 12,
-    Vinyl: 10,
-    Laminate: 16,
-    Stone: 16,
-    Concrete: 4,
-    Carpet: 40,
-    Other: 20,
-  };
-
-  const BLOCK_W = 66;
+  const BLOCK_W = 74;
   const GAP = 6;
   const PAD_X = 10;
-  const SLAB_Y = 78; // dashed slab line — reserve room above for tall blocks + labels
+  const SLAB_Y = 60;
   const width = PAD_X * 2 + surfaces.length * BLOCK_W + (surfaces.length - 1) * GAP;
-  const height = SLAB_Y + 26; // room below slab for probed-through reading
+  const height = SLAB_Y + 30;
 
-  const PALETTE = ["#c4a484", "#a67c52", "#8b6f47", "#6b5537", "#4a3c26"];
+  const PALETTE = ["#c4a484", "#8b6f47"];
+  const SOFT_COLOR = "#b89968";
 
   return (
     <div className="rounded-md border border-gray-200 bg-white/95 px-1 py-1 overflow-x-auto">
@@ -103,7 +91,7 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
         />
         <text
           x={width - PAD_X + 4}
-          y={SLAB_Y + 12}
+          y={SLAB_Y + 20}
           textAnchor="end"
           fontSize={9}
           fill="#6b7280"
@@ -114,16 +102,112 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
 
         {surfaces.map((s, i) => {
           const x = PAD_X + i * (BLOCK_W + GAP);
-          const blockH = THICKNESS[s.name] ?? 20;
-          const topY = SLAB_Y - blockH;
-          const color = PALETTE[i % PALETTE.length];
-          const labelY = s.probedToSlab ? SLAB_Y + 12 : topY - 5;
-          const tickY1 = s.probedToSlab ? SLAB_Y : topY;
-          const tickY2 = s.probedToSlab ? SLAB_Y + 3 : topY - 3;
+          const color = s.soft ? SOFT_COLOR : PALETTE[i % PALETTE.length];
 
+          if (s.soft) {
+            // Thin strip flush with slab. Readings live AT the slab.
+            const STRIP_H = 5;
+            const stripY = SLAB_Y - STRIP_H;
+            const leftReading = s.reading;
+            const rightReading = s.readingFar;
+            const showTwo = typeof rightReading === "number";
+            return (
+              <g key={i}>
+                <rect
+                  x={x}
+                  y={stripY}
+                  width={BLOCK_W}
+                  height={STRIP_H}
+                  fill={color}
+                  stroke="#4b3820"
+                  strokeWidth={0.75}
+                  rx={1}
+                />
+                {/* Surface name — small, sits just above the strip */}
+                <text
+                  x={x + BLOCK_W / 2}
+                  y={stripY - 4}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontWeight={600}
+                  fill="#4b3820"
+                >
+                  {s.name}
+                </text>
+                {/* Reading labels AT slab. One centered, or two split left/right. */}
+                {showTwo ? (
+                  <>
+                    <line
+                      x1={x + 8}
+                      x2={x + 8}
+                      y1={SLAB_Y}
+                      y2={SLAB_Y + 4}
+                      stroke="#111827"
+                      strokeWidth={1.25}
+                    />
+                    <text
+                      x={x + 8}
+                      y={SLAB_Y + 14}
+                      textAnchor="start"
+                      fontSize={11}
+                      fontWeight={700}
+                      fill="#111827"
+                      fontFamily="ui-monospace, monospace"
+                    >
+                      {leftReading.toFixed(1)}
+                    </text>
+                    <line
+                      x1={x + BLOCK_W - 8}
+                      x2={x + BLOCK_W - 8}
+                      y1={SLAB_Y}
+                      y2={SLAB_Y + 4}
+                      stroke="#111827"
+                      strokeWidth={1.25}
+                    />
+                    <text
+                      x={x + BLOCK_W - 8}
+                      y={SLAB_Y + 14}
+                      textAnchor="end"
+                      fontSize={11}
+                      fontWeight={700}
+                      fill="#111827"
+                      fontFamily="ui-monospace, monospace"
+                    >
+                      {rightReading!.toFixed(1)}
+                    </text>
+                  </>
+                ) : (
+                  <>
+                    <line
+                      x1={x + BLOCK_W / 2}
+                      x2={x + BLOCK_W / 2}
+                      y1={SLAB_Y}
+                      y2={SLAB_Y + 4}
+                      stroke="#111827"
+                      strokeWidth={1.25}
+                    />
+                    <text
+                      x={x + BLOCK_W / 2}
+                      y={SLAB_Y + 14}
+                      textAnchor="middle"
+                      fontSize={11}
+                      fontWeight={700}
+                      fill="#111827"
+                      fontFamily="ui-monospace, monospace"
+                    >
+                      {leftReading.toFixed(1)}
+                    </text>
+                  </>
+                )}
+              </g>
+            );
+          }
+
+          // Hard surface: block above slab, reading on top.
+          const blockH = HARD_THICKNESS[s.name] ?? 18;
+          const topY = SLAB_Y - blockH;
           return (
             <g key={i}>
-              {/* Block */}
               <rect
                 x={x}
                 y={topY}
@@ -134,7 +218,6 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
                 strokeWidth={1}
                 rx={2}
               />
-              {/* Surface name inside block */}
               <text
                 x={x + BLOCK_W / 2}
                 y={topY + blockH / 2 + 4}
@@ -145,42 +228,26 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
               >
                 {s.name}
               </text>
-              {/* Tick showing where probe touched */}
+              {/* Probe tick at top of block */}
               <line
                 x1={x + BLOCK_W / 2}
                 x2={x + BLOCK_W / 2}
-                y1={tickY1}
-                y2={tickY2}
+                y1={topY}
+                y2={topY - 3}
                 stroke="#111827"
                 strokeWidth={1.25}
               />
-              {/* Raw reading */}
               <text
                 x={x + BLOCK_W / 2}
-                y={labelY}
+                y={topY - 6}
                 textAnchor="middle"
                 fontSize={11}
                 fontWeight={700}
                 fill="#111827"
                 fontFamily="ui-monospace, monospace"
               >
-                {s.raw.toFixed(1)}
+                {s.reading.toFixed(1)}
               </text>
-              {/* Delta chip — skip for anchor */}
-              {i > 0 && Math.abs(s.delta) > 0.001 && (
-                <text
-                  x={x + BLOCK_W / 2}
-                  y={s.probedToSlab ? SLAB_Y + 22 : topY - 16}
-                  textAnchor="middle"
-                  fontSize={9}
-                  fontWeight={700}
-                  fill={s.delta >= 0 ? "#15803d" : "#b91c1c"}
-                  fontFamily="ui-monospace, monospace"
-                >
-                  {s.delta >= 0 ? "+" : "−"}
-                  {Math.abs(s.delta).toFixed(1)}
-                </text>
-              )}
             </g>
           );
         })}

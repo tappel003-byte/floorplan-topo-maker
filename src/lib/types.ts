@@ -61,17 +61,15 @@ export interface Transition {
   y: number;
   surfaceA: string; // reference side (anchor is captured here)
   surfaceB: string; // other side (downstream points live here)
-  readingA: number; // ALWAYS base-frame (already includes any parent-chain delta)
+  readingA: number; // raw reading on surfaceA at the doorway (base-frame)
   readingB: number; // raw reading on surfaceB at the doorway
+  // Optional second reading taken at the far side of a soft-surface room.
+  // Used for the profile diagram; does NOT affect the doorway delta math.
+  readingAFar?: number;
+  readingBFar?: number;
   createdAt: number;
-  // Chaining: when this transition was measured while an existing transition
-  // was active, parentId links to that parent. readingA is stored base-frame,
-  // so delta math stays flat (no recursive resolution at read time).
-  parentId?: string;
-  // The raw reading typed on the parent surface (before parent delta added).
-  // Kept for display and for re-deriving readingA if the parent is edited.
-  readingARawOnParent?: number;
 }
+
 
 
 export interface SurveyPoint {
