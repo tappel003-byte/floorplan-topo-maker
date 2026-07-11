@@ -939,6 +939,7 @@ function renderTopoTop(
     livePinLow?: { dx: number; dy: number } | null;
     highlightPin?: "pin-high" | "pin-low" | null;
     legendSelected?: boolean;
+    pointSize?: number;
   },
 ) {
   const resolved = resolveSettings(settings);
