@@ -841,6 +841,20 @@ export function FieldTab({
             ? async () => {
                 const p = editingPoint;
                 setEditingPoint(null);
+                // If this was an anchor, also drop the transition record and
+                // detach downstream refs so no orphans linger.
+                if (p.isTransitionAnchor && p.transitionId) {
+                  const tid = p.transitionId;
+                  const nextTs = transitions.filter((t) => t.id !== tid);
+                  await persistTransitions(nextTs);
+                  const downstream = points.filter(
+                    (pt) => pt.transitionId === tid && pt.id !== p.id,
+                  );
+                  for (const d of downstream) {
+                    await savePoint({ ...d, transitionId: undefined });
+                  }
+                  if (activeTransitionId === tid) setActiveTransitionId(null);
+                }
                 await deletePoint(p.id);
                 const reindexed = await reindexFloorPoints(floor.id);
                 onPointsChange(reindexed);
