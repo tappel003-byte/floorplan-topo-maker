@@ -882,6 +882,7 @@ export function FieldTab({
           onClose={() => setViewingTransitionId(null)}
           onSave={handleSaveTransition}
           onDelete={() => handleDeleteTransition(viewingTransitionId)}
+          positionScreen={transitionScreen ?? undefined}
         />
       )}
 
