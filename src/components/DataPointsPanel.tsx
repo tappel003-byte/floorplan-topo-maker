@@ -148,13 +148,18 @@ export function DataPointsPanel({
     typeof window !== "undefined" &&
     window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches;
   const posStyle = isLandscapeShort
-    ? { right: 8, top: 8, maxHeight: state.collapsed ? undefined : "calc(100dvh - 5.5rem)" }
+    ? { maxHeight: state.collapsed ? undefined : "calc(100dvh - 6rem)" }
     : { left: state.x, top: state.y, maxHeight: state.collapsed ? undefined : "38dvh" };
 
   return (
     <>
       <div
-        className="fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col"
+        className={
+          "fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col " +
+          (isLandscapeShort
+            ? "top-[calc(env(safe-area-inset-top)+3rem)] right-[calc(env(safe-area-inset-right)+0.5rem)]"
+            : "")
+        }
         style={{ width, ...posStyle }}
       >
         <div
