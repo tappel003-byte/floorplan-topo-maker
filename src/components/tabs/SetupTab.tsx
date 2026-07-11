@@ -267,12 +267,37 @@ function PlanPanel({
 
 function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) => void }) {
   const boundary = floor.boundary;
+  // Drag state for moving an existing vertex.
+  const dragRef = useRef<{
+    index: number;
+    original: { x: number; y: number };
+    moved: boolean;
+  } | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  // Hit radius in image pixels. Vertex circles are r=6; give a generous grab zone.
+  const HIT_RADIUS = 18;
+
+  function findVertexAt(x: number, y: number): number {
+    let best = -1;
+    let bestD2 = HIT_RADIUS * HIT_RADIUS;
+    for (let i = 0; i < boundary.length; i++) {
+      const dx = boundary[i].x - x;
+      const dy = boundary[i].y - y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= bestD2) {
+        bestD2 = d2;
+        best = i;
+      }
+    }
+    return best;
+  }
 
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-2 flex items-center gap-2 text-sm">
         <span className="text-muted-foreground">
-          Tap to add vertices, tap the first vertex to close.
+          Tap to add vertices. Drag a vertex to move it.
         </span>
         <div className="ml-auto flex gap-2">
           <Button
@@ -298,8 +323,43 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
         onTap={(x, y) => {
-          // if close to first, close polygon (no-op — polygon is implicit)
+          // Suppress add-vertex if this tap was on an existing vertex (handled as drag).
+          if (findVertexAt(x, y) >= 0) return;
           onChange({ ...floor, boundary: [...boundary, { x, y }] });
+        }}
+        onImagePointerDown={(x, y) => {
+          const idx = findVertexAt(x, y);
+          if (idx < 0) return false;
+          dragRef.current = {
+            index: idx,
+            original: { x: boundary[idx].x, y: boundary[idx].y },
+            moved: false,
+          };
+          setDragIndex(idx);
+          return true; // consume — prevents pan/tap
+        }}
+        onImagePointerMove={(x, y) => {
+          const drag = dragRef.current;
+          if (!drag) return;
+          drag.moved = true;
+          const next = boundary.slice();
+          next[drag.index] = { x, y };
+          onChange({ ...floor, boundary: next });
+        }}
+        onImagePointerUp={() => {
+          dragRef.current = null;
+          setDragIndex(null);
+        }}
+        onImagePointerCancel={() => {
+          // Pinch preempted — revert to original position so nothing gets nudged accidentally.
+          const drag = dragRef.current;
+          if (drag && drag.moved) {
+            const next = boundary.slice();
+            next[drag.index] = drag.original;
+            onChange({ ...floor, boundary: next });
+          }
+          dragRef.current = null;
+          setDragIndex(null);
         }}
         drawOverlay={(ctx) => {
           if (boundary.length === 0) return;
@@ -314,10 +374,11 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
           ctx.strokeStyle = "#2563eb";
           ctx.lineWidth = 3;
           ctx.stroke();
-          boundary.forEach((p) => {
+          boundary.forEach((p, i) => {
+            const active = i === dragIndex;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = "#2563eb";
+            ctx.arc(p.x, p.y, active ? 9 : 6, 0, Math.PI * 2);
+            ctx.fillStyle = active ? "#f59e0b" : "#2563eb";
             ctx.fill();
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
