@@ -899,6 +899,14 @@ export function FieldTab({
         }
         onUndo={() => window.dispatchEvent(new Event("app:undo"))}
         canUndo
+        diagramSlot={(() => {
+          const tid = editingPoint
+            ? (editingPoint.isTransitionAnchor ? editingPoint.transitionId : editingPoint.transitionId)
+            : activeTransitionId;
+          if (!tid) return null;
+          if (!transitions.find((t) => t.id === tid)) return null;
+          return <ProfileDiagram activeId={tid} transitions={transitions} />;
+        })()}
       />
 
       {/* Transition picker — recent reuse + New. */}
