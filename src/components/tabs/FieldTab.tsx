@@ -817,9 +817,10 @@ export function FieldTab({
       {/* Add-Transition sheet — captures both readings at a doorway. */}
       <AddTransitionSheet
         open={addingTransition && !!pending}
-        onCancel={() => setAddingTransition(false)}
-        onSubmit={handleAddTransition}
+        onClose={() => setAddingTransition(false)}
+        onSave={handleAddTransition}
       />
+
 
       {/* Anchor diamond → detail dialog. */}
       {viewingTransitionId && (
