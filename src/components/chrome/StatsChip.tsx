@@ -35,11 +35,15 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     return null;
   });
 
-  // Default: upper-right, safely under the top bar and clear of the canvas center.
+  // Default: bottom center, above the bottom pill row. Persisted position wins.
   useEffect(() => {
     if (pos) return;
     const w = ref.current?.offsetWidth ?? 180;
-    setPos({ x: Math.max(8, window.innerWidth - w - 12), y: 52 });
+    const h = ref.current?.offsetHeight ?? 24;
+    setPos({
+      x: Math.max(8, window.innerWidth / 2 - w / 2),
+      y: Math.max(44, window.innerHeight - h - 80),
+    });
   }, [pos]);
 
   // Clamp on resize / rotation.
