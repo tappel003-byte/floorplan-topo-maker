@@ -792,7 +792,46 @@ export function FieldTab({
               }
             : undefined
         }
+        activeTransition={
+          activeTransitionId && !editingPoint
+            ? (() => {
+                const t = transitions.find((x) => x.id === activeTransitionId);
+                if (!t) return undefined;
+                return {
+                  label: `→ ${t.surfaceB}`,
+                  delta: transitionDelta(t),
+                };
+              })()
+            : undefined
+        }
+        onRemoveTransition={
+          activeTransitionId && !editingPoint ? () => setActiveTransitionId(null) : undefined
+        }
+        onAddTransition={
+          !editingPoint && pending && !isBasePointCapture
+            ? () => setAddingTransition(true)
+            : undefined
+        }
       />
+
+      {/* Add-Transition sheet — captures both readings at a doorway. */}
+      <AddTransitionSheet
+        open={addingTransition && !!pending}
+        onCancel={() => setAddingTransition(false)}
+        onSubmit={handleAddTransition}
+      />
+
+      {/* Anchor diamond → detail dialog. */}
+      {viewingTransitionId && (
+        <TransitionDetailDialog
+          transition={transitions.find((t) => t.id === viewingTransitionId)!}
+          open={!!viewingTransitionId}
+          onClose={() => setViewingTransitionId(null)}
+          onSave={handleSaveTransition}
+          onDelete={() => handleDeleteTransition(viewingTransitionId)}
+        />
+      )}
+
 
       {bpPromptOpen && pending && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
