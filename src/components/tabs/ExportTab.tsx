@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
-import { buildGrid, computeContours } from "@/lib/topo";
+import { TOPO_GRID_TARGET_COLS, buildGrid, computeContours } from "@/lib/topo";
 import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
 
@@ -38,7 +38,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
 
   const grid = useMemo(() => {
     if (points.length < 3 || floor.boundary.length < 3) return null;
-    return buildGrid(points, floor.boundary, 190);
+    return buildGrid(points, floor.boundary, TOPO_GRID_TARGET_COLS);
   }, [points, floor.boundary]);
 
   const gridAndContours = useMemo(() => {
