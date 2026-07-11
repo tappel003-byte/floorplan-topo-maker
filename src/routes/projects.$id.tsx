@@ -13,6 +13,7 @@ import { ModeToggle } from "@/components/chrome/ModeToggle";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
 import { StatsChip } from "@/components/chrome/StatsChip";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
+import { withCorrectedValues } from "@/lib/transitions";
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
@@ -145,6 +146,11 @@ function ProjectWorkspace() {
     return <div className="p-6 text-sm">No floors in this project.</div>;
   }
 
+  const correctedPoints = useMemo(
+    () => withCorrectedValues(points, activeFloor?.transitions),
+    [points, activeFloor?.transitions],
+  );
+
   return (
     <div className="flex flex-col h-[100dvh] relative bg-background">
       <AppTopBar
@@ -216,7 +222,7 @@ function ProjectWorkspace() {
         {mode === "topo" && (
           <TopoTab
             floor={activeFloor}
-            points={points}
+            points={correctedPoints}
             onPointsChange={setPoints}
             onFloorChange={(f) => setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)))}
             settings={settings}
@@ -226,7 +232,7 @@ function ProjectWorkspace() {
           />
         )}
         {mode === "export" && (
-          <ExportTab project={project} floor={activeFloor} points={points} settings={settings} />
+          <ExportTab project={project} floor={activeFloor} points={correctedPoints} settings={settings} />
         )}
       </main>
 
@@ -237,7 +243,7 @@ function ProjectWorkspace() {
             onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
           />
           <StatsChip
-            points={points}
+            points={correctedPoints}
             onHighlight={(p) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
