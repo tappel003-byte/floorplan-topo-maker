@@ -687,9 +687,8 @@ export function FieldTab({
             ctx.fillStyle = "#ffffff";
             ctx.beginPath();
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
-            ctx.beginPath();
-            ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
+
             ctx.strokeStyle = "#111827";
             ctx.lineWidth = 1;
             ctx.stroke();
