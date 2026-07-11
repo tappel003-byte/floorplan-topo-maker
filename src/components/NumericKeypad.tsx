@@ -45,6 +45,8 @@ export function NumericKeypad({
   onUndo,
   canUndo,
 }: Props) {
+  void onRemoveTransition;
+
 
   const [text, setText] = useState<string>("");
 
@@ -173,28 +175,9 @@ export function NumericKeypad({
           </Button>
           </div>
         </div>
-        {activeTransition && (
-          <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs">
-            <ArrowLeftRight className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="flex-1 min-w-0 truncate">
-              <span className="text-muted-foreground">Transition active · </span>
-              <span className="font-mono font-semibold">
-                {activeTransition.delta >= 0 ? "+" : "-"}
-                {Math.abs(activeTransition.delta).toFixed(1)}
-              </span>{" "}
-              <span className="text-muted-foreground">{activeTransition.label}</span>
-            </span>
-            {onRemoveTransition && (
-              <button
-                onClick={onRemoveTransition}
-                className="text-muted-foreground hover:text-foreground shrink-0"
-                aria-label="Remove active transition"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        )}
+        {/* Active-transition chip removed — the on-canvas ProfileDiagram
+            is the visible state. The corrected-value preview and the
+            Enter (+delta) label below still reflect the active transition. */}
 
         <div className="landscape-short:grid landscape-short:grid-cols-[1fr_1.4fr] landscape-short:gap-3">
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">

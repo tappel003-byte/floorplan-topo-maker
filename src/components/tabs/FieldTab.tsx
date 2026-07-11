@@ -4,6 +4,7 @@ import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
 import { TransitionPickerSheet } from "../TransitionPickerSheet";
 import { TransitionDetailDialog } from "../TransitionDetailDialog";
+import { ProfileDiagram } from "../ProfileDiagram";
 
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
@@ -416,6 +417,17 @@ export function FieldTab({
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Profile diagram — floating top-left when a chain is active. */}
+      {activeTransitionId && (
+        <div className="absolute z-20 top-2 left-2 landscape-short:top-auto landscape-short:left-[calc(env(safe-area-inset-left)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] max-w-[70vw] overflow-x-auto">
+          <ProfileDiagram
+            activeId={activeTransitionId}
+            transitions={transitions}
+            onDismiss={() => setActiveTransitionId(null)}
+          />
         </div>
       )}
 
