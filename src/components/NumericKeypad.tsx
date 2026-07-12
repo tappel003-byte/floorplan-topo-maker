@@ -134,6 +134,7 @@ export function NumericKeypad({
 
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
 
+  const hasSurfaceRow = !!(surfaceOptions && surfaceOptions.length >= 2 && onSubmitWithOption);
   const hasRepeat = repeatValue != null && isFinite(repeatValue);
   const showShortcutRow = hasRepeat || !!onAddTransition;
 
