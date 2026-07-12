@@ -52,6 +52,8 @@ export function NumericKeypad({
   onUndo,
   canUndo,
 }: Props) {
+  void onRemoveTransition;
+
 
   const [text, setText] = useState<string>("");
 
