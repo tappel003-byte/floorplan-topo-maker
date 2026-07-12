@@ -218,18 +218,6 @@ export function FieldTab({
       : p.value.toFixed(2);
   }
 
-  function openPointEditor(point: SurveyPoint) {
-    if (point.transitionId && transitions.some((t) => t.id === point.transitionId)) {
-      setActiveTransitionId(rootTransitionId(point.transitionId));
-    }
-    setPending(null);
-    setBpPromptOpen(false);
-    setViewingTransitionId(null);
-    setChainPopoverOpen(false);
-    setEditingPoint(point);
-  }
-
-
   function hitNote(x: number, y: number): NotePin | null {
     const s = scaleRef.current || 1;
     const r = NOTE_RADIUS + 6 / s;
@@ -575,11 +563,11 @@ export function FieldTab({
 
       {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
       {activeTransition && !pending && !editingPoint && (
-        <div className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1 pointer-events-none">
-          <div
-            className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900 pointer-events-auto"
-            onPointerDown={(e) => e.stopPropagation()}
-          >
+        <div
+          className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1 pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
             <button
               onClick={() => setChainPopoverOpen((v) => !v)}
               className="font-medium hover:underline"
@@ -600,7 +588,7 @@ export function FieldTab({
             </button>
           </div>
           {chainPopoverOpen && (
-            <div className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden pointer-events-none">
+            <div className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
               <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
                 Active correction — tap surface to edit, tap value to override
               </div>
@@ -616,12 +604,11 @@ export function FieldTab({
                 {chainOrdered(activeTransitionId).map((t) => (
                   <li key={t.id} className="flex items-stretch">
                     <button
-                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => {
                         setViewingTransitionId(t.id);
                         setChainPopoverOpen(false);
                       }}
-                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left pointer-events-auto"
+                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left"
                     >
                       <span className="text-gray-800 truncate">
                         {t.surfaceA} → {t.surfaceB}
@@ -905,7 +892,21 @@ export function FieldTab({
           if (!point) return;
           if (!moved) {
             if (longPressFired) return; // detail dialog already opened
-            openPointEditor(point);
+            // Pre-break behavior: tapping a diamond only re-arms/highlights its
+            // correction chain; every other reading opens the keypad directly.
+            if (point.isTransitionAnchor && point.transitionId) {
+              const stillExists = transitions.some((t) => t.id === point.transitionId);
+              if (stillExists) {
+                setActiveTransitionId(rootTransitionId(point.transitionId));
+                setChainPopoverOpen(false);
+                return;
+              }
+            }
+            setPending(null);
+            setBpPromptOpen(false);
+            setViewingTransitionId(null);
+            setChainPopoverOpen(false);
+            setEditingPoint(point);
             return;
           }
 
@@ -1303,7 +1304,7 @@ function DeltaOverrideInput({
     else setText(formatSigned(value));
   }
   return (
-    <div className="flex items-center pr-2 gap-0.5 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="flex items-center pr-2 gap-0.5">
       <input
         type="text"
         inputMode="decimal"
