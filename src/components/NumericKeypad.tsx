@@ -144,7 +144,8 @@ export function NumericKeypad({
   const hasSurfaceRow = !!(surfaceOptions && surfaceOptions.length >= 2 && onSubmitWithOption);
   const usesBottomCorrectionActions = hasSurfaceRow || !!activeTransition;
   const hasRepeat = repeatValue != null && isFinite(repeatValue);
-  const showShortcutRow = !activeTransition && (hasRepeat || !!onAddTransition);
+  const showRepeat = hasRepeat && !activeTransition;
+  const showShortcutRow = !!onAddTransition || showRepeat;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30" onClick={onClose}>
