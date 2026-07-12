@@ -7,24 +7,29 @@ interface ActiveTransition {
   delta: number; // signed
 }
 
+export interface SurfaceOption {
+  /** Transition id to tag the point with. null = root anchor surface (no tag). */
+  id: string | null;
+  surface: string;
+  delta: number; // signed, relative to root anchor (0 for root)
+}
+
 interface Props {
   open: boolean;
   initialValue?: number;
-  /** Previous point's value — shown as ghost + one-tap "Repeat" button. Not prefilled. */
   repeatValue?: number;
   title?: string;
   subtitle?: string;
   onSubmit: (value: number) => void;
   onClose: () => void;
-  /** When provided, shows a trash button in the header. Used for editing existing points. */
   onDelete?: () => void;
-  /** When provided, shows an "Add Transition" button in the header. Only used when placing new points. */
   onAddTransition?: () => void;
-  /** When set, keypad shows an active-transition chip and reflects delta on the Enter button. */
   activeTransition?: ActiveTransition | null;
-  /** Called when the user taps the X on the active-transition chip. */
   onRemoveTransition?: () => void;
-  /** When provided, shows an Undo button in the header. */
+  /** When ≥2, replaces the single Enter button with a horizontal row of surface-choice buttons. */
+  surfaceOptions?: SurfaceOption[];
+  /** Required when surfaceOptions is provided. Submits value + chosen surface. */
+  onSubmitWithOption?: (value: number, opt: SurfaceOption) => void;
   onUndo?: () => void;
   canUndo?: boolean;
 }
