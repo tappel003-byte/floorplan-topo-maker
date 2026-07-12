@@ -32,6 +32,9 @@ interface Props {
   onSubmitWithOption?: (value: number, opt: SurfaceOption) => void;
   onUndo?: () => void;
   canUndo?: boolean;
+  /** Ends the active transition chain without submitting a point. Shown when activeTransition is set. */
+  onEndTransition?: () => void;
+
 }
 
 /** Large arm's-length numeric keypad (bottom sheet). */
