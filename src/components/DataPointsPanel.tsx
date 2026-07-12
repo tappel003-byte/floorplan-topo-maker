@@ -24,7 +24,6 @@ interface Props {
 }
 
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
-const PANEL_TOP_SAFE_GAP = 96;
 
 type SortMode = "index" | "desc" | "asc";
 
@@ -45,21 +44,19 @@ function nextSortMode(m: SortMode): SortMode {
 function loadState(projectId: string): PanelState {
   try {
     const raw = localStorage.getItem(`dpp:${projectId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<PanelState>;
+    if (raw)
       return {
         collapsed: false,
         hidden: false,
         x: 8,
+        y: 52,
         sortMode: "index",
-        ...parsed,
-        y: Math.max(PANEL_TOP_SAFE_GAP, parsed.y ?? PANEL_TOP_SAFE_GAP),
+        ...JSON.parse(raw),
       };
-    }
   } catch {
     /* ignore */
   }
-  return { x: 8, y: PANEL_TOP_SAFE_GAP, collapsed: false, hidden: false, sortMode: "index" };
+  return { x: 8, y: 52, collapsed: false, hidden: false, sortMode: "index" };
 }
 
 export function DataPointsPanel({
