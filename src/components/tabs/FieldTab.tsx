@@ -1029,7 +1029,9 @@ export function FieldTab({
           setEditingPoint(null);
         }}
         onSubmit={(v) => submitValue(v)}
-        onSubmitWithOption={(v, opt) => submitValue(v, opt.id)}
+        onSubmitWithOption={(v, opt) =>
+          submitValue(v, { transitionId: opt.id, isBaseline: opt.isBaseline })
+        }
         surfaceOptions={(() => {
           // Only offer surface choice when placing a NEW point in an active chain.
           if (editingPoint || isBasePointCapture || !activeTransitionId) return undefined;
@@ -1054,7 +1056,9 @@ export function FieldTab({
           };
           const group = transitions.filter(inTree);
           const opts = [
-            { id: null as string | null, surface: root.surfaceA, delta: 0 },
+            // Baseline surface: tag point with root id so the halo picks it up,
+            // but mark it as chain baseline so no delta is applied.
+            { id: rootId, surface: root.surfaceA, delta: 0, isBaseline: true },
             ...group.map((t) => ({
               id: t.id,
               surface: t.surfaceB,
@@ -1063,6 +1067,7 @@ export function FieldTab({
           ];
           return opts.length >= 2 ? opts : undefined;
         })()}
+
         onDelete={
           editingPoint
             ? async () => {
