@@ -474,6 +474,22 @@ export function FieldTab({
         </button>
       </div>
 
+      {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
+      {activeTransition && !pending && !editingPoint && (
+        <div className="absolute z-20 top-12 right-2 flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
+          <span className="font-medium">Active: {activeTransition.surfaceB} chain</span>
+          <button
+            onClick={() => setActiveTransitionId(null)}
+            className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
+            aria-label="Done with this transition"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+
+
       {/* Notes list dropdown */}
       {notesListOpen && (
         <div
