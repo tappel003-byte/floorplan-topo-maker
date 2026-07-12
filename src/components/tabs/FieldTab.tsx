@@ -93,6 +93,9 @@ export function FieldTab({
   const lastNoteTapRef = useRef<{ id: string; at: number } | null>(null);
   const [, setNoteDragTick] = useState(0);
   const longPressTimerRef = useRef<number | null>(null);
+  const anchorLongPressTimerRef = useRef<number | null>(null);
+  const anchorLongPressFiredRef = useRef(false);
+
 
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
@@ -137,6 +140,20 @@ export function FieldTab({
 
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
+
+  function rootTransitionId(tid: string): string {
+    const byId = new Map(transitions.map((t) => [t.id, t]));
+    let cur = byId.get(tid);
+    const seen = new Set<string>();
+    while (cur?.parentId && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      const p = byId.get(cur.parentId);
+      if (!p) break;
+      cur = p;
+    }
+    return cur?.id ?? tid;
+  }
+
 
   function hitNote(x: number, y: number): NotePin | null {
     const s = scaleRef.current || 1;
@@ -457,6 +474,22 @@ export function FieldTab({
         </button>
       </div>
 
+      {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
+      {activeTransition && !pending && !editingPoint && (
+        <div className="absolute z-20 top-12 right-2 flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
+          <span className="font-medium">Active: {activeTransition.surfaceB} chain</span>
+          <button
+            onClick={() => setActiveTransitionId(null)}
+            className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
+            aria-label="Done with this transition"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+
+
       {/* Notes list dropdown */}
       {notesListOpen && (
         <div
@@ -581,8 +614,24 @@ export function FieldTab({
           };
           dragRef.current = drag;
           setDragging(drag);
+          // Anchor long-press → open detail dialog. Plain tap re-arms the chain.
+          if (hp.isTransitionAnchor && hp.transitionId) {
+            anchorLongPressFiredRef.current = false;
+            if (anchorLongPressTimerRef.current) {
+              window.clearTimeout(anchorLongPressTimerRef.current);
+            }
+            const tid = hp.transitionId;
+            anchorLongPressTimerRef.current = window.setTimeout(() => {
+              const cur = dragRef.current;
+              if (!cur || cur.moved) return;
+              if (!transitions.some((t) => t.id === tid)) return;
+              anchorLongPressFiredRef.current = true;
+              setViewingTransitionId(tid);
+            }, LONG_PRESS_MS);
+          }
           return true;
         }}
+
         onImagePointerMove={(x, y, event) => {
           const nd = noteDragRef.current;
           if (nd) {
@@ -606,6 +655,10 @@ export function FieldTab({
             event.clientY - drag.startClientY,
           );
           if (!drag.moved && screenDist < 18) return;
+          if (anchorLongPressTimerRef.current) {
+            window.clearTimeout(anchorLongPressTimerRef.current);
+            anchorLongPressTimerRef.current = null;
+          }
           const nx = drag.origX + (x - drag.startImgX);
           const ny = drag.origY + (y - drag.startImgY);
           const nextDrag = { ...drag, moved: true, lastX: nx, lastY: ny };
@@ -620,6 +673,12 @@ export function FieldTab({
             window.clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
           }
+          if (anchorLongPressTimerRef.current) {
+            window.clearTimeout(anchorLongPressTimerRef.current);
+            anchorLongPressTimerRef.current = null;
+          }
+          anchorLongPressFiredRef.current = false;
+
           noteDragRef.current = null;
           setNoteDragTick((t) => t + 1);
         }}
@@ -663,22 +722,29 @@ export function FieldTab({
           const finalY = drag.lastY ?? y;
           dragRef.current = null;
           setDragging(null);
+          if (anchorLongPressTimerRef.current) {
+            window.clearTimeout(anchorLongPressTimerRef.current);
+            anchorLongPressTimerRef.current = null;
+          }
+          const longPressFired = anchorLongPressFiredRef.current;
+          anchorLongPressFiredRef.current = false;
           if (!point) return;
           if (!moved) {
-            // Tap on a diamond anchor opens the transition detail dialog,
-            // but only if the underlying transition still exists. Orphaned
-            // anchors (transition deleted / undo mismatch) fall through to
-            // the normal keypad so the user can edit or delete them.
+            if (longPressFired) return; // detail dialog already opened
+            // Plain tap on a diamond anchor re-arms its chain (root) so the
+            // next point drop shows the chain's surface-choice row again.
+            // Orphaned anchors (missing transition) fall through to the keypad.
             if (point.isTransitionAnchor && point.transitionId) {
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
-                setViewingTransitionId(point.transitionId);
+                setActiveTransitionId(rootTransitionId(point.transitionId));
                 return;
               }
             }
             setEditingPoint(point);
             return;
           }
+
 
           const updated = { ...point, x: finalX, y: finalY };
           await savePoint(updated);
@@ -933,7 +999,16 @@ export function FieldTab({
         }
         onUndo={() => window.dispatchEvent(new Event("app:undo"))}
         canUndo
+        onEndTransition={
+          !editingPoint && activeTransitionId
+            ? () => {
+                setActiveTransitionId(null);
+                setPending(null);
+              }
+            : undefined
+        }
       />
+
 
       {/* Add-Transition sheet — captures both readings at a doorway. */}
       <AddTransitionSheet
