@@ -1,15 +1,30 @@
-## The bug
+## What broke
+The toolbar chips are still in the code, but they are being positioned at the top edge of the field canvas. On the phone screenshot, the OS/top app chrome is covering/clipping that area, so the pills look “gone” or half-hidden. This is the same class of regression as before: floating field controls are tied to `top-*` offsets instead of a safe, reusable canvas overlay offset.
 
-In `AddTransitionSheet`, when chaining onto an existing correction, the **From surface** dropdown is locked (`disabled={chained}`) to the parent's surface B, and the **To surface** still defaults to a hardcoded `"Carpet"`. When the parent chain ends on Carpet, both sides read "Carpet → Carpet" with no way to change From — the box you circled.
+The correction window/canvas issue is likely from the same overlay layering pattern: full-screen sheets and floating chips are competing with the canvas pointer layer and safe-area spacing.
 
-Nothing in the code caps chain depth; this locked dropdown plus the same-surface default is what made a third link feel impossible.
+## Fix plan
+1. Create one safe overlay positioning pattern for the field canvas controls:
+   - notes pill
+   - stats/data chips
+   - active correction pill/popover
+   - any top-right correction controls
 
-## Fix (single file)
+2. Move the field pills down below the top bar/safe area instead of pinning them to `top-2` / `top-12`.
+   - Keep them floating over the white canvas.
+   - Do not add a persistent full-width toolbar row.
+   - Preserve the canvas-first layout.
 
-`src/components/AddTransitionSheet.tsx`:
+3. Keep the active correction popover interactive without blocking canvas gestures outside the popover.
+   - The pill/popover should stop its own pointer events.
+   - The canvas should still pan/zoom/tap everywhere else.
 
-1. **Unlock From surface when chained.** Remove `disabled={chained}`. Still default it to the parent's surface B (physically correct starting side almost always), but allow override.
-2. **Smarter To default.** On open, if To equals From, pick the first entry in `COMMON_SURFACES` that differs and isn't "Other".
-3. **Guard Save against identical surfaces.** Extend the `valid` check to require `surfaceA !== surfaceB`, so you can't accidentally save a zero-delta "transition".
+4. Fix the Add Transition/correction sheet layering so opening or closing it does not leave the canvas in a broken pointer state.
+   - Keep the sheet above the canvas/keypad only while open.
+   - Closing the sheet returns to normal canvas input.
 
-No changes to data model, chain math, or FieldTab wiring. Chain depth stays unlimited.
+5. Verify in the phone-sized viewport shown in your screenshot:
+   - toolbar pills are visible, not clipped
+   - canvas can still pan/zoom
+   - tapping the plan opens the keypad
+   - correction window opens/closes without breaking canvas interaction

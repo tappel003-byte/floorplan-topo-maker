@@ -244,6 +244,7 @@ function ProjectWorkspace() {
           />
           <StatsChip
             points={correctedPoints}
+            storageKey={`stats-chip-pos:${project.id}`}
             onHighlight={(p) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));

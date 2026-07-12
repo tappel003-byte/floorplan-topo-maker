@@ -79,6 +79,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
     >
       <div
         className="bg-background rounded-xl shadow-2xl w-full max-w-sm p-4"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
