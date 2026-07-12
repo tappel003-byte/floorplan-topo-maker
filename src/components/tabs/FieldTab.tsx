@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
-import { TransitionPickerSheet } from "../TransitionPickerSheet";
+
 import { TransitionDetailDialog } from "../TransitionDetailDialog";
 import { ProfileDiagram } from "../ProfileDiagram";
 
@@ -98,7 +98,7 @@ export function FieldTab({
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
   const [addingTransition, setAddingTransition] = useState(false);
-  const [pickingTransition, setPickingTransition] = useState(false);
+  
   const [viewingTransitionId, setViewingTransitionId] = useState<string | null>(null);
 
   const notes: NotePin[] = floor.notes ?? [];
@@ -827,7 +827,7 @@ export function FieldTab({
       )}
 
       <NumericKeypad
-        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition && !pickingTransition}
+        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition}
         initialValue={editingPoint ? editingPoint.value : isBasePointCapture ? 9.0 : undefined}
         repeatValue={
           !editingPoint && !isBasePointCapture ? points[points.length - 1]?.value : undefined
@@ -890,7 +890,7 @@ export function FieldTab({
         }
         onAddTransition={
           !editingPoint && pending && !isBasePointCapture
-            ? () => setPickingTransition(true)
+            ? () => setAddingTransition(true)
             : undefined
         }
         onUndo={() => window.dispatchEvent(new Event("app:undo"))}
@@ -905,20 +905,6 @@ export function FieldTab({
         })()}
       />
 
-      {/* Transition picker — recent reuse + New. */}
-      <TransitionPickerSheet
-        open={pickingTransition && !!pending}
-        transitions={transitions}
-        onClose={() => setPickingTransition(false)}
-        onReuse={(id) => {
-          setActiveTransitionId(id);
-          setPickingTransition(false);
-        }}
-        onNew={() => {
-          setPickingTransition(false);
-          setAddingTransition(true);
-        }}
-      />
 
       {/* Add-Transition sheet — captures both readings at a doorway. */}
       <AddTransitionSheet
