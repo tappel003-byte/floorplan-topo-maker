@@ -188,25 +188,6 @@ export function NumericKeypad({
                 <span className="text-muted-foreground/25">0.0</span>
               )}
             </div>
-            {activeTransition && (() => {
-              const rawNum = text ? parseFloat(text) : NaN;
-              const rawShown = isFinite(rawNum)
-                ? rawNum
-                : hasRepeat
-                  ? repeatValue!
-                  : NaN;
-              if (!isFinite(rawShown)) return null;
-              const corrected = rawShown + activeTransition.delta;
-              return (
-                <div className="mb-3 landscape-short:mb-2 px-1 text-right text-xs text-muted-foreground font-mono tabular-nums">
-                  = <span className="font-semibold text-foreground">{corrected.toFixed(2)}"</span>
-                  <span className="ml-1 opacity-70">
-                    ({rawShown.toFixed(2)} {activeTransition.delta >= 0 ? "+" : "−"}{" "}
-                    {Math.abs(activeTransition.delta).toFixed(1)} {activeTransition.label})
-                  </span>
-                </div>
-              );
-            })()}
             {showShortcutRow && (
               <div className="mb-3 landscape-short:mb-0 flex gap-2">
                 {onAddTransition && (
