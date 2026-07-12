@@ -47,15 +47,13 @@ export function NumericKeypad({
   onAddTransition,
   activeTransition,
   onRemoveTransition,
+  surfaceOptions,
+  onSubmitWithOption,
   onUndo,
   canUndo,
 }: Props) {
 
   const [text, setText] = useState<string>("");
-
-  useEffect(() => {
-    if (open) setText(initialValue != null ? String(initialValue) : "");
-  }, [open, initialValue]);
 
   useEffect(() => {
     if (open) setText(initialValue != null ? String(initialValue) : "");
