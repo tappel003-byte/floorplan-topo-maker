@@ -1231,3 +1231,62 @@ function wrapHeight(): number | null {
   if (typeof window === "undefined") return null;
   return window.innerHeight;
 }
+
+/** Inline editor for a chain link's correction delta. Commits on blur/Enter. Empty = clear override. */
+function DeltaOverrideInput({
+  value,
+  overridden,
+  onCommit,
+}: {
+  value: number;
+  overridden: boolean;
+  onCommit: (next: number | null) => void;
+}) {
+  const [text, setText] = useState<string>(formatSigned(value));
+  useEffect(() => {
+    setText(formatSigned(value));
+  }, [value]);
+  function commit() {
+    const trimmed = text.trim();
+    if (trimmed === "") {
+      if (overridden) onCommit(null);
+      return;
+    }
+    const n = parseFloat(trimmed);
+    if (isFinite(n)) onCommit(n);
+    else setText(formatSigned(value));
+  }
+  return (
+    <div className="flex items-center pr-2 gap-0.5">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        onFocus={(e) => e.currentTarget.select()}
+        className={
+          "w-14 h-8 rounded border text-right font-mono tabular-nums text-xs px-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400 " +
+          (overridden
+            ? "border-amber-400 bg-amber-50 text-amber-900 font-semibold"
+            : "border-gray-200 bg-white text-gray-900 font-semibold")
+        }
+        aria-label="Override correction"
+      />
+      <span className="text-[10px] text-gray-500">"</span>
+    </div>
+  );
+}
+
+function formatSigned(n: number): string {
+  if (n === 0) return "0.0";
+  const sign = n > 0 ? "+" : "-";
+  return `${sign}${Math.abs(n).toFixed(1)}`;
+}
+
