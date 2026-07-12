@@ -57,6 +57,7 @@ export function NumericKeypad({
   onUndo,
   canUndo,
   onEndTransition,
+  baselineSurface,
 }: Props) {
 
   void onRemoveTransition;
