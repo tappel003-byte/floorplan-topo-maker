@@ -608,7 +608,7 @@ export function FieldTab({
                         setViewingTransitionId(t.id);
                         setChainPopoverOpen(false);
                       }}
-                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left pointer-events-auto"
+                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left"
                     >
                       <span className="text-gray-800 truncate">
                         {t.surfaceA} → {t.surfaceB}
@@ -1304,7 +1304,7 @@ function DeltaOverrideInput({
     else setText(formatSigned(value));
   }
   return (
-    <div className="flex items-center pr-2 gap-0.5 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="flex items-center pr-2 gap-0.5">
       <input
         type="text"
         inputMode="decimal"
