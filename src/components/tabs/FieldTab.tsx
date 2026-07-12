@@ -210,13 +210,6 @@ export function FieldTab({
     return cur?.id ?? tid;
   }
 
-  function pointDisplayLabel(p: SurveyPoint): string {
-    const linkedT = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
-    const isDownstream = !!linkedT && !p.isTransitionAnchor;
-    return isDownstream && !p.isChainBaseline
-      ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
-      : p.value.toFixed(2);
-  }
 
   function hitNote(x: number, y: number): NotePin | null {
     const s = scaleRef.current || 1;
@@ -400,25 +393,18 @@ export function FieldTab({
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
     const s = scaleRef.current || 1;
-    for (let i = points.length - 1; i >= 0; i--) {
-      const p = points[i];
-      const markerR = Math.max(pointSize, 2);
-      const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
-      const ringR = (p.transitionId || p.isTransitionAnchor ? markerHalo + 5 : markerHalo);
-      const dotHit = Math.max(16 / s, ringR + 8 / s);
+    const dotHit = 14 / s;
+    for (const p of points) {
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
     const fontPx = 12;
-    const pad = Math.max(6 / s, 4);
-    for (let i = points.length - 1; i >= 0; i--) {
-      const p = points[i];
-      const text = pointDisplayLabel(p);
+    const pad = 4 / s;
+    for (const p of points) {
+      const text = p.value.toFixed(2);
       const w = text.length * fontPx * 0.62;
-      const h = fontPx + 4;
-      const markerR = Math.max(pointSize, 2);
-      const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
-      const lx = p.x + markerHalo + 4;
-      const ly = p.y + markerHalo + 3;
+      const h = fontPx + 2;
+      const lx = p.x + pointSize + 4;
+      const ly = p.y + pointSize + 3;
       if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
         return { point: p, on: "label" };
       }
@@ -526,10 +512,7 @@ export function FieldTab({
       )}
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
-      <div
-        className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium pointer-events-auto"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
+      <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
         <button
           onClick={() => {
             setNoteMode((v) => !v);
@@ -563,10 +546,7 @@ export function FieldTab({
 
       {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
       {activeTransition && !pending && !editingPoint && (
-        <div
-          className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1 pointer-events-auto"
-          onPointerDown={(e) => e.stopPropagation()}
-        >
+        <div className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1">
           <div className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
             <button
               onClick={() => setChainPopoverOpen((v) => !v)}
@@ -892,20 +872,16 @@ export function FieldTab({
           if (!point) return;
           if (!moved) {
             if (longPressFired) return; // detail dialog already opened
-            // Pre-break behavior: tapping a diamond only re-arms/highlights its
-            // correction chain; every other reading opens the keypad directly.
+            // Plain tap on a diamond anchor re-arms its chain (root) so the
+            // next point drop shows the chain's surface-choice row again.
+            // Orphaned anchors (missing transition) fall through to the keypad.
             if (point.isTransitionAnchor && point.transitionId) {
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
                 setActiveTransitionId(rootTransitionId(point.transitionId));
-                setChainPopoverOpen(false);
                 return;
               }
             }
-            setPending(null);
-            setBpPromptOpen(false);
-            setViewingTransitionId(null);
-            setChainPopoverOpen(false);
             setEditingPoint(point);
             return;
           }
@@ -925,15 +901,6 @@ export function FieldTab({
           const highlightIds = new Set<string>();
           if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
           if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
-          for (const id of selectedIds) {
-            const selectedPoint = points.find((p) => p.id === id);
-            if (selectedPoint?.transitionId) {
-              for (const tid of chainOf(selectedPoint.transitionId)) highlightIds.add(tid);
-            }
-          }
-          if (editingPoint?.transitionId) {
-            for (const id of chainOf(editingPoint.transitionId)) highlightIds.add(id);
-          }
           // Explicit per-point highlight set — includes every anchor point tied
           // to any transition in the active/viewed chain (root anchor included),
           // so the tile-side baseline reading lights up with the rest.
@@ -948,7 +915,6 @@ export function FieldTab({
               : null;
             const isDownstream = !!linkedT && !isAnchor;
             const isHighlighted = highlightPointIds.has(p.id);
-            const isSelected = selectedIds.has(p.id) || editingPoint?.id === p.id;
 
             const color = isAnchor
               ? TRANSITION_COLOR
@@ -987,17 +953,12 @@ export function FieldTab({
               ctx.strokeStyle = TRANSITION_COLOR;
               ctx.lineWidth = 2.5;
               ctx.stroke();
-            } else if (isSelected) {
-              const r = (isAnchor ? Math.max(markerR + 3, 6) : markerR) + 5;
-              ctx.beginPath();
-              ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-              ctx.strokeStyle = "#2563eb";
-              ctx.lineWidth = 2.5;
-              ctx.stroke();
             }
 
             // Label — anchors and chain-baseline points show only the raw reading; corrected downstream points show `raw+delta`.
-            const label = pointDisplayLabel(p);
+            const label = isDownstream && !p.isChainBaseline
+              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
+              : p.value.toFixed(2);
 
             const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
             const lx = p.x + markerHalo + 4;
@@ -1011,8 +972,8 @@ export function FieldTab({
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
 
-            ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : isSelected ? "#2563eb" : "#111827";
-            ctx.lineWidth = isHighlighted || isSelected ? 1.5 : 1;
+            ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
+            ctx.lineWidth = isHighlighted ? 1.5 : 1;
             ctx.stroke();
 
             ctx.fillStyle = "#111827";
@@ -1220,7 +1181,7 @@ export function FieldTab({
         onSave={handleAddTransition}
         parentDelta={
           activeTransition
-            ? transitionDelta(activeTransition)
+            ? activeTransition.readingA - activeTransition.readingB
             : undefined
         }
         parentSurface={activeTransition ? activeTransition.surfaceB : undefined}
