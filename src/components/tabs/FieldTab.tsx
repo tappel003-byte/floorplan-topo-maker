@@ -849,6 +849,12 @@ export function FieldTab({
         }}
         drawOverlay={(ctx) => {
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
+          // Highlighted ids = full chain of the viewed transition, plus the
+          // active chain when its popover is open (so tapping the pill lights
+          // up every point tied to any link in the chain).
+          const highlightIds = new Set<string>();
+          if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
+          if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
           for (const p of points) {
             const isAnchor = !!p.isTransitionAnchor;
             const linkedT = p.transitionId
@@ -856,7 +862,7 @@ export function FieldTab({
               : null;
             const isDownstream = !!linkedT && !isAnchor;
             const isHighlighted =
-              !!viewingTransitionId && p.transitionId === viewingTransitionId;
+              !!p.transitionId && highlightIds.has(p.transitionId);
 
             const color = isAnchor
               ? TRANSITION_COLOR
@@ -886,9 +892,10 @@ export function FieldTab({
               ctx.fill();
             }
 
-            // Highlight ring for downstream points when their transition is selected.
-            if (isHighlighted && isDownstream) {
-              const r = markerR + 5;
+            // Highlight ring: any point (anchor or downstream) tied to a
+            // transition in the highlighted chain.
+            if (isHighlighted && (isDownstream || isAnchor)) {
+              const r = (isAnchor ? Math.max(markerR + 3, 6) : markerR) + 5;
               ctx.beginPath();
               ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
               ctx.strokeStyle = TRANSITION_COLOR;
