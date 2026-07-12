@@ -70,7 +70,7 @@ export function TransitionDetailDialog({
             className="flex items-center gap-1.5 text-xs font-medium"
             aria-label="Expand transition"
           >
-            <span className="text-muted-foreground">{transition.surfaceA}→{transition.surfaceB}</span>
+            <span className="text-muted-foreground">{transition.surfaceB} correction</span>
             <span className="font-mono font-semibold">{deltaLabel}"</span>
           </button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMinimized(false)} aria-label="Expand">
