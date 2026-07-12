@@ -8,11 +8,14 @@ interface ActiveTransition {
 }
 
 export interface SurfaceOption {
-  /** Transition id to tag the point with. null = root anchor surface (no tag). */
+  /** Transition id to tag the point with. null = untagged. */
   id: string | null;
   surface: string;
   delta: number; // signed, relative to root anchor (0 for root)
+  /** True when this option is the chain's baseline surface. Point gets tagged with the chain root id but no delta is applied. */
+  isBaseline?: boolean;
 }
+
 
 interface Props {
   open: boolean;
