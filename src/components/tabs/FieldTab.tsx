@@ -840,7 +840,41 @@ export function FieldTab({
           setPending(null);
           setEditingPoint(null);
         }}
-        onSubmit={submitValue}
+        onSubmit={(v) => submitValue(v)}
+        onSubmitWithOption={(v, opt) => submitValue(v, opt.id)}
+        surfaceOptions={(() => {
+          // Only offer surface choice when placing a NEW point in an active chain.
+          if (editingPoint || isBasePointCapture || !activeTransitionId) return undefined;
+          const byId = new Map(transitions.map((t) => [t.id, t]));
+          let root = byId.get(activeTransitionId);
+          while (root?.parentId) {
+            const p = byId.get(root.parentId);
+            if (!p) break;
+            root = p;
+          }
+          if (!root) return undefined;
+          const rootId = root.id;
+          const inTree = (t: Transition) => {
+            let cur: Transition | undefined = t;
+            const seen = new Set<string>();
+            while (cur && !seen.has(cur.id)) {
+              if (cur.id === rootId) return true;
+              seen.add(cur.id);
+              cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+            }
+            return false;
+          };
+          const group = transitions.filter(inTree);
+          const opts = [
+            { id: null as string | null, surface: root.surfaceA, delta: 0 },
+            ...group.map((t) => ({
+              id: t.id,
+              surface: t.surfaceB,
+              delta: transitionDelta(t),
+            })),
+          ];
+          return opts.length >= 2 ? opts : undefined;
+        })()}
         onDelete={
           editingPoint
             ? async () => {
