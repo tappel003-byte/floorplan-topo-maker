@@ -61,15 +61,17 @@ export interface Transition {
   y: number;
   surfaceA: string; // reference side (anchor is captured here)
   surfaceB: string; // other side (downstream points live here)
-  readingA: number; // raw reading on surfaceA at the doorway (base-frame)
+  readingA: number; // ALWAYS base-frame (already includes any parent-chain delta)
   readingB: number; // raw reading on surfaceB at the doorway
   createdAt: number;
-  // Chain link — set to the transition this one branches off of, if any.
-  // Enables multi-surface stacking (Tile → Carpet → Wood) so the corrected
-  // value walks parent deltas back to the root reference frame.
+  // Chaining: when this transition was measured while an existing transition
+  // was active, parentId links to that parent. readingA is stored base-frame,
+  // so delta math stays flat (no recursive resolution at read time).
   parentId?: string;
+  // The raw reading typed on the parent surface (before parent delta added).
+  // Kept for display and for re-deriving readingA if the parent is edited.
+  readingARawOnParent?: number;
 }
-
 
 
 export interface SurveyPoint {

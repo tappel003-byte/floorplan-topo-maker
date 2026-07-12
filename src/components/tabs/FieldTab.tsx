@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
-
+import { TransitionPickerSheet } from "../TransitionPickerSheet";
 import { TransitionDetailDialog } from "../TransitionDetailDialog";
-
 
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
@@ -98,7 +97,7 @@ export function FieldTab({
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
   const [addingTransition, setAddingTransition] = useState(false);
-  
+  const [pickingTransition, setPickingTransition] = useState(false);
   const [viewingTransitionId, setViewingTransitionId] = useState<string | null>(null);
 
   const notes: NotePin[] = floor.notes ?? [];
@@ -218,9 +217,12 @@ export function FieldTab({
     surfaceB: string;
     readingA: number;
     readingB: number;
+    readingARawOnParent?: number;
   }) {
     if (!pending) return;
     const isBP = isBasePointCapture;
+    // Chain to the active transition (if any) for traceability.
+    const parentId = !isBP && activeTransitionId ? activeTransitionId : undefined;
     const t: Transition = {
       id: uid(),
       x: pending.x,
@@ -230,11 +232,10 @@ export function FieldTab({
       readingA: data.readingA,
       readingB: data.readingB,
       createdAt: Date.now(),
-      // If a chain is already active, link this transition to it so
-      // downstream corrected values walk all the way back to the root.
-      parentId: activeTransitionId ?? undefined,
+      parentId,
+      readingARawOnParent: data.readingARawOnParent,
     };
-    // Anchor point uses readingA (reference side).
+    // Anchor point uses readingA (base-frame value).
     const anchor: SurveyPoint = {
       id: uid(),
       floorId: floor.id,
@@ -259,7 +260,6 @@ export function FieldTab({
     // Subsequent points on side B will be tagged with this transition.
     setActiveTransitionId(t.id);
   }
-
 
   /** Save edits from TransitionDetailDialog. Anchor's stored value follows readingA. */
   async function handleSaveTransition(updated: Transition) {
@@ -418,10 +418,6 @@ export function FieldTab({
           </button>
         </div>
       )}
-
-      {/* Profile diagram lives inside the NumericKeypad (see below) — it only
-          exists while a point is being entered against the active chain. */}
-
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
       <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
@@ -671,8 +667,6 @@ export function FieldTab({
             if (point.isTransitionAnchor && point.transitionId) {
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
-                // Tapping a diamond re-arms that chain for the next point.
-                setActiveTransitionId(point.transitionId);
                 setViewingTransitionId(point.transitionId);
                 return;
               }
@@ -832,7 +826,7 @@ export function FieldTab({
       )}
 
       <NumericKeypad
-        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition}
+        open={((!!pending && !bpPromptOpen) || !!editingPoint) && !addingTransition && !pickingTransition}
         initialValue={editingPoint ? editingPoint.value : isBasePointCapture ? 9.0 : undefined}
         repeatValue={
           !editingPoint && !isBasePointCapture ? points[points.length - 1]?.value : undefined
@@ -895,21 +889,40 @@ export function FieldTab({
         }
         onAddTransition={
           !editingPoint && pending && !isBasePointCapture
-            ? () => setAddingTransition(true)
+            ? () => setPickingTransition(true)
             : undefined
         }
         onUndo={() => window.dispatchEvent(new Event("app:undo"))}
         canUndo
       />
 
+      {/* Transition picker — recent reuse + New. */}
+      <TransitionPickerSheet
+        open={pickingTransition && !!pending}
+        transitions={transitions}
+        onClose={() => setPickingTransition(false)}
+        onReuse={(id) => {
+          setActiveTransitionId(id);
+          setPickingTransition(false);
+        }}
+        onNew={() => {
+          setPickingTransition(false);
+          setAddingTransition(true);
+        }}
+      />
 
       {/* Add-Transition sheet — captures both readings at a doorway. */}
       <AddTransitionSheet
         open={addingTransition && !!pending}
         onClose={() => setAddingTransition(false)}
         onSave={handleAddTransition}
+        parentDelta={
+          activeTransition
+            ? activeTransition.readingA - activeTransition.readingB
+            : undefined
+        }
+        parentSurface={activeTransition ? activeTransition.surfaceB : undefined}
       />
-
 
 
       {/* Anchor diamond → detail dialog. */}

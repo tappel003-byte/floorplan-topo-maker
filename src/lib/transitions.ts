@@ -20,31 +20,15 @@ export function transitionDelta(t: Transition): number {
   return t.readingA - t.readingB;
 }
 
-/** Sum of deltas walking parentId → root. Converts a raw reading on the
- *  active transition's B-surface into the root reference frame. */
-export function chainDelta(
-  transitionId: string | undefined,
-  transitions: readonly Transition[] | undefined,
-): number {
-  if (!transitionId || !transitions) return 0;
-  let total = 0;
-  let cur: Transition | undefined = transitions.find((t) => t.id === transitionId);
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    total += transitionDelta(cur);
-    cur = cur.parentId ? transitions.find((t) => t.id === cur!.parentId) : undefined;
-  }
-  return total;
-}
-
 /** Corrected value used by topo/stats/export. Anchor keeps its stored value (already A-frame). */
 export function correctedValue(
   p: SurveyPoint,
   transitions: readonly Transition[] | undefined,
 ): number {
   if (!p.transitionId || p.isTransitionAnchor) return p.value;
-  return p.value + chainDelta(p.transitionId, transitions);
+  const t = transitions?.find((x) => x.id === p.transitionId);
+  if (!t) return p.value;
+  return p.value + transitionDelta(t);
 }
 
 /** Returns a new array of points with `value` replaced by the corrected value. */
