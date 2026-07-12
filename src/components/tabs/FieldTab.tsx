@@ -210,6 +210,14 @@ export function FieldTab({
     return cur?.id ?? tid;
   }
 
+  function pointDisplayLabel(p: SurveyPoint): string {
+    const linkedT = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
+    const isDownstream = !!linkedT && !p.isTransitionAnchor;
+    return isDownstream && !p.isChainBaseline
+      ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
+      : p.value.toFixed(2);
+  }
+
 
   function hitNote(x: number, y: number): NotePin | null {
     const s = scaleRef.current || 1;
@@ -393,18 +401,24 @@ export function FieldTab({
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
     const s = scaleRef.current || 1;
-    const dotHit = 14 / s;
-    for (const p of points) {
+    for (let i = points.length - 1; i >= 0; i--) {
+      const p = points[i];
+      const markerR = Math.max(pointSize, 2);
+      const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
+      const dotHit = Math.max(14 / s, markerHalo + 8 / s);
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
     const fontPx = 12;
     const pad = 4 / s;
-    for (const p of points) {
-      const text = p.value.toFixed(2);
+    for (let i = points.length - 1; i >= 0; i--) {
+      const p = points[i];
+      const text = pointDisplayLabel(p);
       const w = text.length * fontPx * 0.62;
       const h = fontPx + 2;
-      const lx = p.x + pointSize + 4;
-      const ly = p.y + pointSize + 3;
+      const markerR = Math.max(pointSize, 2);
+      const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
+      const lx = p.x + markerHalo + 4;
+      const ly = p.y + markerHalo + 3;
       if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
         return { point: p, on: "label" };
       }
@@ -882,16 +896,6 @@ export function FieldTab({
             if (point.transitionId && transitions.some((t) => t.id === point.transitionId)) {
               setActiveTransitionId(rootTransitionId(point.transitionId));
             }
-            // Plain tap on a diamond anchor re-arms its chain (root) so the
-            // next point drop shows the chain's surface-choice row again.
-            // Orphaned anchors (missing transition) fall through to the keypad.
-            if (point.isTransitionAnchor && point.transitionId) {
-              const stillExists = transitions.some((t) => t.id === point.transitionId);
-              if (stillExists) {
-                setActiveTransitionId(rootTransitionId(point.transitionId));
-                return;
-              }
-            }
             setEditingPoint(point);
             return;
           }
@@ -983,9 +987,7 @@ export function FieldTab({
             }
 
             // Label — anchors and chain-baseline points show only the raw reading; corrected downstream points show `raw+delta`.
-            const label = isDownstream && !p.isChainBaseline
-              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
-              : p.value.toFixed(2);
+            const label = pointDisplayLabel(p);
 
             const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
             const lx = p.x + markerHalo + 4;
