@@ -10,7 +10,7 @@ import { Pencil, List, Trash2 } from "lucide-react";
 
 import type { Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
-import { transitionDelta, formatDelta } from "@/lib/transitions";
+import { transitionDelta, formatDelta, getChainBaselineSurface } from "@/lib/transitions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 
