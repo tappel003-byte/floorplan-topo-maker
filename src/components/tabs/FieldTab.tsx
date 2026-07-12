@@ -100,7 +100,8 @@ export function FieldTab({
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
   const [addingTransition, setAddingTransition] = useState(false);
-  
+  const [chainPopoverOpen, setChainPopoverOpen] = useState(false);
+
   const [viewingTransitionId, setViewingTransitionId] = useState<string | null>(null);
 
   const notes: NotePin[] = floor.notes ?? [];
@@ -108,6 +109,61 @@ export function FieldTab({
   const activeTransition = activeTransitionId
     ? (transitions.find((t) => t.id === activeTransitionId) ?? null)
     : null;
+
+  /** Set of transition ids in the same chain as `tid` (root + all descendants). */
+  function chainOf(tid: string | null | undefined): Set<string> {
+    const out = new Set<string>();
+    if (!tid) return out;
+    const byId = new Map(transitions.map((t) => [t.id, t]));
+    let root = byId.get(tid);
+    const walked = new Set<string>();
+    while (root?.parentId && !walked.has(root.id)) {
+      walked.add(root.id);
+      const p = byId.get(root.parentId);
+      if (!p) break;
+      root = p;
+    }
+    if (!root) return out;
+    out.add(root.id);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const t of transitions) {
+        if (t.parentId && out.has(t.parentId) && !out.has(t.id)) {
+          out.add(t.id);
+          added = true;
+        }
+      }
+    }
+    return out;
+  }
+
+  /** Ordered chain root → leaf starting from the active transition's root. */
+  function chainOrdered(tid: string | null | undefined): Transition[] {
+    if (!tid) return [];
+    const ids = chainOf(tid);
+    const byId = new Map(transitions.map((t) => [t.id, t]));
+    // find root
+    let root = byId.get(tid);
+    const walked = new Set<string>();
+    while (root?.parentId && !walked.has(root.id)) {
+      walked.add(root.id);
+      const p = byId.get(root.parentId);
+      if (!p) break;
+      root = p;
+    }
+    if (!root) return [];
+    const ordered: Transition[] = [root];
+    // Walk one child per step (linear chain assumption from active pointer).
+    let cursor: Transition | undefined = root;
+    while (cursor) {
+      const child = transitions.find((t) => t.parentId === cursor!.id && ids.has(t.id));
+      if (!child || ordered.includes(child)) break;
+      ordered.push(child);
+      cursor = child;
+    }
+    return ordered;
+  }
 
   useEffect(() => {
     setPending(null);
