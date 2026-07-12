@@ -218,8 +218,6 @@ export function FieldTab({
     surfaceB: string;
     readingA: number;
     readingB: number;
-    readingAFar?: number;
-    readingBFar?: number;
   }) {
     if (!pending) return;
     const isBP = isBasePointCapture;
@@ -231,8 +229,6 @@ export function FieldTab({
       surfaceB: data.surfaceB,
       readingA: data.readingA,
       readingB: data.readingB,
-      readingAFar: data.readingAFar,
-      readingBFar: data.readingBFar,
       createdAt: Date.now(),
     };
     // Anchor point uses readingA (reference side).

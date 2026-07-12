@@ -63,10 +63,6 @@ export interface Transition {
   surfaceB: string; // other side (downstream points live here)
   readingA: number; // raw reading on surfaceA at the doorway (base-frame)
   readingB: number; // raw reading on surfaceB at the doorway
-  // Optional second reading taken at the far side of a soft-surface room.
-  // Used for the profile diagram; does NOT affect the doorway delta math.
-  readingAFar?: number;
-  readingBFar?: number;
   createdAt: number;
 }
 
