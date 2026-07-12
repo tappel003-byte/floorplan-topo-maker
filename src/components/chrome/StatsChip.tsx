@@ -8,7 +8,7 @@ interface Props {
   storageKey?: string;
 }
 
-const TOP_SAFE_GAP = 64;
+const TOP_SAFE_GAP = 96;
 
 function minSafeY() {
   if (typeof window === "undefined") return TOP_SAFE_GAP;
