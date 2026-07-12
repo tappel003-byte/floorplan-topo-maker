@@ -1,16 +1,19 @@
-I understand. I will treat this as a restoration, not a redesign.
+I found the break window: after the third-transition dropdown fix, the next change altered the active-correction overlay and point tap behavior. That is where this started.
 
 Plan:
-1. Restore the field interaction rule: tapping any visible reading opens the edit keypad, including:
-   - normal points
-   - corrected flooring points
-   - chain baseline points with no correction value
-   - diamond anchor points
-2. Keep the chip/pill layout where it is now; no layout changes.
-3. Remove any remaining tap-blocking behavior from the active correction popover so it cannot create a dead area over the canvas.
-4. Keep long-press / active-correction details available, but never let those prevent a normal tap on a point from editing that point.
-5. Verify the code path so a highlighted chain point still goes through the same edit path as every other point, instead of only highlighting or re-arming the chain.
+1. Restore the pre-break tap behavior in `FieldTab.tsx` from before that overlay/tap-path change:
+   - tapping a normal point opens the keypad
+   - tapping a corrected point opens the keypad
+   - tapping a baseline/root chain point opens the keypad
+   - tapping a diamond anchor re-arms/highlights the correction chain, without blocking other point taps
+2. Remove the later conflicting tap-path helper/changes that tried to force every chain tap through a new path.
+3. Restore the active-correction popover event behavior to the version before the regression, while keeping its existing position.
+4. Keep the changes that were not part of the break:
+   - unlimited flooring correction depth
+   - unlocked From/To transition dropdown behavior
+   - manual correction override fields
+   - baseline readings joining the halo when entered through the active correction flow
+   - current chip/pill positions
+5. Verify by checking the exact tap path in code: a highlighted/corrected point must end by opening the keypad, not just highlighting the chain.
 
-Technical detail:
-- The fix will stay in `FieldTab.tsx` unless verification shows `PlanCanvas.tsx` is still swallowing the tap.
-- I will not move the toolbar, notes pill, active correction pill, stats chip, or canvas layout.
+If this does not restore it, I will tell you to revert to the version immediately before the safe-overlay/tap-path change rather than spending more time patching around it.
