@@ -54,7 +54,9 @@ export function NumericKeypad({
   onSubmitWithOption,
   onUndo,
   canUndo,
+  onEndTransition,
 }: Props) {
+
   void onRemoveTransition;
 
 
