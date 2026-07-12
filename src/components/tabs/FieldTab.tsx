@@ -905,20 +905,6 @@ export function FieldTab({
         })()}
       />
 
-      {/* Transition picker — recent reuse + New. */}
-      <TransitionPickerSheet
-        open={pickingTransition && !!pending}
-        transitions={transitions}
-        onClose={() => setPickingTransition(false)}
-        onReuse={(id) => {
-          setActiveTransitionId(id);
-          setPickingTransition(false);
-        }}
-        onNew={() => {
-          setPickingTransition(false);
-          setAddingTransition(true);
-        }}
-      />
 
       {/* Add-Transition sheet — captures both readings at a doorway. */}
       <AddTransitionSheet
