@@ -639,6 +639,10 @@ export function FieldTab({
             event.clientY - drag.startClientY,
           );
           if (!drag.moved && screenDist < 18) return;
+          if (anchorLongPressTimerRef.current) {
+            window.clearTimeout(anchorLongPressTimerRef.current);
+            anchorLongPressTimerRef.current = null;
+          }
           const nx = drag.origX + (x - drag.startImgX);
           const ny = drag.origY + (y - drag.startImgY);
           const nextDrag = { ...drag, moved: true, lastX: nx, lastY: ny };
@@ -653,6 +657,12 @@ export function FieldTab({
             window.clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
           }
+          if (anchorLongPressTimerRef.current) {
+            window.clearTimeout(anchorLongPressTimerRef.current);
+            anchorLongPressTimerRef.current = null;
+          }
+          anchorLongPressFiredRef.current = false;
+
           noteDragRef.current = null;
           setNoteDragTick((t) => t + 1);
         }}
