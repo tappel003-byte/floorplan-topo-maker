@@ -1,4 +1,5 @@
 import type { Transition } from "@/lib/types";
+import { chainDelta } from "@/lib/transitions";
 
 interface Props {
   activeId: string;
@@ -8,32 +9,10 @@ interface Props {
 /** Soft surfaces are probed through — reading is taken AT the slab. */
 const SOFT_SURFACES = new Set(["Carpet", "Pad", "Rug"]);
 
-/** Visual "block" heights for hard surfaces above the slab (decorative). */
-const HARD_THICKNESS: Record<string, number> = {
-  Tile: 14,
-  Hardwood: 22,
-  Wood: 22,
-  LVP: 14,
-  Vinyl: 12,
-  Laminate: 16,
-  Stone: 18,
-  Concrete: 6,
-  Other: 18,
-};
-
-interface Segment {
-  name: string;
-  soft: boolean;
-  readings: number[];
-}
-
-function buildChain(activeId: string, transitions: readonly Transition[]): Segment[] {
+function buildPath(activeId: string, transitions: readonly Transition[]): Transition[] {
   const active = transitions.find((t) => t.id === activeId);
   if (!active) return [];
 
-  // Walk parentId → root so the diagram stacks every surface in the chain.
-  // Root's surfaceA is the datum (tile in typical use); each subsequent hop
-  // contributes only its surfaceB (its surfaceA equals the prior surfaceB).
   const path: Transition[] = [];
   const seen = new Set<string>();
   let cur: Transition | undefined = active;
@@ -42,17 +21,7 @@ function buildChain(activeId: string, transitions: readonly Transition[]): Segme
     path.unshift(cur);
     cur = cur.parentId ? transitions.find((t) => t.id === cur!.parentId) : undefined;
   }
-
-  const root = path[0];
-  const segments: Segment[] = [
-    { name: root.surfaceA, soft: SOFT_SURFACES.has(root.surfaceA), readings: [root.readingA] },
-    { name: root.surfaceB, soft: SOFT_SURFACES.has(root.surfaceB), readings: [root.readingB] },
-  ];
-  for (let i = 1; i < path.length; i++) {
-    const t = path[i];
-    segments.push({ name: t.surfaceB, soft: SOFT_SURFACES.has(t.surfaceB), readings: [t.readingB] });
-  }
-  return segments;
+  return path;
 }
 
 /**
@@ -65,21 +34,20 @@ function buildChain(activeId: string, transitions: readonly Transition[]): Segme
  *   - Other hard surfaces (wood, etc.) = block sitting on the slab with X + reading on top.
  */
 export function ProfileDiagram({ activeId, transitions }: Props) {
-  const chain = buildChain(activeId, transitions);
-  if (chain.length === 0) return null;
+  const path = buildPath(activeId, transitions);
+  if (path.length === 0) return null;
+
+  const root = path[0];
 
   const SEG_W = 84;
   const PAD_X = 12;
   const TILE_Y = 40;      // dashed tile datum
   const SLAB_Y = 72;      // solid slab line
   const PIX_PER_INCH = 30; // vertical scale for elevation deltas
-  const width = PAD_X * 2 + chain.length * SEG_W;
+  const width = PAD_X * 2 + (path.length + 1) * SEG_W;
   const height = SLAB_Y + 26;
 
-  // Datum = tile (or first) segment's first reading.
-  // Higher reading = more distance from laser = LOWER floor (drawn further down).
-  const datumSeg = chain.find((s) => s.name === "Tile") ?? chain[0];
-  const datum = datumSeg.readings[0];
+  const datum = root.readingA;
 
   const HARD_FILL = "#c4a484";
   const HARD_STROKE = "#4b3820";
@@ -107,81 +75,79 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
           slab
         </text>
 
-        {chain.map((seg, i) => {
-          const x = PAD_X + i * SEG_W;
+        {/* Root datum: the dashed line IS the tile/reference surface. */}
+        <g>
+          <text x={PAD_X + SEG_W / 2} y={TILE_Y - 14} textAnchor="middle" fontSize={11} fontWeight={600} fill="#4b3820">
+            {root.surfaceA}
+          </text>
+          {drawX(PAD_X + SEG_W / 2, TILE_Y, root.readingA, false)}
+        </g>
+
+        {path.map((t, i) => {
+          const segIndex = i + 1;
+          const surfaceName = t.surfaceB;
+          const soft = SOFT_SURFACES.has(surfaceName);
+          const parentDelta = t.parentId ? chainDelta(t.parentId, transitions) : 0;
+          const fromReading = i === 0 ? t.readingB : t.readingA + parentDelta;
+          const x = PAD_X + segIndex * SEG_W;
           const cx = x + SEG_W / 2;
-          const isTile = seg.name === "Tile";
-          const n = seg.readings.length;
 
-          const drawX = (rx: number, y: number, reading: number, labelAbove: boolean) => (
-            <g>
-              <line x1={rx - 4} x2={rx + 4} y1={y - 4} y2={y + 4} stroke="#111827" strokeWidth={1.5} />
-              <line x1={rx - 4} x2={rx + 4} y1={y + 4} y2={y - 4} stroke="#111827" strokeWidth={1.5} />
-              <text
-                x={rx}
-                y={labelAbove ? y - 8 : y + 16}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={700}
-                fill="#111827"
-                fontFamily="ui-monospace, monospace"
-              >
-                {reading.toFixed(1)}
-              </text>
-            </g>
-          );
+          // Hard finish top uses the actual B-side reading (wood is 9.5 in the example),
+          // never the adjusted slab/carpet value (8.7 in the example).
+          const hardTopDrop = (t.readingB - datum) * PIX_PER_INCH;
+          const hardTopY = Math.max(14, Math.min(SLAB_Y - 8, TILE_Y + hardTopDrop));
 
-          const readingX = (k: number) => {
-            const t = n === 1 ? 0.5 : 0.22 + (0.56 * k) / (n - 1);
-            return x + SEG_W * t;
-          };
-
-          if (isTile) {
-            // Tile IS the dashed line — no block, X sits on dashed line.
+          if (soft) {
             return (
-              <g key={i}>
-                <text x={cx} y={TILE_Y - 14} textAnchor="middle" fontSize={11} fontWeight={600} fill="#4b3820">
-                  Tile
-                </text>
-                {seg.readings.map((r, k) => (
-                  <g key={k}>{drawX(readingX(k), TILE_Y, r, false)}</g>
-                ))}
-              </g>
-            );
-          }
-
-          if (seg.soft) {
-            // Carpet: label + X on the slab.
-            return (
-              <g key={i}>
+              <g key={t.id}>
                 <text x={cx} y={SLAB_Y - 18} textAnchor="middle" fontSize={11} fontWeight={600} fill="#4b3820">
-                  {seg.name}
+                  {surfaceName}
                 </text>
-                {seg.readings.map((r, k) => (
-                  <g key={k}>{drawX(readingX(k), SLAB_Y, r, false)}</g>
-                ))}
+                {drawX(cx, SLAB_Y, fromReading, false)}
               </g>
             );
           }
 
-          // Other hard surface (wood etc.): block positioned by reading vs tile datum.
-          const blockH = HARD_THICKNESS[seg.name] ?? 18;
-          const firstReading = seg.readings[0];
-          const deltaPx = (firstReading - datum) * PIX_PER_INCH; // positive = lower floor
-          const topY = TILE_Y + deltaPx;
+          const blockH = Math.max(8, SLAB_Y - hardTopY);
           return (
-            <g key={i}>
-              <rect x={x + 2} y={topY} width={SEG_W - 4} height={blockH} fill={HARD_FILL} stroke={HARD_STROKE} strokeWidth={1} rx={2} />
-              <text x={cx} y={topY + blockH / 2 + 4} textAnchor="middle" fontSize={10} fontWeight={600} fill="#ffffff">
-                {seg.name}
+            <g key={t.id}>
+              <rect x={x + 2} y={hardTopY} width={SEG_W - 4} height={blockH} fill={HARD_FILL} stroke={HARD_STROKE} strokeWidth={1} rx={2} />
+              <text x={cx} y={hardTopY + blockH / 2 + 4} textAnchor="middle" fontSize={10} fontWeight={600} fill="#ffffff">
+                {surfaceName}
               </text>
-              {seg.readings.map((r, k) => (
-                <g key={k}>{drawX(readingX(k), topY, r, true)}</g>
-              ))}
+              {drawX(cx, hardTopY, t.readingB, true)}
+              {i > 0 && (
+                <g opacity={0.9}>
+                  <text x={x + 5} y={SLAB_Y - 18} textAnchor="start" fontSize={9} fontWeight={600} fill="#6b7280">
+                    {t.surfaceA}
+                  </text>
+                  {drawX(x + 14, SLAB_Y, fromReading, false)}
+                </g>
+              )}
             </g>
           );
         })}
       </svg>
     </div>
+  );
+}
+
+function drawX(rx: number, y: number, reading: number, labelAbove: boolean) {
+  return (
+    <g>
+      <line x1={rx - 4} x2={rx + 4} y1={y - 4} y2={y + 4} stroke="#111827" strokeWidth={1.5} />
+      <line x1={rx - 4} x2={rx + 4} y1={y + 4} y2={y - 4} stroke="#111827" strokeWidth={1.5} />
+      <text
+        x={rx}
+        y={labelAbove ? y - 8 : y + 16}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={700}
+        fill="#111827"
+        fontFamily="ui-monospace, monospace"
+      >
+        {reading.toFixed(1)}
+      </text>
+    </g>
   );
 }
