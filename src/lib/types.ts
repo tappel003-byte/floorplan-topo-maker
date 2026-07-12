@@ -71,7 +71,11 @@ export interface Transition {
   // The raw reading typed on the parent surface (before parent delta added).
   // Kept for display and for re-deriving readingA if the parent is edited.
   readingARawOnParent?: number;
+  // Manual override for the correction. When set, takes precedence over
+  // readingA − readingB. Cleared automatically when readings are edited.
+  deltaOverride?: number;
 }
+
 
 
 export interface SurveyPoint {
