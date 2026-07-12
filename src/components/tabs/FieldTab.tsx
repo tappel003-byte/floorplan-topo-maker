@@ -100,7 +100,8 @@ export function FieldTab({
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
   const [addingTransition, setAddingTransition] = useState(false);
-  
+  const [chainPopoverOpen, setChainPopoverOpen] = useState(false);
+
   const [viewingTransitionId, setViewingTransitionId] = useState<string | null>(null);
 
   const notes: NotePin[] = floor.notes ?? [];
@@ -108,6 +109,61 @@ export function FieldTab({
   const activeTransition = activeTransitionId
     ? (transitions.find((t) => t.id === activeTransitionId) ?? null)
     : null;
+
+  /** Set of transition ids in the same chain as `tid` (root + all descendants). */
+  function chainOf(tid: string | null | undefined): Set<string> {
+    const out = new Set<string>();
+    if (!tid) return out;
+    const byId = new Map(transitions.map((t) => [t.id, t]));
+    let root = byId.get(tid);
+    const walked = new Set<string>();
+    while (root?.parentId && !walked.has(root.id)) {
+      walked.add(root.id);
+      const p = byId.get(root.parentId);
+      if (!p) break;
+      root = p;
+    }
+    if (!root) return out;
+    out.add(root.id);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const t of transitions) {
+        if (t.parentId && out.has(t.parentId) && !out.has(t.id)) {
+          out.add(t.id);
+          added = true;
+        }
+      }
+    }
+    return out;
+  }
+
+  /** Ordered chain root → leaf starting from the active transition's root. */
+  function chainOrdered(tid: string | null | undefined): Transition[] {
+    if (!tid) return [];
+    const ids = chainOf(tid);
+    const byId = new Map(transitions.map((t) => [t.id, t]));
+    // find root
+    let root = byId.get(tid);
+    const walked = new Set<string>();
+    while (root?.parentId && !walked.has(root.id)) {
+      walked.add(root.id);
+      const p = byId.get(root.parentId);
+      if (!p) break;
+      root = p;
+    }
+    if (!root) return [];
+    const ordered: Transition[] = [root];
+    // Walk one child per step (linear chain assumption from active pointer).
+    let cursor: Transition | undefined = root;
+    while (cursor) {
+      const child = transitions.find((t) => t.parentId === cursor!.id && ids.has(t.id));
+      if (!child || ordered.includes(child)) break;
+      ordered.push(child);
+      cursor = child;
+    }
+    return ordered;
+  }
 
   useEffect(() => {
     setPending(null);
@@ -476,15 +532,54 @@ export function FieldTab({
 
       {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
       {activeTransition && !pending && !editingPoint && (
-        <div className="absolute z-20 top-12 right-2 flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
-          <span className="font-medium">Active: {activeTransition.surfaceB} chain</span>
-          <button
-            onClick={() => setActiveTransitionId(null)}
-            className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
-            aria-label="Done with this transition"
-          >
-            ✕
-          </button>
+        <div className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1">
+          <div className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
+            <button
+              onClick={() => setChainPopoverOpen((v) => !v)}
+              className="font-medium hover:underline"
+              aria-expanded={chainPopoverOpen}
+              aria-label="Edit chain corrections"
+            >
+              Active: {activeTransition.surfaceB} chain
+            </button>
+            <button
+              onClick={() => {
+                setActiveTransitionId(null);
+                setChainPopoverOpen(false);
+              }}
+              className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
+              aria-label="Done with this transition"
+            >
+              ✕
+            </button>
+          </div>
+          {chainPopoverOpen && (
+            <div className="w-64 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
+              <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
+                Chain corrections — tap to edit
+              </div>
+              <ul className="divide-y">
+                {chainOrdered(activeTransitionId).map((t) => (
+                  <li key={t.id}>
+                    <button
+                      onClick={() => {
+                        setViewingTransitionId(t.id);
+                        setChainPopoverOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-amber-50"
+                    >
+                      <span className="text-gray-800">
+                        {t.surfaceA} → {t.surfaceB}
+                      </span>
+                      <span className="font-mono tabular-nums font-semibold">
+                        {formatDelta(transitionDelta(t))}"
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -754,6 +849,12 @@ export function FieldTab({
         }}
         drawOverlay={(ctx) => {
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
+          // Highlighted ids = full chain of the viewed transition, plus the
+          // active chain when its popover is open (so tapping the pill lights
+          // up every point tied to any link in the chain).
+          const highlightIds = new Set<string>();
+          if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
+          if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
           for (const p of points) {
             const isAnchor = !!p.isTransitionAnchor;
             const linkedT = p.transitionId
@@ -761,7 +862,7 @@ export function FieldTab({
               : null;
             const isDownstream = !!linkedT && !isAnchor;
             const isHighlighted =
-              !!viewingTransitionId && p.transitionId === viewingTransitionId;
+              !!p.transitionId && highlightIds.has(p.transitionId);
 
             const color = isAnchor
               ? TRANSITION_COLOR
@@ -791,9 +892,10 @@ export function FieldTab({
               ctx.fill();
             }
 
-            // Highlight ring for downstream points when their transition is selected.
-            if (isHighlighted && isDownstream) {
-              const r = markerR + 5;
+            // Highlight ring: any point (anchor or downstream) tied to a
+            // transition in the highlighted chain.
+            if (isHighlighted && (isDownstream || isAnchor)) {
+              const r = (isAnchor ? Math.max(markerR + 3, 6) : markerR) + 5;
               ctx.beginPath();
               ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
               ctx.strokeStyle = TRANSITION_COLOR;
