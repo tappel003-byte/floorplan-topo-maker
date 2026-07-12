@@ -161,7 +161,7 @@ export function DataPointsPanel({
     return (
       <button
         onClick={() => setState((s) => ({ ...s, hidden: false }))}
-        className="fixed top-[calc(env(safe-area-inset-top)+6rem)] left-[calc(env(safe-area-inset-left)+0.5rem)] landscape-short:top-auto landscape-short:left-1/2 landscape-short:-translate-x-1/2 landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md h-9 px-3 flex items-center gap-1 text-[11px] font-medium"
+        className="fixed top-[calc(env(safe-area-inset-top)+2.75rem)] left-[calc(env(safe-area-inset-left)+0.5rem)] landscape-short:top-auto landscape-short:left-1/2 landscape-short:-translate-x-1/2 landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md h-9 px-3 flex items-center gap-1 text-[11px] font-medium"
         aria-label="Show data points"
       >
         <Database className="h-4 w-4" />
