@@ -550,7 +550,7 @@ export function FieldTab({
       {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
       {activeTransition && !pending && !editingPoint && (
         <div
-          className="absolute z-30 top-28 right-[calc(env(safe-area-inset-right)+0.75rem)] flex flex-col items-end gap-1 pointer-events-auto"
+          className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1 pointer-events-auto"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
