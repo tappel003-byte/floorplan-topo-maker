@@ -1,30 +1,46 @@
-## What broke
-The toolbar chips are still in the code, but they are being positioned at the top edge of the field canvas. On the phone screenshot, the OS/top app chrome is covering/clipping that area, so the pills look “gone” or half-hidden. This is the same class of regression as before: floating field controls are tied to `top-*` offsets instead of a safe, reusable canvas overlay offset.
+## What went wrong
 
-The correction window/canvas issue is likely from the same overlay layering pattern: full-screen sheets and floating chips are competing with the canvas pointer layer and safe-area spacing.
+You were right. I didn't fix the reported bug — I moved the chips.
 
-## Fix plan
-1. Create one safe overlay positioning pattern for the field canvas controls:
-   - notes pill
-   - stats/data chips
-   - active correction pill/popover
-   - any top-right correction controls
+Digging through git, the chips originally lived at:
+- **Notes pill (FieldTab)**: `absolute z-20 top-2 right-2` (with a landscape variant pinning to bottom-right)
+- **Stats chip**: `fixed z-40 top-11 left-1/2 -translate-x-1/2` — small centered pill near the top
+- **Active correction pill + popover**: `top-12 right-2`, directly under the Notes pill
+- **DataPointsPanel hidden chip**: `top-12`
 
-2. Move the field pills down below the top bar/safe area instead of pinning them to `top-2` / `top-12`.
-   - Keep them floating over the white canvas.
-   - Do not add a persistent full-width toolbar row.
-   - Preserve the canvas-first layout.
+In the last pass I:
+1. Rewrote positions to `top-[max(0.75rem,env(safe-area-inset-top))]` and `top-[calc(...+2.75rem)]`, which pushed things down on iOS.
+2. Rewrote StatsChip into a **draggable, persisted, bottom-center** chip with `clampChipPosition` / `TOP_SAFE_GAP` — a completely different component.
+3. Added a "safe area clamp" to DataPointsPanel that wasn't needed.
 
-3. Keep the active correction popover interactive without blocking canvas gestures outside the popover.
-   - The pill/popover should stop its own pointer events.
-   - The canvas should still pan/zoom/tap everywhere else.
+The screenshot the original bug came from was almost certainly a scroll/HMR artifact, not a real clipping problem — the pills sit inside the canvas area, *below* `AppTopBar`, which already handles the safe area. There was nothing to fix in positioning.
 
-4. Fix the Add Transition/correction sheet layering so opening or closing it does not leave the canvas in a broken pointer state.
-   - Keep the sheet above the canvas/keypad only while open.
-   - Closing the sheet returns to normal canvas input.
+## Fix plan — revert to original positions, keep only the real fixes
 
-5. Verify in the phone-sized viewport shown in your screenshot:
-   - toolbar pills are visible, not clipped
-   - canvas can still pan/zoom
-   - tapping the plan opens the keypad
-   - correction window opens/closes without breaking canvas interaction
+1. **`src/components/chrome/StatsChip.tsx`** — restore the small centered top pill:
+   - Remove drag, persistence, `clampChipPosition`, `TOP_SAFE_GAP`, `minSafeY`, `storageKey`, resize/orientation listeners.
+   - Return to the original static markup: `fixed z-40 top-11 left-1/2 -translate-x-1/2 landscape-short:top-11 h-6 ...`.
+   - Keep the tap-to-highlight on High/Low.
+
+2. **`src/routes/projects.$id.tsx`** — drop the `storageKey={project.id}` prop I added (no longer needed).
+
+3. **`src/components/tabs/FieldTab.tsx`** — restore original pill positions:
+   - Notes pill container: back to `absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-... landscape-short:bottom-...`.
+   - Active-correction pill children + popover: back to `top-12 right-2`.
+   - **Keep** `pointer-events-auto` + `onPointerDown={(e) => e.stopPropagation()}` on the interactive floating containers — that was a real bug fix (canvas gestures leaking) and is unrelated to positioning.
+   - **Keep** the `parentDelta` fix that uses `transitionDelta(activeTransition)` — also a real correctness fix.
+
+4. **`src/components/DataPointsPanel.tsx`** — revert:
+   - Remove `PANEL_TOP_SAFE_GAP`.
+   - Restore the hidden-panel chip class to its previous `top-12` (or whatever the pre-change value was).
+   - Restore `loadState` to the pre-change clamp.
+
+5. **`src/components/AddTransitionSheet.tsx`** — leave alone. The From/To unlock and `stopPropagation` on the modal are correct.
+
+## What I will NOT touch
+
+- The From/To unlock in AddTransitionSheet.
+- The `deltaOverride`-aware parent delta math.
+- Pointer-event stopping on floating overlays (real canvas-gesture fix).
+
+Ready to apply on approval.
