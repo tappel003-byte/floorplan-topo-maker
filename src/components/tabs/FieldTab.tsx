@@ -671,6 +671,8 @@ export function FieldTab({
             if (point.isTransitionAnchor && point.transitionId) {
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
+                // Tapping a diamond re-arms that chain for the next point.
+                setActiveTransitionId(point.transitionId);
                 setViewingTransitionId(point.transitionId);
                 return;
               }
