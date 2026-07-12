@@ -58,3 +58,24 @@ export function transitionLabel(t: Transition): string {
 export function correctionLabel(surface: string): string {
   return `${surface || "Surface"} correction`;
 }
+
+/**
+ * Walks parentId up to the chain root and returns the root's surfaceA — the
+ * baseline surface every correction in the chain resolves back to.
+ */
+export function getChainBaselineSurface(
+  transitionId: string | null | undefined,
+  transitions: readonly Transition[] | undefined,
+): string | null {
+  if (!transitionId || !transitions?.length) return null;
+  const byId = new Map(transitions.map((t) => [t.id, t]));
+  let cur = byId.get(transitionId);
+  const seen = new Set<string>();
+  while (cur?.parentId && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    const p = byId.get(cur.parentId);
+    if (!p) break;
+    cur = p;
+  }
+  return cur?.surfaceA ?? null;
+}
