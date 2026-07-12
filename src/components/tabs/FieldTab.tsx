@@ -1123,6 +1123,10 @@ export function FieldTab({
               }
             : undefined
         }
+        baselineSurface={getChainBaselineSurface(
+          editingPoint ? editingPoint.transitionId : activeTransitionId,
+          transitions,
+        )}
       />
 
 
