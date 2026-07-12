@@ -347,7 +347,15 @@ export function FieldTab({
 
   /** Save edits from TransitionDetailDialog. Anchor's stored value follows readingA. */
   async function handleSaveTransition(updated: Transition) {
-    const nextTs = transitions.map((t) => (t.id === updated.id ? updated : t));
+    // If readings changed, clear any manual override so readings are the truth.
+    const prev = transitions.find((t) => t.id === updated.id);
+    const readingsChanged =
+      !prev || prev.readingA !== updated.readingA || prev.readingB !== updated.readingB;
+    const merged: Transition = readingsChanged
+      ? { ...updated, deltaOverride: undefined }
+      : updated;
+    const nextTs = transitions.map((t) => (t.id === merged.id ? merged : t));
+
     await persistTransitions(nextTs);
     // Keep the anchor's value in sync with readingA.
     const anchor = points.find((p) => p.transitionId === updated.id && p.isTransitionAnchor);
