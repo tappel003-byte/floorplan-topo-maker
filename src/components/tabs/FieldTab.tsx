@@ -983,7 +983,16 @@ export function FieldTab({
         }
         onUndo={() => window.dispatchEvent(new Event("app:undo"))}
         canUndo
+        onEndTransition={
+          !editingPoint && activeTransitionId
+            ? () => {
+                setActiveTransitionId(null);
+                setPending(null);
+              }
+            : undefined
+        }
       />
+
 
       {/* Add-Transition sheet — captures both readings at a doorway. */}
       <AddTransitionSheet
