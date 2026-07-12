@@ -156,6 +156,7 @@ export function TransitionDetailDialog({
               step="0.01"
               value={readingA}
               onChange={(e) => setReadingA(e.target.value)}
+              placeholder="0.0"
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
             />
           </label>
@@ -167,6 +168,7 @@ export function TransitionDetailDialog({
               step="0.01"
               value={readingB}
               onChange={(e) => setReadingB(e.target.value)}
+              placeholder="0.0"
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
             />
           </label>
