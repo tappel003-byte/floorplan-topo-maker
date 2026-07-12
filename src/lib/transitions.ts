@@ -49,7 +49,12 @@ export function formatDelta(d: number): string {
   return `${sign}${Math.abs(d).toFixed(1)}`;
 }
 
-/** Short label for the transition chip / detail dialog: "Tile → Carpet +0.4"" */
+/** Short label for the transition chip / detail dialog: "Carpet correction +0.4"" */
 export function transitionLabel(t: Transition): string {
-  return `${t.surfaceA} → ${t.surfaceB} ${formatDelta(transitionDelta(t))}"`;
+  return `${t.surfaceB} correction ${formatDelta(transitionDelta(t))}"`;
+}
+
+/** Surface-focused correction label: "Carpet correction". */
+export function correctionLabel(surface: string): string {
+  return `${surface || "Surface"} correction`;
 }

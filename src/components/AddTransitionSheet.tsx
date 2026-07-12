@@ -163,15 +163,15 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
 
         <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
           <span className="text-muted-foreground">
-            {surfaceA || "From"} → {surfaceB || "To"}
+            {surfaceB || "Surface"} correction
           </span>
           <span className="font-mono tabular-nums font-semibold">
             {valid ? `${formatDelta(delta)}"` : "—"}
           </span>
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Plots a diamond anchor. Subsequent points on {surfaceB || "the other side"} display as{" "}
-          <span className="font-mono">raw{formatDelta(delta || 0.4)}</span>.
+          Plots a diamond anchor. Subsequent {surfaceB || "surface"} readings display as{" "}
+          <span className="font-mono">raw {formatDelta(delta || 0.4)}</span> ({surfaceB || "surface"} correction).
         </p>
 
 

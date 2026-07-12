@@ -177,12 +177,11 @@ export function NumericKeypad({
           <div className="mb-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs">
             <ArrowLeftRight className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="flex-1 min-w-0 truncate">
-              <span className="text-muted-foreground">Transition active · </span>
+              <span className="font-medium">{activeTransition.label}</span>{" "}
               <span className="font-mono font-semibold">
-                {activeTransition.delta >= 0 ? "+" : "-"}
+                {activeTransition.delta >= 0 ? "+" : "−"}
                 {Math.abs(activeTransition.delta).toFixed(1)}
-              </span>{" "}
-              <span className="text-muted-foreground">{activeTransition.label}</span>
+              </span>
             </span>
             {onRemoveTransition && (
               <button

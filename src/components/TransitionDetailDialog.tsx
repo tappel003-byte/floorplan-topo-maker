@@ -70,7 +70,7 @@ export function TransitionDetailDialog({
             className="flex items-center gap-1.5 text-xs font-medium"
             aria-label="Expand transition"
           >
-            <span className="text-muted-foreground">{transition.surfaceA}→{transition.surfaceB}</span>
+            <span className="text-muted-foreground">{transition.surfaceB} correction</span>
             <span className="font-mono font-semibold">{deltaLabel}"</span>
           </button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMinimized(false)} aria-label="Expand">
@@ -176,7 +176,7 @@ export function TransitionDetailDialog({
 
         <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
           <span className="text-muted-foreground">
-            {surfaceA || "From"} → {surfaceB || "To"}
+            {surfaceB || "Surface"} correction
           </span>
           <span className="font-mono tabular-nums font-semibold">
             {valid ? `${formatDelta(delta)}"` : "—"}
