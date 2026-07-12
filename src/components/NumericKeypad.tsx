@@ -278,7 +278,11 @@ export function NumericKeypad({
               </button>
               {hasSurfaceRow ? surfaceOptions!.map((opt) => {
                 const sign = opt.delta > 0 ? "+" : opt.delta < 0 ? "−" : "";
-                const deltaText = opt.delta === 0 ? "0.0" : `${sign}${Math.abs(opt.delta).toFixed(1)}`;
+                const deltaText = opt.isBaseline
+                  ? "baseline"
+                  : opt.delta === 0
+                    ? "0.0"
+                    : `${sign}${Math.abs(opt.delta).toFixed(1)}`;
                 const disabled = !text || !isFinite(parseFloat(text));
                 return (
                   <button
@@ -299,6 +303,7 @@ export function NumericKeypad({
                   </button>
                 );
               }) : (
+
                 <button
                   onClick={submit}
                   disabled={!text || !isFinite(parseFloat(text))}
