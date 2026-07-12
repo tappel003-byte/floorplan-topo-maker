@@ -598,8 +598,24 @@ export function FieldTab({
           };
           dragRef.current = drag;
           setDragging(drag);
+          // Anchor long-press → open detail dialog. Plain tap re-arms the chain.
+          if (hp.isTransitionAnchor && hp.transitionId) {
+            anchorLongPressFiredRef.current = false;
+            if (anchorLongPressTimerRef.current) {
+              window.clearTimeout(anchorLongPressTimerRef.current);
+            }
+            const tid = hp.transitionId;
+            anchorLongPressTimerRef.current = window.setTimeout(() => {
+              const cur = dragRef.current;
+              if (!cur || cur.moved) return;
+              if (!transitions.some((t) => t.id === tid)) return;
+              anchorLongPressFiredRef.current = true;
+              setViewingTransitionId(tid);
+            }, LONG_PRESS_MS);
+          }
           return true;
         }}
+
         onImagePointerMove={(x, y, event) => {
           const nd = noteDragRef.current;
           if (nd) {
