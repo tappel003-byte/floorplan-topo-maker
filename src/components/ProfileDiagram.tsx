@@ -72,8 +72,14 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
   const PAD_X = 12;
   const TILE_Y = 40;      // dashed tile datum
   const SLAB_Y = 72;      // solid slab line
+  const PIX_PER_INCH = 30; // vertical scale for elevation deltas
   const width = PAD_X * 2 + chain.length * SEG_W;
   const height = SLAB_Y + 26;
+
+  // Datum = tile (or first) segment's first reading.
+  // Higher reading = more distance from laser = LOWER floor (drawn further down).
+  const datumSeg = chain.find((s) => s.name === "Tile") ?? chain[0];
+  const datum = datumSeg.readings[0];
 
   const HARD_FILL = "#c4a484";
   const HARD_STROKE = "#4b3820";
