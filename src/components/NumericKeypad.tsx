@@ -249,17 +249,7 @@ export function NumericKeypad({
                   className="col-span-2 h-16 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground text-xl landscape-short:text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   <Check className="h-6 w-6 landscape-short:h-5 landscape-short:w-5" />
-                  {activeTransition ? (
-                    <span>
-                      Enter{" "}
-                      <span className="font-mono text-base landscape-short:text-sm opacity-90">
-                        ({activeTransition.delta >= 0 ? "+" : "-"}
-                        {Math.abs(activeTransition.delta).toFixed(1)})
-                      </span>
-                    </span>
-                  ) : (
-                    "Enter"
-                  )}
+                  Enter
                 </button>
               </>
             )}
