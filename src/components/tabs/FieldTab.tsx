@@ -1292,7 +1292,7 @@ function DeltaOverrideInput({
     else setText(formatSigned(value));
   }
   return (
-    <div className="flex items-center pr-2 gap-0.5">
+    <div className="flex items-center pr-2 gap-0.5 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
       <input
         type="text"
         inputMode="decimal"
