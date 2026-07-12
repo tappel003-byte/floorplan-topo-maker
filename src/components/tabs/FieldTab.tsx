@@ -640,7 +640,7 @@ export function FieldTab({
       {/* Notes list dropdown */}
       {notesListOpen && (
         <div
-          className="absolute z-40 top-28 right-[calc(env(safe-area-inset-right)+0.75rem)] w-64 max-h-[60vh] overflow-y-auto overscroll-contain rounded-xl bg-white shadow-2xl border border-gray-200"
+          className="absolute z-30 top-12 right-2 w-64 max-h-[60vh] overflow-y-auto overscroll-contain rounded-xl bg-white shadow-2xl border border-gray-200"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
