@@ -532,15 +532,54 @@ export function FieldTab({
 
       {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
       {activeTransition && !pending && !editingPoint && (
-        <div className="absolute z-20 top-12 right-2 flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
-          <span className="font-medium">Active: {activeTransition.surfaceB} chain</span>
-          <button
-            onClick={() => setActiveTransitionId(null)}
-            className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
-            aria-label="Done with this transition"
-          >
-            ✕
-          </button>
+        <div className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1">
+          <div className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
+            <button
+              onClick={() => setChainPopoverOpen((v) => !v)}
+              className="font-medium hover:underline"
+              aria-expanded={chainPopoverOpen}
+              aria-label="Edit chain corrections"
+            >
+              Active: {activeTransition.surfaceB} chain
+            </button>
+            <button
+              onClick={() => {
+                setActiveTransitionId(null);
+                setChainPopoverOpen(false);
+              }}
+              className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
+              aria-label="Done with this transition"
+            >
+              ✕
+            </button>
+          </div>
+          {chainPopoverOpen && (
+            <div className="w-64 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
+              <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
+                Chain corrections — tap to edit
+              </div>
+              <ul className="divide-y">
+                {chainOrdered(activeTransitionId).map((t) => (
+                  <li key={t.id}>
+                    <button
+                      onClick={() => {
+                        setViewingTransitionId(t.id);
+                        setChainPopoverOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-amber-50"
+                    >
+                      <span className="text-gray-800">
+                        {t.surfaceA} → {t.surfaceB}
+                      </span>
+                      <span className="font-mono tabular-nums font-semibold">
+                        {formatDelta(transitionDelta(t))}"
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
