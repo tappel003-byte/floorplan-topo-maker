@@ -13,31 +13,23 @@ interface Props {
     surfaceB: string;
     readingA: number;
     readingB: number;
-    readingAFar?: number;
-    readingBFar?: number;
   }) => void;
 }
 
 /**
  * Sheet for creating a flooring transition. User picks two surfaces and
- * enters raw readings taken at the doorway. Soft surfaces (carpet) also
- * accept an optional far-side reading — the manometer probes through carpet
- * to the slab, and the slab can dip across the room.
+ * enters raw readings taken at the doorway.
  */
 export function AddTransitionSheet({ open, onClose, onSave }: Props) {
   const [surfaceA, setSurfaceA] = useState<string>("Tile");
   const [surfaceB, setSurfaceB] = useState<string>("Carpet");
   const [readingA, setReadingA] = useState<string>("");
   const [readingB, setReadingB] = useState<string>("");
-  const [readingAFar, setReadingAFar] = useState<string>("");
-  const [readingBFar, setReadingBFar] = useState<string>("");
 
   useEffect(() => {
     if (open) {
       setReadingA("");
       setReadingB("");
-      setReadingAFar("");
-      setReadingBFar("");
     }
   }, [open]);
 
@@ -48,8 +40,6 @@ export function AddTransitionSheet({ open, onClose, onSave }: Props) {
 
   const a = parseFloat(readingA);
   const b = parseFloat(readingB);
-  const aFar = parseFloat(readingAFar);
-  const bFar = parseFloat(readingBFar);
   const valid = isFinite(a) && isFinite(b);
   const delta = valid ? a - b : 0;
 
@@ -60,8 +50,6 @@ export function AddTransitionSheet({ open, onClose, onSave }: Props) {
       surfaceB,
       readingA: a,
       readingB: b,
-      readingAFar: aSoft && isFinite(aFar) ? aFar : undefined,
-      readingBFar: bSoft && isFinite(bFar) ? bFar : undefined,
     });
   }
 
@@ -146,38 +134,6 @@ export function AddTransitionSheet({ open, onClose, onSave }: Props) {
             />
           </label>
 
-          {aSoft && (
-            <label className="flex flex-col gap-1 col-span-1">
-              <span className="text-xs text-muted-foreground">
-                {surfaceA} reading" (far side, optional)
-              </span>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={readingAFar}
-                onChange={(e) => setReadingAFar(e.target.value)}
-                placeholder="0.0"
-                className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
-              />
-            </label>
-          )}
-          {bSoft && (
-            <label className={`flex flex-col gap-1 ${aSoft ? "" : "col-start-2"}`}>
-              <span className="text-xs text-muted-foreground">
-                {surfaceB} reading" (far side, optional)
-              </span>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={readingBFar}
-                onChange={(e) => setReadingBFar(e.target.value)}
-                placeholder="0.0"
-                className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
-              />
-            </label>
-          )}
         </div>
 
         <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
