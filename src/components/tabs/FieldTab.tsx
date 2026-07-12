@@ -178,7 +178,8 @@ export function FieldTab({
     if (isBasePointCapture) setBpPromptOpen(true);
   }
 
-  async function submitValue(v: number) {
+  async function submitValue(v: number, overrideTransitionId?: string | null) {
+    // overrideTransitionId: string = tag with this; null = force no tag (root anchor surface); undefined = use activeTransitionId
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
       await savePoint(updated);
@@ -190,6 +191,11 @@ export function FieldTab({
     }
     if (!pending) return;
     const isBP = isBasePointCapture;
+    const tagId = isBP
+      ? undefined
+      : overrideTransitionId === undefined
+        ? (activeTransitionId ?? undefined)
+        : (overrideTransitionId ?? undefined);
     const point: SurveyPoint = {
       id: uid(),
       floorId: floor.id,
@@ -200,8 +206,7 @@ export function FieldTab({
       isBasePoint: isBP,
       label: isBP ? "BP1" : undefined,
       createdAt: Date.now(),
-      // Tag with active transition (BP never gets tagged)
-      transitionId: !isBP && activeTransitionId ? activeTransitionId : undefined,
+      transitionId: tagId,
     };
     await savePoint(point);
     const nextPts = [...points, point];
