@@ -51,7 +51,6 @@ function loadState(projectId: string): PanelState {
         collapsed: false,
         hidden: false,
         x: 8,
-        y: PANEL_TOP_SAFE_GAP,
         sortMode: "index",
         ...parsed,
         y: Math.max(PANEL_TOP_SAFE_GAP, parsed.y ?? PANEL_TOP_SAFE_GAP),
