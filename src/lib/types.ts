@@ -101,7 +101,10 @@ export interface SurveyPoint {
   //   where delta = readingA − readingB.
   transitionId?: string;
   isTransitionAnchor?: boolean;
+  // Tagged to a chain but sits on the chain's baseline surface. Correction = 0.
+  isChainBaseline?: boolean;
 }
+
 
 
 export interface RenderSettings {
