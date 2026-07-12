@@ -1,29 +1,40 @@
 ## Goal
 
-Make the flooring-correction keypad match what we agreed to in words: **no chip/pill row above the number pad**, and when a chain is active the **bottom row is the only place surface choices appear** (no leftover full-width Enter).
+Two related keypad/anchor fixes so transitions become room-scoped and re-selectable:
 
-## What's wrong right now (from image-170)
+1. Explicit **"Done with this transition"** button on the keypad ends the active chain.
+2. Tapping **any diamond** on the plan re-arms that diamond's **entire chain** (root + all descendants), reopening the keypad with the full surface-choice row.
 
-Looking at `src/components/NumericKeypad.tsx`:
+## Behavior
 
-1. The active-transition **corrected-value preview** (`= 9.00" (8.60 + 0.4 → Carpet)`) still renders above the number pad whenever `activeTransition` is set. That's the strip you circled at the top.
-2. The `showShortcutRow` block (Repeat / Correct-for-flooring buttons) is hidden when a transition is active — good — but the corrected-value preview above it is not, so the "top row" visually persists.
-3. In the bottom action area, the fallback branch still renders a full-width **Enter** button when `activeTransition` is set but `surfaceOptions` isn't passed (e.g. editing an existing point, or a chain with only one surface). That's why some screens still show Enter at the bottom instead of surface buttons.
+**Ending a chain**
+- When `activeTransitionId` is set, the keypad shows a small `Done with this transition` button in the header (next to Undo / Delete / Close).
+- Tapping it clears `activeTransitionId` and closes the keypad. Next tap on the canvas is a plain point again.
+- The existing "Correct for flooring" button stays visible always (already covered by prior scoping work) so a new, unrelated transition can be started at any time.
 
-## Fix (single file: `src/components/NumericKeypad.tsx`)
+**Re-arming a chain**
+- Tapping a diamond anchor on the plan:
+  - Sets `activeTransitionId` to the **root** of that anchor's chain (walk `parentId` up to the top).
+  - Opens the keypad in "next point" mode (empty value, ready to type), same state you'd be in right after finishing a transition.
+  - The bottom surface-choice row shows every surface in the chain (root + descendants), computed the same way as during original creation.
+- Tapping a non-anchor point keeps existing behavior (edit that point).
 
-1. **Remove the top corrected-value preview block entirely.** Delete the `activeTransition && (() => { ... })()` IIFE that renders the `= X.XX"` line above the keys. Correction context belongs on the bottom buttons (each surface button already shows its delta), not as a header strip.
-2. **Keep** the number-grid change already in place: when `usesBottomCorrectionActions` is true, skip rendering the in-grid backspace + full-width Enter.
-3. **Bottom row behavior** when `usesBottomCorrectionActions` is true:
-   - If `hasSurfaceRow` → render backspace + one button per surface (already correct).
-   - Else (active transition but no surface options passed) → render backspace + a single flex-1 **Enter** button that submits the raw value. This is the existing fallback; leave it.
-4. No changes to `FieldTab.tsx`, `transitions.ts`, or storage. This is purely the keypad's own layout.
+## Files
+
+- `src/components/tabs/FieldTab.tsx`
+  - Add `handleAnchorTap(transitionId)`: walk to root, set `activeTransitionId`, open keypad in new-point mode positioned at the anchor's coords (or just re-arm without a pending coord — TBD by existing flow; match whatever "start next point" currently does).
+  - Wire it to the diamond marker's tap handler (currently opens the transition detail dialog — we'll keep that on long-press / detail button, and make a plain tap re-arm).
+  - Pass a new `onEndTransition` callback to `NumericKeypad`.
+- `src/components/NumericKeypad.tsx`
+  - Add `onEndTransition?: () => void` prop.
+  - When `activeTransition` is set, render a compact "Done with this transition" button in the header row (left side, near Undo). No other layout changes.
 
 ## Out of scope
 
-- Chain computation, anchor coloring, downstream highlights, delete/detach behavior — untouched.
-- No new props, no API changes to callers.
+- Diamond color, downstream highlight behavior, delete/detach, chain math — all untouched.
+- No changes to `transitions.ts` or storage shape.
+- The transition detail dialog (minimize/expand, ✕ detach) stays exactly as-is; only the plain-tap gesture on the diamond changes.
 
-## Verification
+## Open question before build
 
-After the edit I'll re-read `NumericKeypad.tsx` to confirm the top IIFE is gone and the bottom branch is the only place correction UI renders. I can't screenshot the live preview reliably, so if it still looks wrong on your device please send a screenshot and I'll iterate.
+Right now a plain tap on a diamond opens the **transition detail dialog**. If I move plain-tap to "re-arm the chain," how do you want to reach the detail dialog? Options that come to mind: a small info button on the dialog-less anchor, or long-press. I'd rather you tell me which feels right than guess.
