@@ -21,55 +21,93 @@ const HARD_THICKNESS: Record<string, number> = {
   Other: 18,
 };
 
-interface Surface {
+interface Segment {
   name: string;
-  reading: number;
-  readingFar?: number;
   soft: boolean;
+  /** Readings taken on this surface — one entry per doorway that touches it. */
+  readings: number[];
 }
 
 /**
- * Compact profile of the active doorway transition. Rebuilt to match how the
- * manometer actually measures:
+ * Merge a sequence of transitions into one left-to-right profile.
  *
- *   - Dashed slab line = shared datum.
- *   - Hard surfaces (tile / wood / etc) = colored block sitting ON the slab,
- *     with the reading labeled on top and a probe tick at the top of the block.
- *   - Soft surfaces (carpet) = thin strip flush WITH the slab (no block above),
- *     because the probe goes through the carpet to the slab. Readings sit at
- *     the slab line. Soft surfaces can have TWO readings (near-door and
- *     far-side of the room) — both are shown as separate ticks/labels.
- *
- * Only shows the single active transition — no parent-chain walking.
+ * Rules:
+ *  - Transitions are processed in createdAt order.
+ *  - The FIRST transition seeds [A, B].
+ *  - Each subsequent transition must share ONE surface with the current tail
+ *    of the chain — that shared surface accumulates the second reading
+ *    (both doorways touching it get an X on the slab), and the non-shared
+ *    surface is appended as the new tail.
+ *  - Any transition that doesn't connect to the tail is skipped (kept simple —
+ *    each floor has one active chain).
  */
-export function ProfileDiagram({ activeId, transitions }: Props) {
-  const t = transitions.find((x) => x.id === activeId);
-  if (!t) return null;
+function buildChain(transitions: readonly Transition[]): Segment[] {
+  const sorted = [...transitions].sort((a, b) => a.createdAt - b.createdAt);
+  if (sorted.length === 0) return [];
 
-  const surfaces: Surface[] = [
+  const first = sorted[0];
+  const segments: Segment[] = [
     {
-      name: t.surfaceA,
-      reading: t.readingA,
-      readingFar: t.readingAFar,
-      soft: SOFT_SURFACES.has(t.surfaceA),
+      name: first.surfaceA,
+      soft: SOFT_SURFACES.has(first.surfaceA),
+      readings: [first.readingA],
     },
     {
-      name: t.surfaceB,
-      reading: t.readingB,
-      readingFar: t.readingBFar,
-      soft: SOFT_SURFACES.has(t.surfaceB),
+      name: first.surfaceB,
+      soft: SOFT_SURFACES.has(first.surfaceB),
+      readings: [first.readingB],
     },
   ];
 
-  const BLOCK_W = 74;
-  const GAP = 6;
-  const PAD_X = 10;
-  const SLAB_Y = 60;
-  const width = PAD_X * 2 + surfaces.length * BLOCK_W + (surfaces.length - 1) * GAP;
-  const height = SLAB_Y + 30;
+  for (let i = 1; i < sorted.length; i++) {
+    const t = sorted[i];
+    const tail = segments[segments.length - 1];
+    if (t.surfaceA === tail.name) {
+      tail.readings.push(t.readingA);
+      segments.push({
+        name: t.surfaceB,
+        soft: SOFT_SURFACES.has(t.surfaceB),
+        readings: [t.readingB],
+      });
+    } else if (t.surfaceB === tail.name) {
+      tail.readings.push(t.readingB);
+      segments.push({
+        name: t.surfaceA,
+        soft: SOFT_SURFACES.has(t.surfaceA),
+        readings: [t.readingA],
+      });
+    }
+    // else: doesn't attach to tail — skip
+  }
 
-  const PALETTE = ["#c4a484", "#8b6f47"];
-  const SOFT_COLOR = "#b89968";
+  return segments;
+}
+
+/**
+ * Field profile of the doorway chain. Matches how the manometer measures:
+ *
+ *   - Dashed slab line = shared datum, spans the entire chain.
+ *   - Hard surfaces (tile, wood, etc.) = colored block sitting ON the slab
+ *     with an X + reading on top of the block.
+ *   - Soft surfaces (carpet) = label only, NO block (probe reads slab through
+ *     carpet). Each doorway that touches this carpet contributes one X on
+ *     the slab with the reading below it.
+ *
+ * The chain grows left-to-right as transitions are added.
+ */
+export function ProfileDiagram({ activeId, transitions }: Props) {
+  const chain = buildChain(transitions);
+  if (chain.length === 0) return null;
+
+  const SEG_W = 84;
+  const GAP = 0; // segments share the slab; no visual gap
+  const PAD_X = 12;
+  const SLAB_Y = 62;
+  const width = PAD_X * 2 + chain.length * SEG_W + Math.max(0, chain.length - 1) * GAP;
+  const height = SLAB_Y + 34;
+
+  const HARD_FILL = "#c4a484";
+  const HARD_STROKE = "#4b3820";
 
   return (
     <div className="rounded-md border border-gray-200 bg-white/95 px-1 py-1 overflow-x-auto">
@@ -79,10 +117,10 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
         viewBox={`0 0 ${width} ${height}`}
         className="block"
       >
-        {/* Dashed slab reference line */}
+        {/* Dashed slab reference line — spans full chain */}
         <line
-          x1={PAD_X - 4}
-          x2={width - PAD_X + 4}
+          x1={PAD_X - 6}
+          x2={width - PAD_X + 6}
           y1={SLAB_Y}
           y2={SLAB_Y}
           stroke="#6b7280"
@@ -91,7 +129,7 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
         />
         <text
           x={width - PAD_X + 4}
-          y={SLAB_Y + 20}
+          y={SLAB_Y + 22}
           textAnchor="end"
           fontSize={9}
           fill="#6b7280"
@@ -100,154 +138,130 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
           slab
         </text>
 
-        {surfaces.map((s, i) => {
-          const x = PAD_X + i * (BLOCK_W + GAP);
-          const color = s.soft ? SOFT_COLOR : PALETTE[i % PALETTE.length];
+        {chain.map((seg, i) => {
+          const x = PAD_X + i * (SEG_W + GAP);
+          const cx = x + SEG_W / 2;
 
-          if (s.soft) {
-            // Thin strip flush with slab. Readings live AT the slab.
-            const STRIP_H = 5;
-            const stripY = SLAB_Y - STRIP_H;
-            const leftReading = s.reading;
-            const rightReading = s.readingFar;
-            const showTwo = typeof rightReading === "number";
+          if (seg.soft) {
+            // Carpet: label only, no block. Readings live on the slab, one X
+            // per doorway that touches this segment.
+            const n = seg.readings.length;
             return (
               <g key={i}>
-                <rect
-                  x={x}
-                  y={stripY}
-                  width={BLOCK_W}
-                  height={STRIP_H}
-                  fill={color}
-                  stroke="#4b3820"
-                  strokeWidth={0.75}
-                  rx={1}
-                />
-                {/* Surface name — small, sits just above the strip */}
+                {/* Surface label floats above the slab */}
                 <text
-                  x={x + BLOCK_W / 2}
-                  y={stripY - 4}
+                  x={cx}
+                  y={SLAB_Y - 18}
                   textAnchor="middle"
-                  fontSize={10}
+                  fontSize={11}
                   fontWeight={600}
                   fill="#4b3820"
                 >
-                  {s.name}
+                  {seg.name}
                 </text>
-                {/* Reading labels AT slab. One centered, or two split left/right. */}
-                {showTwo ? (
-                  <>
+                {seg.readings.map((r, k) => {
+                  // Distribute Xs evenly across the segment width.
+                  const t = n === 1 ? 0.5 : 0.18 + (0.64 * k) / (n - 1);
+                  const rx = x + SEG_W * t;
+                  return (
+                    <g key={k}>
+                      {/* X mark on the slab */}
+                      <line
+                        x1={rx - 4}
+                        x2={rx + 4}
+                        y1={SLAB_Y - 4}
+                        y2={SLAB_Y + 4}
+                        stroke="#111827"
+                        strokeWidth={1.5}
+                      />
+                      <line
+                        x1={rx - 4}
+                        x2={rx + 4}
+                        y1={SLAB_Y + 4}
+                        y2={SLAB_Y - 4}
+                        stroke="#111827"
+                        strokeWidth={1.5}
+                      />
+                      <text
+                        x={rx}
+                        y={SLAB_Y + 18}
+                        textAnchor="middle"
+                        fontSize={11}
+                        fontWeight={700}
+                        fill="#111827"
+                        fontFamily="ui-monospace, monospace"
+                      >
+                        {r.toFixed(1)}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          }
+
+          // Hard surface: block on slab, X + reading on top.
+          const blockH = HARD_THICKNESS[seg.name] ?? 18;
+          const topY = SLAB_Y - blockH;
+          const n = seg.readings.length;
+          return (
+            <g key={i}>
+              <rect
+                x={x + 2}
+                y={topY}
+                width={SEG_W - 4}
+                height={blockH}
+                fill={HARD_FILL}
+                stroke={HARD_STROKE}
+                strokeWidth={1}
+                rx={2}
+              />
+              <text
+                x={cx}
+                y={topY + blockH / 2 + 4}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={600}
+                fill="#ffffff"
+              >
+                {seg.name}
+              </text>
+              {seg.readings.map((r, k) => {
+                const t = n === 1 ? 0.5 : 0.22 + (0.56 * k) / (n - 1);
+                const rx = x + SEG_W * t;
+                return (
+                  <g key={k}>
+                    {/* X mark on top of the block */}
                     <line
-                      x1={x + 8}
-                      x2={x + 8}
-                      y1={SLAB_Y}
-                      y2={SLAB_Y + 4}
+                      x1={rx - 4}
+                      x2={rx + 4}
+                      y1={topY - 4}
+                      y2={topY + 4}
                       stroke="#111827"
-                      strokeWidth={1.25}
+                      strokeWidth={1.5}
+                    />
+                    <line
+                      x1={rx - 4}
+                      x2={rx + 4}
+                      y1={topY + 4}
+                      y2={topY - 4}
+                      stroke="#111827"
+                      strokeWidth={1.5}
                     />
                     <text
-                      x={x + 8}
-                      y={SLAB_Y + 14}
-                      textAnchor="start"
-                      fontSize={11}
-                      fontWeight={700}
-                      fill="#111827"
-                      fontFamily="ui-monospace, monospace"
-                    >
-                      {leftReading.toFixed(1)}
-                    </text>
-                    <line
-                      x1={x + BLOCK_W - 8}
-                      x2={x + BLOCK_W - 8}
-                      y1={SLAB_Y}
-                      y2={SLAB_Y + 4}
-                      stroke="#111827"
-                      strokeWidth={1.25}
-                    />
-                    <text
-                      x={x + BLOCK_W - 8}
-                      y={SLAB_Y + 14}
-                      textAnchor="end"
-                      fontSize={11}
-                      fontWeight={700}
-                      fill="#111827"
-                      fontFamily="ui-monospace, monospace"
-                    >
-                      {rightReading!.toFixed(1)}
-                    </text>
-                  </>
-                ) : (
-                  <>
-                    <line
-                      x1={x + BLOCK_W / 2}
-                      x2={x + BLOCK_W / 2}
-                      y1={SLAB_Y}
-                      y2={SLAB_Y + 4}
-                      stroke="#111827"
-                      strokeWidth={1.25}
-                    />
-                    <text
-                      x={x + BLOCK_W / 2}
-                      y={SLAB_Y + 14}
+                      x={rx}
+                      y={topY - 8}
                       textAnchor="middle"
                       fontSize={11}
                       fontWeight={700}
                       fill="#111827"
                       fontFamily="ui-monospace, monospace"
                     >
-                      {leftReading.toFixed(1)}
+                      {r.toFixed(1)}
                     </text>
-                  </>
-                )}
-              </g>
-            );
-          }
-
-          // Hard surface: block above slab, reading on top.
-          const blockH = HARD_THICKNESS[s.name] ?? 18;
-          const topY = SLAB_Y - blockH;
-          return (
-            <g key={i}>
-              <rect
-                x={x}
-                y={topY}
-                width={BLOCK_W}
-                height={blockH}
-                fill={color}
-                stroke="#4b3820"
-                strokeWidth={1}
-                rx={2}
-              />
-              <text
-                x={x + BLOCK_W / 2}
-                y={topY + blockH / 2 + 4}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={600}
-                fill="#ffffff"
-              >
-                {s.name}
-              </text>
-              {/* Probe tick at top of block */}
-              <line
-                x1={x + BLOCK_W / 2}
-                x2={x + BLOCK_W / 2}
-                y1={topY}
-                y2={topY - 3}
-                stroke="#111827"
-                strokeWidth={1.25}
-              />
-              <text
-                x={x + BLOCK_W / 2}
-                y={topY - 6}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={700}
-                fill="#111827"
-                fontFamily="ui-monospace, monospace"
-              >
-                {s.reading.toFixed(1)}
-              </text>
+                  </g>
+                );
+              })}
             </g>
           );
         })}
