@@ -214,7 +214,7 @@ export function FieldTab({
     const linkedT = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
     const isDownstream = !!linkedT && !p.isTransitionAnchor;
     return isDownstream && !p.isChainBaseline
-      ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT))}`
+      ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
       : p.value.toFixed(2);
   }
 
@@ -411,7 +411,8 @@ export function FieldTab({
       const text = pointDisplayLabel(p);
       const w = text.length * fontPx * 0.62;
       const h = fontPx + 2;
-      const markerHalo = p.isTransitionAnchor ? Math.max(pointSize + 3, 6) : pointSize;
+      const markerR = Math.max(pointSize, 2);
+      const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
       const lx = p.x + markerHalo + 4;
       const ly = p.y + markerHalo + 3;
       if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
