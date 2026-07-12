@@ -230,6 +230,9 @@ export function FieldTab({
       readingA: data.readingA,
       readingB: data.readingB,
       createdAt: Date.now(),
+      // If a chain is already active, link this transition to it so
+      // downstream corrected values walk all the way back to the root.
+      parentId: activeTransitionId ?? undefined,
     };
     // Anchor point uses readingA (reference side).
     const anchor: SurveyPoint = {
@@ -668,6 +671,8 @@ export function FieldTab({
             if (point.isTransitionAnchor && point.transitionId) {
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
+                // Tapping a diamond re-arms that chain for the next point.
+                setActiveTransitionId(point.transitionId);
                 setViewingTransitionId(point.transitionId);
                 return;
               }

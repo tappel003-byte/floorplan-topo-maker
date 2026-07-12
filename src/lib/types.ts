@@ -64,6 +64,10 @@ export interface Transition {
   readingA: number; // raw reading on surfaceA at the doorway (base-frame)
   readingB: number; // raw reading on surfaceB at the doorway
   createdAt: number;
+  // Chain link — set to the transition this one branches off of, if any.
+  // Enables multi-surface stacking (Tile → Carpet → Wood) so the corrected
+  // value walks parent deltas back to the root reference frame.
+  parentId?: string;
 }
 
 

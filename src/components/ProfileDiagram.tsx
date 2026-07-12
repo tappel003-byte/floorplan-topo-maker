@@ -31,16 +31,27 @@ function buildChain(activeId: string, transitions: readonly Transition[]): Segme
   const active = transitions.find((t) => t.id === activeId);
   if (!active) return [];
 
-  // Do not infer a chain from every transition on the floor. Surface names repeat
-  // room-to-room, so unrelated doorways can accidentally join the diagram. Until
-  // an explicit chain id exists, the keypad diagram must show only the active
-  // doorway/anchor the next point will reference.
-  const first = active;
-  const segments: Segment[] = [
-    { name: first.surfaceA, soft: SOFT_SURFACES.has(first.surfaceA), readings: [first.readingA] },
-    { name: first.surfaceB, soft: SOFT_SURFACES.has(first.surfaceB), readings: [first.readingB] },
-  ];
+  // Walk parentId → root so the diagram stacks every surface in the chain.
+  // Root's surfaceA is the datum (tile in typical use); each subsequent hop
+  // contributes only its surfaceB (its surfaceA equals the prior surfaceB).
+  const path: Transition[] = [];
+  const seen = new Set<string>();
+  let cur: Transition | undefined = active;
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    path.unshift(cur);
+    cur = cur.parentId ? transitions.find((t) => t.id === cur!.parentId) : undefined;
+  }
 
+  const root = path[0];
+  const segments: Segment[] = [
+    { name: root.surfaceA, soft: SOFT_SURFACES.has(root.surfaceA), readings: [root.readingA] },
+    { name: root.surfaceB, soft: SOFT_SURFACES.has(root.surfaceB), readings: [root.readingB] },
+  ];
+  for (let i = 1; i < path.length; i++) {
+    const t = path[i];
+    segments.push({ name: t.surfaceB, soft: SOFT_SURFACES.has(t.surfaceB), readings: [t.readingB] });
+  }
   return segments;
 }
 
