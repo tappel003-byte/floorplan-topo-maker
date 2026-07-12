@@ -9,19 +9,6 @@ interface Props {
 /** Soft surfaces are probed through — reading is taken AT the slab. */
 const SOFT_SURFACES = new Set(["Carpet", "Pad", "Rug"]);
 
-/** Visual "block" heights for hard surfaces above the slab (decorative). */
-const HARD_THICKNESS: Record<string, number> = {
-  Tile: 14,
-  Hardwood: 22,
-  Wood: 22,
-  LVP: 14,
-  Vinyl: 12,
-  Laminate: 16,
-  Stone: 18,
-  Concrete: 6,
-  Other: 18,
-};
-
 function buildPath(activeId: string, transitions: readonly Transition[]): Transition[] {
   const active = transitions.find((t) => t.id === activeId);
   if (!active) return [];
@@ -107,8 +94,8 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
 
           // Hard finish top uses the actual B-side reading (wood is 9.5 in the example),
           // never the adjusted slab/carpet value (8.7 in the example).
-          const hardTopDrop = Math.max(0, t.readingB - datum) * PIX_PER_INCH;
-          const hardTopY = Math.min(SLAB_Y - 8, TILE_Y + hardTopDrop);
+          const hardTopDrop = (t.readingB - datum) * PIX_PER_INCH;
+          const hardTopY = Math.max(14, Math.min(SLAB_Y - 8, TILE_Y + hardTopDrop));
 
           if (soft) {
             return (
