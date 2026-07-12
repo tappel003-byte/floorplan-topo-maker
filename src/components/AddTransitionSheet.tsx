@@ -137,8 +137,8 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
               step="0.01"
               value={readingA}
               onChange={(e) => setReadingA(e.target.value)}
-              placeholder={chained ? "8.3" : "9.0"}
-              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+              placeholder="0.0"
+              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
               autoFocus
             />
             {chained && valid && (
@@ -155,8 +155,8 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
               step="0.01"
               value={readingB}
               onChange={(e) => setReadingB(e.target.value)}
-              placeholder="8.6"
-              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+              placeholder="0.0"
+              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
           </label>
         </div>

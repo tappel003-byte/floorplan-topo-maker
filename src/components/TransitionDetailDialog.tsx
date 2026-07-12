@@ -156,7 +156,8 @@ export function TransitionDetailDialog({
               step="0.01"
               value={readingA}
               onChange={(e) => setReadingA(e.target.value)}
-              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+              placeholder="0.0"
+              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -167,7 +168,8 @@ export function TransitionDetailDialog({
               step="0.01"
               value={readingB}
               onChange={(e) => setReadingB(e.target.value)}
-              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background"
+              placeholder="0.0"
+              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
           </label>
         </div>
