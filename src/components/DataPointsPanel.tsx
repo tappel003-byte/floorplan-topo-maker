@@ -24,6 +24,7 @@ interface Props {
 }
 
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
+const PANEL_TOP_SAFE_GAP = 64;
 
 type SortMode = "index" | "desc" | "asc";
 
@@ -44,19 +45,22 @@ function nextSortMode(m: SortMode): SortMode {
 function loadState(projectId: string): PanelState {
   try {
     const raw = localStorage.getItem(`dpp:${projectId}`);
-    if (raw)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<PanelState>;
       return {
         collapsed: false,
         hidden: false,
         x: 8,
-        y: 52,
+        y: PANEL_TOP_SAFE_GAP,
         sortMode: "index",
-        ...JSON.parse(raw),
+        ...parsed,
+        y: Math.max(PANEL_TOP_SAFE_GAP, parsed.y ?? PANEL_TOP_SAFE_GAP),
       };
+    }
   } catch {
     /* ignore */
   }
-  return { x: 8, y: 52, collapsed: false, hidden: false, sortMode: "index" };
+  return { x: 8, y: PANEL_TOP_SAFE_GAP, collapsed: false, hidden: false, sortMode: "index" };
 }
 
 export function DataPointsPanel({
@@ -161,7 +165,7 @@ export function DataPointsPanel({
     return (
       <button
         onClick={() => setState((s) => ({ ...s, hidden: false }))}
-        className="fixed top-[calc(env(safe-area-inset-top)+2.75rem)] left-[calc(env(safe-area-inset-left)+0.5rem)] landscape-short:top-auto landscape-short:left-1/2 landscape-short:-translate-x-1/2 landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md h-9 px-3 flex items-center gap-1 text-[11px] font-medium"
+        className="fixed top-[calc(env(safe-area-inset-top)+4rem)] left-[calc(env(safe-area-inset-left)+0.5rem)] landscape-short:top-auto landscape-short:left-1/2 landscape-short:-translate-x-1/2 landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md h-9 px-3 flex items-center gap-1 text-[11px] font-medium"
         aria-label="Show data points"
       >
         <Database className="h-4 w-4" />

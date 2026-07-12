@@ -512,7 +512,10 @@ export function FieldTab({
       )}
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
-      <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
+      <div
+        className="absolute z-30 top-[max(0.75rem,env(safe-area-inset-top))] right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium pointer-events-auto"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <button
           onClick={() => {
             setNoteMode((v) => !v);
@@ -546,7 +549,10 @@ export function FieldTab({
 
       {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
       {activeTransition && !pending && !editingPoint && (
-        <div className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1">
+        <div
+          className="absolute z-30 top-[calc(max(0.75rem,env(safe-area-inset-top))+2.75rem)] right-[calc(env(safe-area-inset-right)+0.75rem)] flex flex-col items-end gap-1 pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
             <button
               onClick={() => setChainPopoverOpen((v) => !v)}
@@ -634,7 +640,7 @@ export function FieldTab({
       {/* Notes list dropdown */}
       {notesListOpen && (
         <div
-          className="absolute z-30 top-12 right-2 w-64 max-h-[60vh] overflow-y-auto overscroll-contain rounded-xl bg-white shadow-2xl border border-gray-200"
+          className="absolute z-40 top-[calc(max(0.75rem,env(safe-area-inset-top))+2.75rem)] right-[calc(env(safe-area-inset-right)+0.75rem)] w-64 max-h-[60vh] overflow-y-auto overscroll-contain rounded-xl bg-white shadow-2xl border border-gray-200"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
