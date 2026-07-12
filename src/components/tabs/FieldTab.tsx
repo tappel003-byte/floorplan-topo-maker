@@ -10,7 +10,7 @@ import { Pencil, List, Trash2 } from "lucide-react";
 
 import type { Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
-import { transitionDelta, formatDelta } from "@/lib/transitions";
+import { transitionDelta, formatDelta, getChainBaselineSurface } from "@/lib/transitions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 
@@ -558,6 +558,14 @@ export function FieldTab({
               <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
                 Chain corrections — tap to edit
               </div>
+              {(() => {
+                const baseline = getChainBaselineSurface(activeTransitionId, transitions);
+                return baseline ? (
+                  <div className="px-3 py-1.5 text-[11px] text-amber-800 bg-amber-50/60 border-b border-amber-100 italic">
+                    All corrections resolve back to {baseline}
+                  </div>
+                ) : null;
+              })()}
               <ul className="divide-y">
                 {chainOrdered(activeTransitionId).map((t) => (
                   <li key={t.id}>
@@ -855,14 +863,20 @@ export function FieldTab({
           const highlightIds = new Set<string>();
           if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
           if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
+          // Explicit per-point highlight set — includes every anchor point tied
+          // to any transition in the active/viewed chain (root anchor included),
+          // so the tile-side baseline reading lights up with the rest.
+          const highlightPointIds = new Set<string>();
+          for (const p of points) {
+            if (p.transitionId && highlightIds.has(p.transitionId)) highlightPointIds.add(p.id);
+          }
           for (const p of points) {
             const isAnchor = !!p.isTransitionAnchor;
             const linkedT = p.transitionId
               ? transitions.find((t) => t.id === p.transitionId)
               : null;
             const isDownstream = !!linkedT && !isAnchor;
-            const isHighlighted =
-              !!p.transitionId && highlightIds.has(p.transitionId);
+            const isHighlighted = highlightPointIds.has(p.id);
 
             const color = isAnchor
               ? TRANSITION_COLOR
@@ -1109,6 +1123,10 @@ export function FieldTab({
               }
             : undefined
         }
+        baselineSurface={getChainBaselineSurface(
+          editingPoint ? editingPoint.transitionId : activeTransitionId,
+          transitions,
+        )}
       />
 
 

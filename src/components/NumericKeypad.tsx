@@ -34,6 +34,8 @@ interface Props {
   canUndo?: boolean;
   /** Ends the active transition chain without submitting a point. Shown when activeTransition is set. */
   onEndTransition?: () => void;
+  /** Chain root's baseline surface — drives the "All corrections resolve back to X" caption. */
+  baselineSurface?: string | null;
 
 }
 
@@ -55,6 +57,7 @@ export function NumericKeypad({
   onUndo,
   canUndo,
   onEndTransition,
+  baselineSurface,
 }: Props) {
 
   void onRemoveTransition;
@@ -198,6 +201,14 @@ export function NumericKeypad({
           </Button>
           </div>
         </div>
+
+        {(hasSurfaceRow || activeTransition) && baselineSurface && (
+          <div className="mb-2 px-1 text-[11px] italic text-amber-800">
+            All corrections resolve back to {baselineSurface}
+          </div>
+        )}
+
+
 
         <div className="landscape-short:grid landscape-short:grid-cols-[1fr_1.4fr] landscape-short:gap-3">
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
