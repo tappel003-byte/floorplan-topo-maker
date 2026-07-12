@@ -93,6 +93,9 @@ export function FieldTab({
   const lastNoteTapRef = useRef<{ id: string; at: number } | null>(null);
   const [, setNoteDragTick] = useState(0);
   const longPressTimerRef = useRef<number | null>(null);
+  const anchorLongPressTimerRef = useRef<number | null>(null);
+  const anchorLongPressFiredRef = useRef(false);
+
 
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
