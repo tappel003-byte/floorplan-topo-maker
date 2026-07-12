@@ -549,11 +549,11 @@ export function FieldTab({
 
       {/* Active-transition chip — visible when a chain is armed and the keypad is closed. */}
       {activeTransition && !pending && !editingPoint && (
-        <div
-          className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1 pointer-events-auto"
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900">
+        <div className="absolute z-20 top-12 right-2 flex flex-col items-end gap-1 pointer-events-none">
+          <div
+            className="flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full bg-amber-100 border border-amber-300 shadow-sm text-xs text-amber-900 pointer-events-auto"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setChainPopoverOpen((v) => !v)}
               className="font-medium hover:underline"
@@ -574,7 +574,7 @@ export function FieldTab({
             </button>
           </div>
           {chainPopoverOpen && (
-            <div className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
+            <div className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden pointer-events-none">
               <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
                 Active correction — tap surface to edit, tap value to override
               </div>
@@ -590,11 +590,12 @@ export function FieldTab({
                 {chainOrdered(activeTransitionId).map((t) => (
                   <li key={t.id} className="flex items-stretch">
                     <button
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => {
                         setViewingTransitionId(t.id);
                         setChainPopoverOpen(false);
                       }}
-                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left"
+                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left pointer-events-auto"
                     >
                       <span className="text-gray-800 truncate">
                         {t.surfaceA} → {t.surfaceB}
@@ -878,6 +879,9 @@ export function FieldTab({
           if (!point) return;
           if (!moved) {
             if (longPressFired) return; // detail dialog already opened
+            if (point.transitionId && transitions.some((t) => t.id === point.transitionId)) {
+              setActiveTransitionId(rootTransitionId(point.transitionId));
+            }
             // Plain tap on a diamond anchor re-arms its chain (root) so the
             // next point drop shows the chain's surface-choice row again.
             // Orphaned anchors (missing transition) fall through to the keypad.
@@ -907,6 +911,15 @@ export function FieldTab({
           const highlightIds = new Set<string>();
           if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
           if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
+          for (const id of selectedIds) {
+            const selectedPoint = points.find((p) => p.id === id);
+            if (selectedPoint?.transitionId) {
+              for (const tid of chainOf(selectedPoint.transitionId)) highlightIds.add(tid);
+            }
+          }
+          if (editingPoint?.transitionId) {
+            for (const id of chainOf(editingPoint.transitionId)) highlightIds.add(id);
+          }
           // Explicit per-point highlight set — includes every anchor point tied
           // to any transition in the active/viewed chain (root anchor included),
           // so the tile-side baseline reading lights up with the rest.
@@ -921,6 +934,7 @@ export function FieldTab({
               : null;
             const isDownstream = !!linkedT && !isAnchor;
             const isHighlighted = highlightPointIds.has(p.id);
+            const isSelected = selectedIds.has(p.id) || editingPoint?.id === p.id;
 
             const color = isAnchor
               ? TRANSITION_COLOR
@@ -959,6 +973,13 @@ export function FieldTab({
               ctx.strokeStyle = TRANSITION_COLOR;
               ctx.lineWidth = 2.5;
               ctx.stroke();
+            } else if (isSelected) {
+              const r = (isAnchor ? Math.max(markerR + 3, 6) : markerR) + 5;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+              ctx.strokeStyle = "#2563eb";
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
             }
 
             // Label — anchors and chain-baseline points show only the raw reading; corrected downstream points show `raw+delta`.
@@ -978,8 +999,8 @@ export function FieldTab({
             ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
             ctx.fill();
 
-            ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
-            ctx.lineWidth = isHighlighted ? 1.5 : 1;
+            ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : isSelected ? "#2563eb" : "#111827";
+            ctx.lineWidth = isHighlighted || isSelected ? 1.5 : 1;
             ctx.stroke();
 
             ctx.fillStyle = "#111827";
@@ -1271,7 +1292,7 @@ function DeltaOverrideInput({
     else setText(formatSigned(value));
   }
   return (
-    <div className="flex items-center pr-2 gap-0.5">
+    <div className="flex items-center pr-2 gap-0.5 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
       <input
         type="text"
         inputMode="decimal"
