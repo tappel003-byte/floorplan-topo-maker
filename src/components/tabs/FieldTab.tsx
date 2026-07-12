@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
-import { TransitionPickerSheet } from "../TransitionPickerSheet";
+
 import { TransitionDetailDialog } from "../TransitionDetailDialog";
 import { ProfileDiagram } from "../ProfileDiagram";
 
