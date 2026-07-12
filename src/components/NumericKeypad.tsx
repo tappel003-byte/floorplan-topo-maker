@@ -137,8 +137,9 @@ export function NumericKeypad({
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3"];
 
   const hasSurfaceRow = !!(surfaceOptions && surfaceOptions.length >= 2 && onSubmitWithOption);
+  const usesBottomCorrectionActions = hasSurfaceRow || !!activeTransition;
   const hasRepeat = repeatValue != null && isFinite(repeatValue);
-  const showShortcutRow = hasRepeat || !!onAddTransition;
+  const showShortcutRow = !activeTransition && (hasRepeat || !!onAddTransition);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30" onClick={onClose}>
@@ -237,7 +238,7 @@ export function NumericKeypad({
             <KeyBtn onClick={toggleSign}>±</KeyBtn>
             <KeyBtn onClick={() => push("0")}>0</KeyBtn>
             <KeyBtn onClick={() => push(".")}>.</KeyBtn>
-            {hasSurfaceRow ? null : (
+            {usesBottomCorrectionActions ? null : (
               <>
                 <KeyBtn onClick={backspace} className="col-span-1">
                   <Delete className="h-6 w-6 mx-auto" />
@@ -248,22 +249,12 @@ export function NumericKeypad({
                   className="col-span-2 h-16 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground text-xl landscape-short:text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   <Check className="h-6 w-6 landscape-short:h-5 landscape-short:w-5" />
-                  {activeTransition ? (
-                    <span>
-                      Enter{" "}
-                      <span className="font-mono text-base landscape-short:text-sm opacity-90">
-                        ({activeTransition.delta >= 0 ? "+" : "-"}
-                        {Math.abs(activeTransition.delta).toFixed(1)})
-                      </span>
-                    </span>
-                  ) : (
-                    "Enter"
-                  )}
+                  Enter
                 </button>
               </>
             )}
           </div>
-          {hasSurfaceRow && (
+          {usesBottomCorrectionActions && (
             <div className="mt-2 landscape-short:mt-1.5 flex items-stretch gap-2 landscape-short:gap-1.5 col-span-full">
               <button
                 onClick={backspace}
@@ -272,7 +263,7 @@ export function NumericKeypad({
               >
                 <Delete className="h-6 w-6" />
               </button>
-              {surfaceOptions!.map((opt) => {
+              {hasSurfaceRow ? surfaceOptions!.map((opt) => {
                 const sign = opt.delta > 0 ? "+" : opt.delta < 0 ? "−" : "";
                 const deltaText = opt.delta === 0 ? "0.0" : `${sign}${Math.abs(opt.delta).toFixed(1)}`;
                 const disabled = !text || !isFinite(parseFloat(text));
@@ -294,7 +285,16 @@ export function NumericKeypad({
                     </span>
                   </button>
                 );
-              })}
+              }) : (
+                <button
+                  onClick={submit}
+                  disabled={!text || !isFinite(parseFloat(text))}
+                  className="flex-1 min-w-0 h-14 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground font-semibold disabled:opacity-40 flex items-center justify-center gap-2 px-2"
+                >
+                  <Check className="h-5 w-5" />
+                  Enter
+                </button>
+              )}
             </div>
           )}
 
