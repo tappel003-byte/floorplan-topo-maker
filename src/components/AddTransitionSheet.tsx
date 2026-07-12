@@ -29,7 +29,10 @@ interface Props {
 export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentSurface }: Props) {
   const chained = typeof parentDelta === "number" && parentSurface != null;
   const [surfaceA, setSurfaceA] = useState<string>(chained ? parentSurface! : "Tile");
-  const [surfaceB, setSurfaceB] = useState<string>("Carpet");
+  const [surfaceB, setSurfaceB] = useState<string>(() => {
+    const from = chained ? parentSurface! : "Tile";
+    return COMMON_SURFACES.find((s) => s !== from && s !== "Other") ?? "Carpet";
+  });
   const [readingA, setReadingA] = useState<string>("");
   const [readingB, setReadingB] = useState<string>("");
 
@@ -37,7 +40,14 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
     if (open) {
       setReadingA("");
       setReadingB("");
-      if (chained) setSurfaceA(parentSurface!);
+      if (chained) {
+        setSurfaceA(parentSurface!);
+        setSurfaceB((prev) =>
+          prev && prev !== parentSurface
+            ? prev
+            : (COMMON_SURFACES.find((s) => s !== parentSurface && s !== "Other") ?? "Carpet"),
+        );
+      }
     }
   }, [open, chained, parentSurface]);
 
@@ -45,9 +55,11 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
 
   const aRaw = parseFloat(readingA);
   const b = parseFloat(readingB);
-  const valid = isFinite(aRaw) && isFinite(b);
-  const aBase = valid ? aRaw + (parentDelta ?? 0) : 0;
-  const delta = valid ? aBase - b : 0;
+  const readingsValid = isFinite(aRaw) && isFinite(b);
+  const surfacesDiffer = surfaceA !== surfaceB;
+  const valid = readingsValid && surfacesDiffer;
+  const aBase = readingsValid ? aRaw + (parentDelta ?? 0) : 0;
+  const delta = readingsValid ? aBase - b : 0;
 
   function submit() {
     if (!valid) return;
@@ -102,8 +114,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
             <select
               value={surfaceA}
               onChange={(e) => setSurfaceA(e.target.value)}
-              disabled={chained}
-              className="h-10 rounded-md border px-2 bg-background text-sm disabled:opacity-70"
+              className="h-10 rounded-md border px-2 bg-background text-sm"
             >
               {COMMON_SURFACES.map((s) => (
                 <option key={s} value={s}>
@@ -174,6 +185,11 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
           <span className="font-mono">raw {formatDelta(delta || 0.4)}</span> ({surfaceB || "surface"} correction).
         </p>
 
+        {!surfacesDiffer && (
+          <p className="mt-2 text-[11px] text-destructive">
+            Pick a different surface for the other side.
+          </p>
+        )}
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
