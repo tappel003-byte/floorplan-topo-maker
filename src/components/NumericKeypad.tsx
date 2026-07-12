@@ -34,6 +34,8 @@ interface Props {
   canUndo?: boolean;
   /** Ends the active transition chain without submitting a point. Shown when activeTransition is set. */
   onEndTransition?: () => void;
+  /** Chain root's baseline surface — drives the "All corrections resolve back to X" caption. */
+  baselineSurface?: string | null;
 
 }
 
