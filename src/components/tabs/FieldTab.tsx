@@ -230,6 +230,9 @@ export function FieldTab({
       readingA: data.readingA,
       readingB: data.readingB,
       createdAt: Date.now(),
+      // If a chain is already active, link this transition to it so
+      // downstream corrected values walk all the way back to the root.
+      parentId: activeTransitionId ?? undefined,
     };
     // Anchor point uses readingA (reference side).
     const anchor: SurveyPoint = {
