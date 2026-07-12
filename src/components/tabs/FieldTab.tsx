@@ -218,6 +218,17 @@ export function FieldTab({
       : p.value.toFixed(2);
   }
 
+  function openPointEditor(point: SurveyPoint) {
+    if (point.transitionId && transitions.some((t) => t.id === point.transitionId)) {
+      setActiveTransitionId(rootTransitionId(point.transitionId));
+    }
+    setPending(null);
+    setBpPromptOpen(false);
+    setViewingTransitionId(null);
+    setChainPopoverOpen(false);
+    setEditingPoint(point);
+  }
+
 
   function hitNote(x: number, y: number): NotePin | null {
     const s = scaleRef.current || 1;
@@ -405,16 +416,17 @@ export function FieldTab({
       const p = points[i];
       const markerR = Math.max(pointSize, 2);
       const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
-      const dotHit = Math.max(14 / s, markerHalo + 8 / s);
+      const ringR = (p.transitionId || p.isTransitionAnchor ? markerHalo + 5 : markerHalo);
+      const dotHit = Math.max(16 / s, ringR + 8 / s);
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
     const fontPx = 12;
-    const pad = 4 / s;
+    const pad = Math.max(6 / s, 4);
     for (let i = points.length - 1; i >= 0; i--) {
       const p = points[i];
       const text = pointDisplayLabel(p);
       const w = text.length * fontPx * 0.62;
-      const h = fontPx + 2;
+      const h = fontPx + 4;
       const markerR = Math.max(pointSize, 2);
       const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
       const lx = p.x + markerHalo + 4;
@@ -893,10 +905,7 @@ export function FieldTab({
           if (!point) return;
           if (!moved) {
             if (longPressFired) return; // detail dialog already opened
-            if (point.transitionId && transitions.some((t) => t.id === point.transitionId)) {
-              setActiveTransitionId(rootTransitionId(point.transitionId));
-            }
-            setEditingPoint(point);
+            openPointEditor(point);
             return;
           }
 
