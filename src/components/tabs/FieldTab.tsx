@@ -706,22 +706,29 @@ export function FieldTab({
           const finalY = drag.lastY ?? y;
           dragRef.current = null;
           setDragging(null);
+          if (anchorLongPressTimerRef.current) {
+            window.clearTimeout(anchorLongPressTimerRef.current);
+            anchorLongPressTimerRef.current = null;
+          }
+          const longPressFired = anchorLongPressFiredRef.current;
+          anchorLongPressFiredRef.current = false;
           if (!point) return;
           if (!moved) {
-            // Tap on a diamond anchor opens the transition detail dialog,
-            // but only if the underlying transition still exists. Orphaned
-            // anchors (transition deleted / undo mismatch) fall through to
-            // the normal keypad so the user can edit or delete them.
+            if (longPressFired) return; // detail dialog already opened
+            // Plain tap on a diamond anchor re-arms its chain (root) so the
+            // next point drop shows the chain's surface-choice row again.
+            // Orphaned anchors (missing transition) fall through to the keypad.
             if (point.isTransitionAnchor && point.transitionId) {
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
-                setViewingTransitionId(point.transitionId);
+                setActiveTransitionId(rootTransitionId(point.transitionId));
                 return;
               }
             }
             setEditingPoint(point);
             return;
           }
+
 
           const updated = { ...point, x: finalX, y: finalY };
           await savePoint(updated);
