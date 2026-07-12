@@ -251,8 +251,12 @@ export function FieldTab({
     if (isBasePointCapture) setBpPromptOpen(true);
   }
 
-  async function submitValue(v: number, overrideTransitionId?: string | null) {
-    // overrideTransitionId: string = tag with this; null = force no tag (root anchor surface); undefined = use activeTransitionId
+  async function submitValue(
+    v: number,
+    opt?: { transitionId?: string | null; isBaseline?: boolean },
+  ) {
+    // opt.transitionId: string = tag with this; null = force no tag; undefined = use activeTransitionId
+    // opt.isBaseline: mark point as chain baseline (delta not applied)
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
       await savePoint(updated);
@@ -266,9 +270,9 @@ export function FieldTab({
     const isBP = isBasePointCapture;
     const tagId = isBP
       ? undefined
-      : overrideTransitionId === undefined
+      : opt?.transitionId === undefined
         ? (activeTransitionId ?? undefined)
-        : (overrideTransitionId ?? undefined);
+        : (opt.transitionId ?? undefined);
     const point: SurveyPoint = {
       id: uid(),
       floorId: floor.id,
@@ -280,6 +284,7 @@ export function FieldTab({
       label: isBP ? "BP1" : undefined,
       createdAt: Date.now(),
       transitionId: tagId,
+      isChainBaseline: !isBP && !!opt?.isBaseline ? true : undefined,
     };
     await savePoint(point);
     const nextPts = [...points, point];
@@ -288,6 +293,7 @@ export function FieldTab({
     setPending(null);
     setBpPromptOpen(false);
   }
+
 
   /** Called from AddTransitionSheet. Creates the transition record and plots the diamond anchor at the pending location. */
   async function handleAddTransition(data: {
