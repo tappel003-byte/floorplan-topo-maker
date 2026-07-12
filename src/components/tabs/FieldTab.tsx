@@ -863,14 +863,20 @@ export function FieldTab({
           const highlightIds = new Set<string>();
           if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
           if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
+          // Explicit per-point highlight set — includes every anchor point tied
+          // to any transition in the active/viewed chain (root anchor included),
+          // so the tile-side baseline reading lights up with the rest.
+          const highlightPointIds = new Set<string>();
+          for (const p of points) {
+            if (p.transitionId && highlightIds.has(p.transitionId)) highlightPointIds.add(p.id);
+          }
           for (const p of points) {
             const isAnchor = !!p.isTransitionAnchor;
             const linkedT = p.transitionId
               ? transitions.find((t) => t.id === p.transitionId)
               : null;
             const isDownstream = !!linkedT && !isAnchor;
-            const isHighlighted =
-              !!p.transitionId && highlightIds.has(p.transitionId);
+            const isHighlighted = highlightPointIds.has(p.id);
 
             const color = isAnchor
               ? TRANSITION_COLOR
