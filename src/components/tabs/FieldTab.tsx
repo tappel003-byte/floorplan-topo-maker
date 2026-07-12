@@ -1187,7 +1187,7 @@ export function FieldTab({
         onSave={handleAddTransition}
         parentDelta={
           activeTransition
-            ? activeTransition.readingA - activeTransition.readingB
+            ? transitionDelta(activeTransition)
             : undefined
         }
         parentSurface={activeTransition ? activeTransition.surfaceB : undefined}
