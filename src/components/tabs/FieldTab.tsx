@@ -513,7 +513,7 @@ export function FieldTab({
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
       <div
-        className="absolute z-30 top-16 right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium pointer-events-auto"
+        className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium pointer-events-auto"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <button
