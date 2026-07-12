@@ -234,29 +234,67 @@ export function NumericKeypad({
             <KeyBtn onClick={toggleSign}>±</KeyBtn>
             <KeyBtn onClick={() => push("0")}>0</KeyBtn>
             <KeyBtn onClick={() => push(".")}>.</KeyBtn>
-            <KeyBtn onClick={backspace} className="col-span-1">
-              <Delete className="h-6 w-6 mx-auto" />
-            </KeyBtn>
-            <button
-              onClick={submit}
-              disabled={!text || !isFinite(parseFloat(text))}
-              className="col-span-2 h-16 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground text-xl landscape-short:text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
-            >
-              <Check className="h-6 w-6 landscape-short:h-5 landscape-short:w-5" />
-              {activeTransition ? (
-                <span>
-                  Enter{" "}
-                  <span className="font-mono text-base landscape-short:text-sm opacity-90">
-                    ({activeTransition.delta >= 0 ? "+" : "-"}
-                    {Math.abs(activeTransition.delta).toFixed(1)})
-                  </span>
-                </span>
-              ) : (
-                "Enter"
-              )}
-            </button>
-
+            {hasSurfaceRow ? null : (
+              <>
+                <KeyBtn onClick={backspace} className="col-span-1">
+                  <Delete className="h-6 w-6 mx-auto" />
+                </KeyBtn>
+                <button
+                  onClick={submit}
+                  disabled={!text || !isFinite(parseFloat(text))}
+                  className="col-span-2 h-16 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground text-xl landscape-short:text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <Check className="h-6 w-6 landscape-short:h-5 landscape-short:w-5" />
+                  {activeTransition ? (
+                    <span>
+                      Enter{" "}
+                      <span className="font-mono text-base landscape-short:text-sm opacity-90">
+                        ({activeTransition.delta >= 0 ? "+" : "-"}
+                        {Math.abs(activeTransition.delta).toFixed(1)})
+                      </span>
+                    </span>
+                  ) : (
+                    "Enter"
+                  )}
+                </button>
+              </>
+            )}
           </div>
+          {hasSurfaceRow && (
+            <div className="mt-2 landscape-short:mt-1.5 flex items-stretch gap-2 landscape-short:gap-1.5 col-span-full">
+              <button
+                onClick={backspace}
+                aria-label="Backspace"
+                className="h-14 landscape-short:h-10 w-14 landscape-short:w-12 shrink-0 rounded-lg bg-secondary hover:bg-secondary/80 flex items-center justify-center active:scale-95 transition-transform"
+              >
+                <Delete className="h-6 w-6" />
+              </button>
+              {surfaceOptions!.map((opt) => {
+                const sign = opt.delta > 0 ? "+" : opt.delta < 0 ? "−" : "";
+                const deltaText = opt.delta === 0 ? "0.0" : `${sign}${Math.abs(opt.delta).toFixed(1)}`;
+                const disabled = !text || !isFinite(parseFloat(text));
+                return (
+                  <button
+                    key={opt.id ?? "root"}
+                    onClick={() => {
+                      const n = parseFloat(text);
+                      if (isFinite(n)) onSubmitWithOption?.(n, opt);
+                    }}
+                    disabled={disabled}
+                    className="flex-1 min-w-0 h-14 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground font-semibold disabled:opacity-40 flex flex-col items-center justify-center leading-tight px-1"
+                  >
+                    <span className="text-sm landscape-short:text-xs truncate max-w-full">
+                      {opt.surface}
+                    </span>
+                    <span className="font-mono text-xs landscape-short:text-[10px] opacity-90 tabular-nums">
+                      {deltaText}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
         </div>
       </div>
     </div>
