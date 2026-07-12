@@ -185,6 +185,11 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
           <span className="font-mono">raw {formatDelta(delta || 0.4)}</span> ({surfaceB || "surface"} correction).
         </p>
 
+        {!surfacesDiffer && (
+          <p className="mt-2 text-[11px] text-destructive">
+            Pick a different surface for the other side.
+          </p>
+        )}
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
