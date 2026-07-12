@@ -890,7 +890,7 @@ export function FieldTab({
         }
         onAddTransition={
           !editingPoint && pending && !isBasePointCapture
-            ? () => setPickingTransition(true)
+            ? () => setAddingTransition(true)
             : undefined
         }
         onUndo={() => window.dispatchEvent(new Event("app:undo"))}
