@@ -144,7 +144,8 @@ export function NumericKeypad({
   const hasSurfaceRow = !!(surfaceOptions && surfaceOptions.length >= 2 && onSubmitWithOption);
   const usesBottomCorrectionActions = hasSurfaceRow || !!activeTransition;
   const hasRepeat = repeatValue != null && isFinite(repeatValue);
-  const showShortcutRow = !activeTransition && (hasRepeat || !!onAddTransition);
+  const showRepeat = hasRepeat && !activeTransition;
+  const showShortcutRow = !!onAddTransition || showRepeat;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/30" onClick={onClose}>
@@ -216,7 +217,7 @@ export function NumericKeypad({
                     {activeTransition ? "Add another" : "Correct for flooring"}
                   </button>
                 )}
-                {hasRepeat && (
+                {showRepeat && (
                   <button
                     onClick={repeatLast}
                     className="flex-1 h-11 landscape-short:h-9 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99]"
