@@ -8,21 +8,6 @@ interface Props {
   storageKey?: string;
 }
 
-const TOP_SAFE_GAP = 96;
-
-function minSafeY() {
-  if (typeof window === "undefined") return TOP_SAFE_GAP;
-  return (window.visualViewport?.offsetTop ?? 0) + TOP_SAFE_GAP;
-}
-
-function clampChipPosition(pos: { x: number; y: number }, width: number, height: number) {
-  const minY = minSafeY();
-  return {
-    x: Math.min(Math.max(4, pos.x), window.innerWidth - width - 4),
-    y: Math.min(Math.max(minY, pos.y), window.innerHeight - height - 60),
-  };
-}
-
 /**
  * Floating pill: High / Low / Delta.
  * - Drag anywhere on the chip to move it (5px threshold).
@@ -50,21 +35,11 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     return null;
   });
 
-  // Default: bottom center, above the bottom pill row. Persisted position wins.
+  // Default: upper-right, safely under the top bar and clear of the canvas center.
   useEffect(() => {
     if (pos) return;
     const w = ref.current?.offsetWidth ?? 180;
-    const h = ref.current?.offsetHeight ?? 24;
-    setPos(clampChipPosition({ x: window.innerWidth / 2 - w / 2, y: window.innerHeight - h - 80 }, w, h));
-  }, [pos]);
-
-  // Immediately pull old persisted positions out from under the phone chrome/top bar.
-  useEffect(() => {
-    if (!pos || !ref.current) return;
-    const w = ref.current.offsetWidth;
-    const h = ref.current.offsetHeight;
-    const next = clampChipPosition(pos, w, h);
-    if (next.x !== pos.x || next.y !== pos.y) setPos(next);
+    setPos({ x: Math.max(8, window.innerWidth - w - 12), y: 52 });
   }, [pos]);
 
   // Clamp on resize / rotation.
@@ -74,7 +49,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
         if (!p || !ref.current) return p;
         const w = ref.current.offsetWidth;
         const h = ref.current.offsetHeight;
-        const { x, y } = clampChipPosition(p, w, h);
+        const x = Math.min(Math.max(4, p.x), window.innerWidth - w - 4);
+        const y = Math.min(Math.max(44, p.y), window.innerHeight - h - 60);
         return x === p.x && y === p.y ? p : { x, y };
       });
     };
@@ -116,7 +92,9 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     d.moved = true;
     const w = ref.current?.offsetWidth ?? 0;
     const h = ref.current?.offsetHeight ?? 0;
-    setPos(clampChipPosition({ x: d.originX + dx, y: d.originY + dy }, w, h));
+    const x = Math.min(Math.max(4, d.originX + dx), window.innerWidth - w - 4);
+    const y = Math.min(Math.max(4, d.originY + dy), window.innerHeight - h - 4);
+    setPos({ x, y });
   };
   const endDrag = (e: React.PointerEvent, target?: "hi" | "lo") => {
     const d = drag.current;
