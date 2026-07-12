@@ -202,6 +202,14 @@ export function NumericKeypad({
           </div>
         </div>
 
+        {(hasSurfaceRow || activeTransition) && baselineSurface && (
+          <div className="mb-2 px-1 text-[11px] italic text-amber-800">
+            All corrections resolve back to {baselineSurface}
+          </div>
+        )}
+
+
+
         <div className="landscape-short:grid landscape-short:grid-cols-[1fr_1.4fr] landscape-short:gap-3">
           <div className="landscape-short:flex landscape-short:flex-col landscape-short:justify-center">
             <div className="mb-1 landscape-short:mb-1 rounded-lg border bg-muted/40 px-4 py-3 text-right text-4xl landscape-short:text-3xl font-mono tabular-nums h-16 landscape-short:h-12 flex items-center justify-end">
