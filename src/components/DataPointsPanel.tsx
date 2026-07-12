@@ -151,7 +151,7 @@ export function DataPointsPanel({
     const maxX = Math.max(0, window.innerWidth - 200);
     const maxY = Math.max(0, window.innerHeight - 60);
     const nx = Math.max(0, Math.min(maxX, d.sx + dx));
-    const ny = Math.max(0, Math.min(maxY, d.sy + dy));
+    const ny = Math.max(PANEL_TOP_SAFE_GAP, Math.min(maxY, d.sy + dy));
     setState((s) => ({ ...s, x: nx, y: ny }));
   }
   function onHeaderUp() {
