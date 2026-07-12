@@ -401,13 +401,17 @@ export function FieldTab({
 
   function hitPoint(x: number, y: number): { point: SurveyPoint; on: "dot" | "label" } | null {
     const s = scaleRef.current || 1;
-    const dotHit = 14 / s;
-    for (const p of points) {
+    for (let i = points.length - 1; i >= 0; i--) {
+      const p = points[i];
+      const markerR = Math.max(pointSize, 2);
+      const markerHalo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
+      const dotHit = Math.max(14 / s, markerHalo + 8 / s);
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
     const fontPx = 12;
     const pad = 4 / s;
-    for (const p of points) {
+    for (let i = points.length - 1; i >= 0; i--) {
+      const p = points[i];
       const text = pointDisplayLabel(p);
       const w = text.length * fontPx * 0.62;
       const h = fontPx + 2;
