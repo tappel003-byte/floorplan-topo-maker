@@ -164,9 +164,11 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
             );
           }
 
-          // Other hard surface (wood etc.): block on slab, X on top.
+          // Other hard surface (wood etc.): block positioned by reading vs tile datum.
           const blockH = HARD_THICKNESS[seg.name] ?? 18;
-          const topY = SLAB_Y - blockH;
+          const firstReading = seg.readings[0];
+          const deltaPx = (firstReading - datum) * PIX_PER_INCH; // positive = lower floor
+          const topY = TILE_Y + deltaPx;
           return (
             <g key={i}>
               <rect x={x + 2} y={topY} width={SEG_W - 4} height={blockH} fill={HARD_FILL} stroke={HARD_STROKE} strokeWidth={1} rx={2} />
