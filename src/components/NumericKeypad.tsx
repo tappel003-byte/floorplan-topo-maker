@@ -153,7 +153,7 @@ export function NumericKeypad({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-1 mb-2">
-          <div>
+          <div className="flex items-center gap-1">
             {onUndo && (
               <Button
                 variant="ghost"
@@ -167,7 +167,19 @@ export function NumericKeypad({
                 <span className="text-xs">Undo</span>
               </Button>
             )}
+            {activeTransition && onEndTransition && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEndTransition}
+                className="h-9 px-2.5 gap-1.5 border-amber-400 text-amber-700 hover:bg-amber-50"
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Done with this transition</span>
+              </Button>
+            )}
           </div>
+
           <div className="flex items-center gap-1">
           {onDelete && (
             <Button
