@@ -4,7 +4,7 @@ import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
 
 import { TransitionDetailDialog } from "../TransitionDetailDialog";
-import { ProfileDiagram } from "../ProfileDiagram";
+
 
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
@@ -900,14 +900,6 @@ export function FieldTab({
         }
         onUndo={() => window.dispatchEvent(new Event("app:undo"))}
         canUndo
-        diagramSlot={(() => {
-          const tid = editingPoint
-            ? (editingPoint.isTransitionAnchor ? editingPoint.transitionId : editingPoint.transitionId)
-            : activeTransitionId;
-          if (!tid) return null;
-          if (!transitions.find((t) => t.id === tid)) return null;
-          return <ProfileDiagram activeId={tid} transitions={transitions} />;
-        })()}
       />
 
 
