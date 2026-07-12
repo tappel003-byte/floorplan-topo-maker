@@ -558,6 +558,14 @@ export function FieldTab({
               <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
                 Chain corrections — tap to edit
               </div>
+              {(() => {
+                const baseline = getChainBaselineSurface(activeTransitionId, transitions);
+                return baseline ? (
+                  <div className="px-3 py-1.5 text-[11px] text-amber-800 bg-amber-50/60 border-b border-amber-100 italic">
+                    All corrections resolve back to {baseline}
+                  </div>
+                ) : null;
+              })()}
               <ul className="divide-y">
                 {chainOrdered(activeTransitionId).map((t) => (
                   <li key={t.id}>
