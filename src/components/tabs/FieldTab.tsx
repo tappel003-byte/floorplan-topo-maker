@@ -923,10 +923,11 @@ export function FieldTab({
               ctx.stroke();
             }
 
-            // Label — anchors show only the raw reading, downstream points show `raw+delta`.
-            const label = isDownstream
+            // Label — anchors and chain-baseline points show only the raw reading; corrected downstream points show `raw+delta`.
+            const label = isDownstream && !p.isChainBaseline
               ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
               : p.value.toFixed(2);
+
             const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
             const lx = p.x + markerHalo + 4;
             const ly = p.y + markerHalo + 3;
