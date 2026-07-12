@@ -544,9 +544,9 @@ export function FieldTab({
               onClick={() => setChainPopoverOpen((v) => !v)}
               className="font-medium hover:underline"
               aria-expanded={chainPopoverOpen}
-              aria-label="Edit chain corrections"
+              aria-label="Edit active correction"
             >
-              Active: {activeTransition.surfaceB} chain
+              Active correction
             </button>
             <button
               onClick={() => {
@@ -560,9 +560,9 @@ export function FieldTab({
             </button>
           </div>
           {chainPopoverOpen && (
-            <div className="w-64 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
+            <div className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
               <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
-                Chain corrections — tap to edit
+                Active correction — tap surface to edit, tap value to override
               </div>
               {(() => {
                 const baseline = getChainBaselineSurface(activeTransitionId, transitions);
@@ -574,21 +574,43 @@ export function FieldTab({
               })()}
               <ul className="divide-y">
                 {chainOrdered(activeTransitionId).map((t) => (
-                  <li key={t.id}>
+                  <li key={t.id} className="flex items-stretch">
                     <button
                       onClick={() => {
                         setViewingTransitionId(t.id);
                         setChainPopoverOpen(false);
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-amber-50"
+                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left"
                     >
-                      <span className="text-gray-800">
+                      <span className="text-gray-800 truncate">
                         {t.surfaceA} → {t.surfaceB}
                       </span>
-                      <span className="font-mono tabular-nums font-semibold">
-                        {formatDelta(transitionDelta(t))}"
-                      </span>
+                      {t.deltaOverride != null && (
+                        <span
+                          className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+                          title="Manual override"
+                        />
+                      )}
                     </button>
+                    <DeltaOverrideInput
+                      key={`ovr-${t.id}-${t.deltaOverride ?? "auto"}`}
+                      value={transitionDelta(t)}
+                      overridden={t.deltaOverride != null}
+                      onCommit={async (newDelta) => {
+                        if (newDelta === null) {
+                          // Clear override
+                          const next = transitions.map((x) =>
+                            x.id === t.id ? { ...x, deltaOverride: undefined } : x,
+                          );
+                          await persistTransitions(next);
+                        } else if (Math.abs(newDelta - transitionDelta(t)) > 1e-6) {
+                          const next = transitions.map((x) =>
+                            x.id === t.id ? { ...x, deltaOverride: newDelta } : x,
+                          );
+                          await persistTransitions(next);
+                        }
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -596,6 +618,8 @@ export function FieldTab({
           )}
         </div>
       )}
+
+
 
 
 
