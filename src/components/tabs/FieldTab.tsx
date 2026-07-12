@@ -251,8 +251,12 @@ export function FieldTab({
     if (isBasePointCapture) setBpPromptOpen(true);
   }
 
-  async function submitValue(v: number, overrideTransitionId?: string | null) {
-    // overrideTransitionId: string = tag with this; null = force no tag (root anchor surface); undefined = use activeTransitionId
+  async function submitValue(
+    v: number,
+    opt?: { transitionId?: string | null; isBaseline?: boolean },
+  ) {
+    // opt.transitionId: string = tag with this; null = force no tag; undefined = use activeTransitionId
+    // opt.isBaseline: mark point as chain baseline (delta not applied)
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
       await savePoint(updated);
@@ -266,9 +270,9 @@ export function FieldTab({
     const isBP = isBasePointCapture;
     const tagId = isBP
       ? undefined
-      : overrideTransitionId === undefined
+      : opt?.transitionId === undefined
         ? (activeTransitionId ?? undefined)
-        : (overrideTransitionId ?? undefined);
+        : (opt.transitionId ?? undefined);
     const point: SurveyPoint = {
       id: uid(),
       floorId: floor.id,
@@ -280,6 +284,7 @@ export function FieldTab({
       label: isBP ? "BP1" : undefined,
       createdAt: Date.now(),
       transitionId: tagId,
+      isChainBaseline: !isBP && !!opt?.isBaseline ? true : undefined,
     };
     await savePoint(point);
     const nextPts = [...points, point];
@@ -288,6 +293,7 @@ export function FieldTab({
     setPending(null);
     setBpPromptOpen(false);
   }
+
 
   /** Called from AddTransitionSheet. Creates the transition record and plots the diamond anchor at the pending location. */
   async function handleAddTransition(data: {
@@ -341,7 +347,15 @@ export function FieldTab({
 
   /** Save edits from TransitionDetailDialog. Anchor's stored value follows readingA. */
   async function handleSaveTransition(updated: Transition) {
-    const nextTs = transitions.map((t) => (t.id === updated.id ? updated : t));
+    // If readings changed, clear any manual override so readings are the truth.
+    const prev = transitions.find((t) => t.id === updated.id);
+    const readingsChanged =
+      !prev || prev.readingA !== updated.readingA || prev.readingB !== updated.readingB;
+    const merged: Transition = readingsChanged
+      ? { ...updated, deltaOverride: undefined }
+      : updated;
+    const nextTs = transitions.map((t) => (t.id === merged.id ? merged : t));
+
     await persistTransitions(nextTs);
     // Keep the anchor's value in sync with readingA.
     const anchor = points.find((p) => p.transitionId === updated.id && p.isTransitionAnchor);
@@ -538,9 +552,9 @@ export function FieldTab({
               onClick={() => setChainPopoverOpen((v) => !v)}
               className="font-medium hover:underline"
               aria-expanded={chainPopoverOpen}
-              aria-label="Edit chain corrections"
+              aria-label="Edit active correction"
             >
-              Active: {activeTransition.surfaceB} chain
+              Active correction
             </button>
             <button
               onClick={() => {
@@ -554,9 +568,9 @@ export function FieldTab({
             </button>
           </div>
           {chainPopoverOpen && (
-            <div className="w-64 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
+            <div className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden">
               <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
-                Chain corrections — tap to edit
+                Active correction — tap surface to edit, tap value to override
               </div>
               {(() => {
                 const baseline = getChainBaselineSurface(activeTransitionId, transitions);
@@ -568,21 +582,43 @@ export function FieldTab({
               })()}
               <ul className="divide-y">
                 {chainOrdered(activeTransitionId).map((t) => (
-                  <li key={t.id}>
+                  <li key={t.id} className="flex items-stretch">
                     <button
                       onClick={() => {
                         setViewingTransitionId(t.id);
                         setChainPopoverOpen(false);
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-amber-50"
+                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left"
                     >
-                      <span className="text-gray-800">
+                      <span className="text-gray-800 truncate">
                         {t.surfaceA} → {t.surfaceB}
                       </span>
-                      <span className="font-mono tabular-nums font-semibold">
-                        {formatDelta(transitionDelta(t))}"
-                      </span>
+                      {t.deltaOverride != null && (
+                        <span
+                          className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+                          title="Manual override"
+                        />
+                      )}
                     </button>
+                    <DeltaOverrideInput
+                      key={`ovr-${t.id}-${t.deltaOverride ?? "auto"}`}
+                      value={transitionDelta(t)}
+                      overridden={t.deltaOverride != null}
+                      onCommit={async (newDelta) => {
+                        if (newDelta === null) {
+                          // Clear override
+                          const next = transitions.map((x) =>
+                            x.id === t.id ? { ...x, deltaOverride: undefined } : x,
+                          );
+                          await persistTransitions(next);
+                        } else if (Math.abs(newDelta - transitionDelta(t)) > 1e-6) {
+                          const next = transitions.map((x) =>
+                            x.id === t.id ? { ...x, deltaOverride: newDelta } : x,
+                          );
+                          await persistTransitions(next);
+                        }
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -590,6 +626,8 @@ export function FieldTab({
           )}
         </div>
       )}
+
+
 
 
 
@@ -917,10 +955,11 @@ export function FieldTab({
               ctx.stroke();
             }
 
-            // Label — anchors show only the raw reading, downstream points show `raw+delta`.
-            const label = isDownstream
+            // Label — anchors and chain-baseline points show only the raw reading; corrected downstream points show `raw+delta`.
+            const label = isDownstream && !p.isChainBaseline
               ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
               : p.value.toFixed(2);
+
             const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
             const lx = p.x + markerHalo + 4;
             const ly = p.y + markerHalo + 3;
@@ -1023,7 +1062,9 @@ export function FieldTab({
           setEditingPoint(null);
         }}
         onSubmit={(v) => submitValue(v)}
-        onSubmitWithOption={(v, opt) => submitValue(v, opt.id)}
+        onSubmitWithOption={(v, opt) =>
+          submitValue(v, { transitionId: opt.id, isBaseline: opt.isBaseline })
+        }
         surfaceOptions={(() => {
           // Only offer surface choice when placing a NEW point in an active chain.
           if (editingPoint || isBasePointCapture || !activeTransitionId) return undefined;
@@ -1048,7 +1089,9 @@ export function FieldTab({
           };
           const group = transitions.filter(inTree);
           const opts = [
-            { id: null as string | null, surface: root.surfaceA, delta: 0 },
+            // Baseline surface: tag point with root id so the halo picks it up,
+            // but mark it as chain baseline so no delta is applied.
+            { id: rootId, surface: root.surfaceA, delta: 0, isBaseline: true },
             ...group.map((t) => ({
               id: t.id,
               surface: t.surfaceB,
@@ -1057,6 +1100,7 @@ export function FieldTab({
           ];
           return opts.length >= 2 ? opts : undefined;
         })()}
+
         onDelete={
           editingPoint
             ? async () => {
@@ -1195,3 +1239,62 @@ function wrapHeight(): number | null {
   if (typeof window === "undefined") return null;
   return window.innerHeight;
 }
+
+/** Inline editor for a chain link's correction delta. Commits on blur/Enter. Empty = clear override. */
+function DeltaOverrideInput({
+  value,
+  overridden,
+  onCommit,
+}: {
+  value: number;
+  overridden: boolean;
+  onCommit: (next: number | null) => void;
+}) {
+  const [text, setText] = useState<string>(formatSigned(value));
+  useEffect(() => {
+    setText(formatSigned(value));
+  }, [value]);
+  function commit() {
+    const trimmed = text.trim();
+    if (trimmed === "") {
+      if (overridden) onCommit(null);
+      return;
+    }
+    const n = parseFloat(trimmed);
+    if (isFinite(n)) onCommit(n);
+    else setText(formatSigned(value));
+  }
+  return (
+    <div className="flex items-center pr-2 gap-0.5">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        onFocus={(e) => e.currentTarget.select()}
+        className={
+          "w-14 h-8 rounded border text-right font-mono tabular-nums text-xs px-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400 " +
+          (overridden
+            ? "border-amber-400 bg-amber-50 text-amber-900 font-semibold"
+            : "border-gray-200 bg-white text-gray-900 font-semibold")
+        }
+        aria-label="Override correction"
+      />
+      <span className="text-[10px] text-gray-500">"</span>
+    </div>
+  );
+}
+
+function formatSigned(n: number): string {
+  if (n === 0) return "0.0";
+  const sign = n > 0 ? "+" : "-";
+  return `${sign}${Math.abs(n).toFixed(1)}`;
+}
+

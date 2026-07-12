@@ -71,7 +71,11 @@ export interface Transition {
   // The raw reading typed on the parent surface (before parent delta added).
   // Kept for display and for re-deriving readingA if the parent is edited.
   readingARawOnParent?: number;
+  // Manual override for the correction. When set, takes precedence over
+  // readingA − readingB. Cleared automatically when readings are edited.
+  deltaOverride?: number;
 }
+
 
 
 export interface SurveyPoint {
@@ -97,7 +101,10 @@ export interface SurveyPoint {
   //   where delta = readingA − readingB.
   transitionId?: string;
   isTransitionAnchor?: boolean;
+  // Tagged to a chain but sits on the chain's baseline surface. Correction = 0.
+  isChainBaseline?: boolean;
 }
+
 
 
 export interface RenderSettings {

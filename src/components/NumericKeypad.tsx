@@ -8,11 +8,14 @@ interface ActiveTransition {
 }
 
 export interface SurfaceOption {
-  /** Transition id to tag the point with. null = root anchor surface (no tag). */
+  /** Transition id to tag the point with. null = untagged. */
   id: string | null;
   surface: string;
   delta: number; // signed, relative to root anchor (0 for root)
+  /** True when this option is the chain's baseline surface. Point gets tagged with the chain root id but no delta is applied. */
+  isBaseline?: boolean;
 }
+
 
 interface Props {
   open: boolean;
@@ -275,7 +278,11 @@ export function NumericKeypad({
               </button>
               {hasSurfaceRow ? surfaceOptions!.map((opt) => {
                 const sign = opt.delta > 0 ? "+" : opt.delta < 0 ? "−" : "";
-                const deltaText = opt.delta === 0 ? "0.0" : `${sign}${Math.abs(opt.delta).toFixed(1)}`;
+                const deltaText = opt.isBaseline
+                  ? "baseline"
+                  : opt.delta === 0
+                    ? "0.0"
+                    : `${sign}${Math.abs(opt.delta).toFixed(1)}`;
                 const disabled = !text || !isFinite(parseFloat(text));
                 return (
                   <button
@@ -296,6 +303,7 @@ export function NumericKeypad({
                   </button>
                 );
               }) : (
+
                 <button
                   onClick={submit}
                   disabled={!text || !isFinite(parseFloat(text))}

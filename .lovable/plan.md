@@ -1,31 +1,39 @@
-## Fix chain-root highlight + add baseline caption in two places
 
-### 1. Chain-root anchor joins the yellow halo
-The tile-side "9.00" at the top of the office doorway is the reference every downstream reading in the chain is corrected back to, but it carries no `transitionId` — so today the halo predicate skips it and the visual chain looks incomplete.
+## What changes
 
-- In `FieldTab.tsx`, extend the "highlight this chain" id set to also include the anchor point of the root transition (the point whose stored value equals the root transition's `readingA`, i.e. the tile-side baseline).
-- Result: tapping the amber pill lights up every diamond + every downstream reading + the tile-side chain-root anchor.
+### 1. Rename "Active: {surface} chain" → "Active correction"
 
-### 2. "Resolves back to baseline" caption — chain popover
-Leave the row structure and the pairwise +/− deltas exactly as they are — the math is right and the string of signs is how each link corrects the previous corrected value back to the baseline. Add one caption under the header so the reader knows how to parse it.
+The amber pill and popover header both drop the surface-in-name phrasing. The chain's baseline surface still appears in the caption ("All corrections resolve back to Tile") so the reference isn't lost.
 
-```text
-CHAIN CORRECTIONS — TAP TO EDIT
-All corrections resolve back to Tile
-  Tile → Carpet        +0.5"
-  Carpet → Hardwood    −0.2"
-```
+### 2. Let baseline-surface readings belong to the chain
 
-- Caption text: `All corrections resolve back to {baselineSurface}`, where `baselineSurface` = the root transition's `surfaceA`.
-- Small, muted styling under the header; not a row, not tappable.
+Today only downstream points (Carpet, Hardwood) get tagged with a `transitionId`. A reading taken on the chain's baseline surface (the Tile 9.00 inside the office) has no link, so the halo skips it.
 
-### 3. Same caption in the data-entry keypad
-When `NumericKeypad` is in transition mode (surface-choice row visible, live corrected-value preview showing), add the same one-line caption so the user sees it at the moment they're entering a corrected reading — not only after the fact in the popover.
+Two ways to attach:
 
-- Place: inside `NumericKeypad.tsx`, at the top of the transition/surface-choice section (above the surface buttons), same muted styling as the popover caption.
-- Text: `All corrections resolve back to {baselineSurface}` — baselineSurface derived by walking `parentId` from the active transition up to the chain root and reading its `surfaceA`. For a brand-new chain (no parent), baseline = the current transition's own `surfaceA`.
+- **At entry time** — when a chain is active and the keypad shows the surface-choice row, add the baseline surface itself as a chip (e.g. `Tile (baseline)`). Tapping it stores the point with `transitionId = chainRoot.id` and a new `isChainBaseline: true` flag. Correction math treats these as +0.0, so the label stays plain ("9.00", no `+delta` suffix).
+- **Retroactively** — in `PointDetail`, add an "Attach to active correction (baseline)" action visible only when a chain is armed and the point currently has no `transitionId`. Same result as above.
 
-### Technical notes
-- `FieldTab.tsx`: when building the chain-highlight id set, also match the anchor point tied to the root transition. Verify against the current data shape when implementing.
-- New shared helper (likely in `src/lib/transitions.ts`), e.g. `getChainBaselineSurface(transitionId, transitions)` — used by both the popover and the keypad so the caption never drifts.
-- No schema changes, no changes to correction math, no changes to point labels on the canvas.
+Highlight logic already lights up any point whose `transitionId` is in the chain, so both paths flow through the existing halo code with no changes there.
+
+### 3. Manual override for a link's correction
+
+In the chain popover, tapping a row currently opens the full `TransitionDetailDialog`. Add a lighter inline path: each row becomes a two-part control — the surface pair on the left (still opens the full dialog on tap for editing readings/surfaces), and the delta value on the right becomes a small editable field. Typing a new number and blurring/entering commits an `deltaOverride` on the transition record.
+
+Data-model change: `Transition.deltaOverride?: number`. `transitionDelta(t)` returns `t.deltaOverride ?? t.readingA - t.readingB`. If the user later edits the underlying readings in the detail dialog, the override is cleared (readings are the source of truth again) — with a small "Override active — editing readings will clear it" hint shown in the dialog when an override exists.
+
+Overridden rows in the popover get a subtle indicator (e.g. dot + tooltip "Manual override") so it's obvious the number no longer matches raw A−B.
+
+## Files touched
+
+- `src/lib/types.ts` — add `deltaOverride?: number` to `Transition`; add `isChainBaseline?: boolean` to `SurveyPoint`.
+- `src/lib/transitions.ts` — `transitionDelta` respects override; `correctedValue` returns raw value unchanged for `isChainBaseline` points (delta is 0).
+- `src/components/tabs/FieldTab.tsx` — rename pill/popover title; render popover row with inline delta editor + override indicator; pass baseline-surface chip into keypad; handle baseline-tag on point placement.
+- `src/components/NumericKeypad.tsx` — surface-choice row includes the chain baseline surface as an explicit option.
+- `src/components/PointDetail.tsx` — add "Attach to active correction (baseline)" button (visible only when a chain is active and point is unlinked).
+- `src/components/TransitionDetailDialog.tsx` — show override-active hint; clear `deltaOverride` when readings change.
+
+## Not in scope
+
+- No changes to Topo / Export / Review — corrected values already flow through `correctedValue`, which stays the single source of truth.
+- No change to how chains are built or how the diamond anchor behaves.
