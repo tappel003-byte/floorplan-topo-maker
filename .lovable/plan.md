@@ -1,42 +1,29 @@
-## Reset plan
+## Goal
 
-### 1. Stop building for a moment
-No more code changes until we explicitly agree on the next small change. Screenshots count as ground truth. If I cannot verify the preview, I will say that plainly and not ask you to restate what the screenshot already shows.
+Make the flooring-correction keypad match what we agreed to in words: **no chip/pill row above the number pad**, and when a chain is active the **bottom row is the only place surface choices appear** (no leftover full-width Enter).
 
-### 2. Establish the current state
-We treat the app as it exists right now as the baseline. The immediate unresolved issue is the keypad/flooring correction layout, but we do not keep patching it blindly.
+## What's wrong right now (from image-170)
 
-### 3. Decide whether to keep or roll back the recent work
-You have two clean reset options:
+Looking at `src/components/NumericKeypad.tsx`:
 
-- Use chat/history revert to go back to the last version that felt stable.
-- Keep the current code and do a focused repair pass from here.
+1. The active-transition **corrected-value preview** (`= 9.00" (8.60 + 0.4 → Carpet)`) still renders above the number pad whenever `activeTransition` is set. That's the strip you circled at the top.
+2. The `showShortcutRow` block (Repeat / Correct-for-flooring buttons) is hidden when a transition is active — good — but the corrected-value preview above it is not, so the "top row" visually persists.
+3. In the bottom action area, the fallback branch still renders a full-width **Enter** button when `activeTransition` is set but `surfaceOptions` isn't passed (e.g. editing an existing point, or a chain with only one surface). That's why some screens still show Enter at the bottom instead of surface buttons.
 
-If the goal is truly “unplug it from the wall,” I recommend reverting to the last trusted point before the rushed flooring-correction bottom-row work, then rebuilding that one piece slowly.
+## Fix (single file: `src/components/NumericKeypad.tsx`)
 
-### 4. New working rule for every change
-For anything bigger than a typo:
+1. **Remove the top corrected-value preview block entirely.** Delete the `activeTransition && (() => { ... })()` IIFE that renders the `= X.XX"` line above the keys. Correction context belongs on the bottom buttons (each surface button already shows its delta), not as a header strip.
+2. **Keep** the number-grid change already in place: when `usesBottomCorrectionActions` is true, skip rendering the in-grid backspace + full-width Enter.
+3. **Bottom row behavior** when `usesBottomCorrectionActions` is true:
+   - If `hasSurfaceRow` → render backspace + one button per surface (already correct).
+   - Else (active transition but no surface options passed) → render backspace + a single flex-1 **Enter** button that submits the raw value. This is the existing fallback; leave it.
+4. No changes to `FieldTab.tsx`, `transitions.ts`, or storage. This is purely the keypad's own layout.
 
-```text
-Discuss → agree on one sentence → build only that → verify honestly → stop
-```
+## Out of scope
 
-No extra cleanup. No adjacent fixes. No “while I’m in there.”
+- Chain computation, anchor coloring, downstream highlights, delete/detach behavior — untouched.
+- No new props, no API changes to callers.
 
-### 5. Proof standard
-After each build step, I should report one of these only:
+## Verification
 
-```text
-Built and visually verified.
-Built, but not visually verified.
-Not built.
-```
-
-No more claiming the UI is right based only on source code.
-
-### 6. Immediate next move
-Before touching code again, we should choose the reset point: either revert through History/chat to the last stable version, or keep current code and make a single focused plan for the keypad correction layout.
-
-<presentation-actions>
-  <presentation-open-history>View History</presentation-open-history>
-</presentation-actions>
+After the edit I'll re-read `NumericKeypad.tsx` to confirm the top IIFE is gone and the bottom branch is the only place correction UI renders. I can't screenshot the live preview reliably, so if it still looks wrong on your device please send a screenshot and I'll iterate.
