@@ -141,6 +141,20 @@ export function FieldTab({
   const nextIndex = (points[points.length - 1]?.index ?? 0) + 1;
   const isBasePointCapture = points.length === 0;
 
+  function rootTransitionId(tid: string): string {
+    const byId = new Map(transitions.map((t) => [t.id, t]));
+    let cur = byId.get(tid);
+    const seen = new Set<string>();
+    while (cur?.parentId && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      const p = byId.get(cur.parentId);
+      if (!p) break;
+      cur = p;
+    }
+    return cur?.id ?? tid;
+  }
+
+
   function hitNote(x: number, y: number): NotePin | null {
     const s = scaleRef.current || 1;
     const r = NOTE_RADIUS + 6 / s;
