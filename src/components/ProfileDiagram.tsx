@@ -72,8 +72,14 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
   const PAD_X = 12;
   const TILE_Y = 40;      // dashed tile datum
   const SLAB_Y = 72;      // solid slab line
+  const PIX_PER_INCH = 30; // vertical scale for elevation deltas
   const width = PAD_X * 2 + chain.length * SEG_W;
   const height = SLAB_Y + 26;
+
+  // Datum = tile (or first) segment's first reading.
+  // Higher reading = more distance from laser = LOWER floor (drawn further down).
+  const datumSeg = chain.find((s) => s.name === "Tile") ?? chain[0];
+  const datum = datumSeg.readings[0];
 
   const HARD_FILL = "#c4a484";
   const HARD_STROKE = "#4b3820";
@@ -158,9 +164,11 @@ export function ProfileDiagram({ activeId, transitions }: Props) {
             );
           }
 
-          // Other hard surface (wood etc.): block on slab, X on top.
+          // Other hard surface (wood etc.): block positioned by reading vs tile datum.
           const blockH = HARD_THICKNESS[seg.name] ?? 18;
-          const topY = SLAB_Y - blockH;
+          const firstReading = seg.readings[0];
+          const deltaPx = (firstReading - datum) * PIX_PER_INCH; // positive = lower floor
+          const topY = TILE_Y + deltaPx;
           return (
             <g key={i}>
               <rect x={x + 2} y={topY} width={SEG_W - 4} height={blockH} fill={HARD_FILL} stroke={HARD_STROKE} strokeWidth={1} rx={2} />
