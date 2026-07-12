@@ -574,10 +574,7 @@ export function FieldTab({
             </button>
           </div>
           {chainPopoverOpen && (
-            <div
-              className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden pointer-events-auto"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <div className="w-72 rounded-lg border border-amber-300 bg-white shadow-lg overflow-hidden pointer-events-none">
               <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-900 bg-amber-50 border-b border-amber-200">
                 Active correction — tap surface to edit, tap value to override
               </div>
@@ -593,11 +590,12 @@ export function FieldTab({
                 {chainOrdered(activeTransitionId).map((t) => (
                   <li key={t.id} className="flex items-stretch">
                     <button
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => {
                         setViewingTransitionId(t.id);
                         setChainPopoverOpen(false);
                       }}
-                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left"
+                      className="flex-1 min-w-0 flex items-center gap-1.5 px-3 py-2 text-xs hover:bg-amber-50 text-left pointer-events-auto"
                     >
                       <span className="text-gray-800 truncate">
                         {t.surfaceA} → {t.surfaceB}
