@@ -183,20 +183,12 @@ export function TransitionDetailDialog({
           </span>
         </div>
 
-        {transition.deltaOverride != null && (
-          <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-            Manual override active ({formatDelta(transition.deltaOverride)}"). Editing the
-            readings will clear it.
-          </p>
-        )}
-
         {downstreamCount > 0 && (
           <p className="mt-2 text-[11px] text-muted-foreground">
             {downstreamCount} downstream point{downstreamCount === 1 ? "" : "s"} reference this
             transition. Editing readings updates all of them.
           </p>
         )}
-
 
         <div className="mt-4 flex items-center justify-between gap-2">
           <Button

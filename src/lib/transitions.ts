@@ -15,22 +15,21 @@ export const COMMON_SURFACES = [
   "Other",
 ] as const;
 
-/** delta = manual override, else readingA − readingB. Add to a raw B-side reading to get the A-frame value. */
+/** delta = readingA − readingB. Add to a raw B-side reading to get the A-frame value. */
 export function transitionDelta(t: Transition): number {
-  return t.deltaOverride ?? t.readingA - t.readingB;
+  return t.readingA - t.readingB;
 }
 
-/** Corrected value used by topo/stats/export. Anchor and chain-baseline points keep their raw value. */
+/** Corrected value used by topo/stats/export. Anchor keeps its stored value (already A-frame). */
 export function correctedValue(
   p: SurveyPoint,
   transitions: readonly Transition[] | undefined,
 ): number {
-  if (!p.transitionId || p.isTransitionAnchor || p.isChainBaseline) return p.value;
+  if (!p.transitionId || p.isTransitionAnchor) return p.value;
   const t = transitions?.find((x) => x.id === p.transitionId);
   if (!t) return p.value;
   return p.value + transitionDelta(t);
 }
-
 
 /** Returns a new array of points with `value` replaced by the corrected value. */
 export function withCorrectedValues(
