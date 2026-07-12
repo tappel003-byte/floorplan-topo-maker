@@ -114,8 +114,7 @@ export function AddTransitionSheet({ open, onClose, onSave, parentDelta, parentS
             <select
               value={surfaceA}
               onChange={(e) => setSurfaceA(e.target.value)}
-              disabled={chained}
-              className="h-10 rounded-md border px-2 bg-background text-sm disabled:opacity-70"
+              className="h-10 rounded-md border px-2 bg-background text-sm"
             >
               {COMMON_SURFACES.map((s) => (
                 <option key={s} value={s}>
