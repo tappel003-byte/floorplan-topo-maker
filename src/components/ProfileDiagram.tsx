@@ -27,27 +27,19 @@ interface Segment {
   readings: number[];
 }
 
-function buildChain(transitions: readonly Transition[]): Segment[] {
-  const sorted = [...transitions].sort((a, b) => a.createdAt - b.createdAt);
-  if (sorted.length === 0) return [];
+function buildChain(activeId: string, transitions: readonly Transition[]): Segment[] {
+  const active = transitions.find((t) => t.id === activeId);
+  if (!active) return [];
 
-  const first = sorted[0];
+  // Do not infer a chain from every transition on the floor. Surface names repeat
+  // room-to-room, so unrelated doorways can accidentally join the diagram. Until
+  // an explicit chain id exists, the keypad diagram must show only the active
+  // doorway/anchor the next point will reference.
+  const first = active;
   const segments: Segment[] = [
     { name: first.surfaceA, soft: SOFT_SURFACES.has(first.surfaceA), readings: [first.readingA] },
     { name: first.surfaceB, soft: SOFT_SURFACES.has(first.surfaceB), readings: [first.readingB] },
   ];
-
-  for (let i = 1; i < sorted.length; i++) {
-    const t = sorted[i];
-    const tail = segments[segments.length - 1];
-    if (t.surfaceA === tail.name) {
-      tail.readings.push(t.readingA);
-      segments.push({ name: t.surfaceB, soft: SOFT_SURFACES.has(t.surfaceB), readings: [t.readingB] });
-    } else if (t.surfaceB === tail.name) {
-      tail.readings.push(t.readingB);
-      segments.push({ name: t.surfaceA, soft: SOFT_SURFACES.has(t.surfaceA), readings: [t.readingA] });
-    }
-  }
 
   return segments;
 }
@@ -62,7 +54,7 @@ function buildChain(transitions: readonly Transition[]): Segment[] {
  *   - Other hard surfaces (wood, etc.) = block sitting on the slab with X + reading on top.
  */
 export function ProfileDiagram({ activeId, transitions }: Props) {
-  const chain = buildChain(transitions);
+  const chain = buildChain(activeId, transitions);
   if (chain.length === 0) return null;
 
   const SEG_W = 84;
