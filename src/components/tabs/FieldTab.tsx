@@ -178,7 +178,8 @@ export function FieldTab({
     if (isBasePointCapture) setBpPromptOpen(true);
   }
 
-  async function submitValue(v: number) {
+  async function submitValue(v: number, overrideTransitionId?: string | null) {
+    // overrideTransitionId: string = tag with this; null = force no tag (root anchor surface); undefined = use activeTransitionId
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
       await savePoint(updated);
@@ -190,6 +191,11 @@ export function FieldTab({
     }
     if (!pending) return;
     const isBP = isBasePointCapture;
+    const tagId = isBP
+      ? undefined
+      : overrideTransitionId === undefined
+        ? (activeTransitionId ?? undefined)
+        : (overrideTransitionId ?? undefined);
     const point: SurveyPoint = {
       id: uid(),
       floorId: floor.id,
@@ -200,8 +206,7 @@ export function FieldTab({
       isBasePoint: isBP,
       label: isBP ? "BP1" : undefined,
       createdAt: Date.now(),
-      // Tag with active transition (BP never gets tagged)
-      transitionId: !isBP && activeTransitionId ? activeTransitionId : undefined,
+      transitionId: tagId,
     };
     await savePoint(point);
     const nextPts = [...points, point];
@@ -835,7 +840,41 @@ export function FieldTab({
           setPending(null);
           setEditingPoint(null);
         }}
-        onSubmit={submitValue}
+        onSubmit={(v) => submitValue(v)}
+        onSubmitWithOption={(v, opt) => submitValue(v, opt.id)}
+        surfaceOptions={(() => {
+          // Only offer surface choice when placing a NEW point in an active chain.
+          if (editingPoint || isBasePointCapture || !activeTransitionId) return undefined;
+          const byId = new Map(transitions.map((t) => [t.id, t]));
+          let root = byId.get(activeTransitionId);
+          while (root?.parentId) {
+            const p = byId.get(root.parentId);
+            if (!p) break;
+            root = p;
+          }
+          if (!root) return undefined;
+          const rootId = root.id;
+          const inTree = (t: Transition) => {
+            let cur: Transition | undefined = t;
+            const seen = new Set<string>();
+            while (cur && !seen.has(cur.id)) {
+              if (cur.id === rootId) return true;
+              seen.add(cur.id);
+              cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+            }
+            return false;
+          };
+          const group = transitions.filter(inTree);
+          const opts = [
+            { id: null as string | null, surface: root.surfaceA, delta: 0 },
+            ...group.map((t) => ({
+              id: t.id,
+              surface: t.surfaceB,
+              delta: transitionDelta(t),
+            })),
+          ];
+          return opts.length >= 2 ? opts : undefined;
+        })()}
         onDelete={
           editingPoint
             ? async () => {
