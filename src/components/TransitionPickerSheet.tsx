@@ -55,9 +55,8 @@ export function TransitionPickerSheet({ open, transitions, onClose, onReuse, onN
                   >
                     <ArrowLeftRight className="h-4 w-4 text-primary shrink-0" />
                     <span className="flex-1 min-w-0 truncate text-sm">
-                      <span className="text-muted-foreground">{t.surfaceA}</span>
-                      <span className="text-muted-foreground"> → </span>
-                      <span className="font-medium">{t.surfaceB}</span>
+                      <span className="font-medium">{t.surfaceB} correction</span>
+                      <span className="text-muted-foreground"> · from {t.surfaceA}</span>
                     </span>
                     <span className="font-mono tabular-nums text-sm font-semibold shrink-0">
                       {formatDelta(d)}"
