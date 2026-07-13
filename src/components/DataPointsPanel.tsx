@@ -6,13 +6,14 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ChevronDown, ChevronUp, X, GripVertical, Database, Minus, Plus } from "lucide-react";
-import type { SurveyPoint } from "@/lib/types";
+import type { Floor, SurveyPoint } from "@/lib/types";
 import { PointDetail } from "@/components/PointDetail";
 import { deletePoint, reindexFloorPoints, savePoint } from "@/lib/db";
 
 interface Props {
   projectId: string;
   points: SurveyPoint[];
+  floor?: Floor;
   selectedIds: Set<string>;
   onSelect: (id: string, additive?: boolean) => void;
   onPointsChange: (points: SurveyPoint[]) => void;
@@ -62,6 +63,7 @@ function loadState(projectId: string): PanelState {
 export function DataPointsPanel({
   projectId,
   points,
+  floor,
   selectedIds,
   onSelect,
   onPointsChange,
@@ -351,10 +353,20 @@ export function DataPointsPanel({
         <PointDetail
           key={detail.id}
           point={detail}
+          floor={floor}
           onClose={() => setDetailId(null)}
           onSave={async (updated) => {
             await savePoint(updated);
             const next = points.map((x) => (x.id === updated.id ? updated : x));
+            onPointsChange(next);
+            onCommit?.(next);
+          }}
+          onReassignTransition={async (pid, tid) => {
+            const target = points.find((p) => p.id === pid);
+            if (!target) return;
+            const updated = { ...target, transitionId: tid ?? undefined };
+            await savePoint(updated);
+            const next = points.map((x) => (x.id === pid ? updated : x));
             onPointsChange(next);
             onCommit?.(next);
           }}

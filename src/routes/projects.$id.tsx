@@ -259,6 +259,7 @@ function ProjectWorkspace() {
         <DataPointsPanel
           projectId={project.id}
           points={points}
+          floor={activeFloor}
           selectedIds={selectedIds}
           pointSize={pointSize}
           onPointSizeChange={setPointSize}

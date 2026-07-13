@@ -1,31 +1,32 @@
-## Fix chain-root highlight + add baseline caption in two places
+## Make every point in a flooring chain editable
 
-### 1. Chain-root anchor joins the yellow halo
-The tile-side "9.00" at the top of the office doorway is the reference every downstream reading in the chain is corrected back to, but it carries no `transitionId` — so today the halo predicate skips it and the visual chain looks incomplete.
+Right now, tapping a diamond anchor opens the transition detail dialog and you can edit it. Tapping a downstream point (a regular reading tagged to a transition, e.g. one taken "on carpet" after a Tile→Carpet doorway) opens `PointDetail`, but that dialog has no idea the point is part of a chain — it just shows the raw number with no surface context and no way to change which chain the point belongs to. Come back to it later and you can't tell what you originally entered or which correction is being applied.
 
-- In `FieldTab.tsx`, extend the "highlight this chain" id set to also include the anchor point of the root transition (the point whose stored value equals the root transition's `readingA`, i.e. the tile-side baseline).
-- Result: tapping the amber pill lights up every diamond + every downstream reading + the tile-side chain-root anchor.
+### What changes
 
-### 2. "Resolves back to baseline" caption — chain popover
-Leave the row structure and the pairwise +/− deltas exactly as they are — the math is right and the string of signs is how each link corrects the previous corrected value back to the baseline. Add one caption under the header so the reader knows how to parse it.
+Extend `PointDetail` so a chain-tagged point shows its full context and is fully re-editable — matching the round-trip the anchor already gets.
 
-```text
-CHAIN CORRECTIONS — TAP TO EDIT
-All corrections resolve back to Tile
-  Tile → Carpet        +0.5"
-  Carpet → Hardwood    −0.2"
-```
+When the opened point has a `transitionId` (and is not itself an anchor):
 
-- Caption text: `All corrections resolve back to {baselineSurface}`, where `baselineSurface` = the root transition's `surfaceA`.
-- Small, muted styling under the header; not a row, not tappable.
+1. **Show the chain context at the top of the dialog**
+   - Baseline surface (chain root's `surfaceA`, via `getChainBaselineSurface`)
+   - This point's surface (the transition's `surfaceB`)
+   - The active correction applied (`+0.4"` etc.) and the resulting corrected value
+   - Same "All corrections resolve back to {baseline}" caption used in the keypad and popover, so the wording is consistent everywhere
 
-### 3. Same caption in the data-entry keypad
-When `NumericKeypad` is in transition mode (surface-choice row visible, live corrected-value preview showing), add the same one-line caption so the user sees it at the moment they're entering a corrected reading — not only after the fact in the popover.
+2. **Edit the raw reading in place**
+   - The Elevation field stays the raw value you originally typed (that's already what's stored). Label it clearly as "Raw reading on {surfaceB}" and show a live "= X.XX corrected" preview underneath so you can see the effect of your edit without doing the math.
 
-- Place: inside `NumericKeypad.tsx`, at the top of the transition/surface-choice section (above the surface buttons), same muted styling as the popover caption.
-- Text: `All corrections resolve back to {baselineSurface}` — baselineSurface derived by walking `parentId` from the active transition up to the chain root and reading its `surfaceA`. For a brand-new chain (no parent), baseline = the current transition's own `surfaceA`.
+3. **Change which chain/link this point belongs to**
+   - Add a "Correction" row with the current transition shown as a chip (e.g. "Carpet correction +0.4"") and a "Change" button.
+   - "Change" opens the existing `TransitionPickerSheet` scoped to the current floor's transitions, so the user can reassign the point to a different link in the same chain, a different chain entirely, or clear the tag (making it a plain reading again).
+   - Reassigning only rewrites the point's `transitionId` — the raw `value` is preserved, so the corrected value updates automatically via the existing `correctedValue` pipeline.
+
+4. **No changes to** anchor behavior, transition math, the keypad, the canvas, or how downstream points are created. This is a read/edit surface only.
 
 ### Technical notes
-- `FieldTab.tsx`: when building the chain-highlight id set, also match the anchor point tied to the root transition. Verify against the current data shape when implementing.
-- New shared helper (likely in `src/lib/transitions.ts`), e.g. `getChainBaselineSurface(transitionId, transitions)` — used by both the popover and the keypad so the caption never drifts.
-- No schema changes, no changes to correction math, no changes to point labels on the canvas.
+
+- File: `src/components/PointDetail.tsx` — accept `floor: Floor` (or `transitions` + `onReassignTransition`) as a prop, look up `point.transitionId` in `floor.transitions`, and render the chain context block above the existing Elevation field when found.
+- Reuse: `getChainBaselineSurface`, `transitionDelta`, `formatDelta`, `correctionLabel` from `src/lib/transitions.ts`; `TransitionPickerSheet` for the reassignment picker.
+- Call site: `FieldTab.tsx` — pass the current floor into `PointDetail` and wire an `onReassignTransition(pointId, transitionId | null)` handler that updates the point via the existing `onPointsChange` + history-commit path.
+- Anchor points (`isTransitionAnchor === true`) continue to route to `TransitionDetailDialog` as they do today — `PointDetail` is only for non-anchor points.
