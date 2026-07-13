@@ -77,7 +77,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0f172a" },
       { title: "Floor Survey — Foundation topo mapping" },
+
       {
         name: "description",
         content: "Offline-first floor elevation survey app for foundation inspectors.",
@@ -95,7 +97,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", sizes: "192x192", href: "/icon-192.png" },
+      { rel: "icon", type: "image/png", href: "/icon-192.png" },
     ],
+
   }),
   shellComponent: RootShell,
   component: RootComponent,
