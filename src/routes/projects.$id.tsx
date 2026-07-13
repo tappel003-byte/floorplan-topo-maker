@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { deletePoint, getProject, listFloors, listPoints, savePoint } from "@/lib/db";
+import { deletePoint, getProject, listFloors, listPoints, savePoint, saveFloor } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { SetupTab } from "@/components/tabs/SetupTab";
@@ -12,8 +12,11 @@ import { AppTopBar } from "@/components/chrome/AppTopBar";
 import { ModeToggle } from "@/components/chrome/ModeToggle";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
 import { StatsChip } from "@/components/chrome/StatsChip";
+import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrectionsChip";
+import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues } from "@/lib/transitions";
+
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
