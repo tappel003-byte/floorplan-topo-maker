@@ -859,6 +859,10 @@ export function FieldTab({
           const finalY = drag.lastY ?? y;
           dragRef.current = null;
           setDragging(null);
+          if (longPressTimerRef.current) {
+            window.clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+          }
           if (anchorLongPressTimerRef.current) {
             window.clearTimeout(anchorLongPressTimerRef.current);
             anchorLongPressTimerRef.current = null;
