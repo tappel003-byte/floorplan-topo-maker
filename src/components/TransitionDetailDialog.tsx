@@ -76,7 +76,7 @@ export function TransitionDetailDialog({
   }
 
   if (minimized) {
-    const deltaLabel = valid ? formatDelta(delta) : formatDelta(transition.readingA - transition.readingB);
+    const deltaLabel = formatDelta(effectiveDelta);
     return (
       <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background shadow-lg pl-3 pr-1 h-9">
@@ -86,7 +86,7 @@ export function TransitionDetailDialog({
             aria-label="Expand transition"
           >
             <span className="text-muted-foreground">{transition.surfaceB} correction</span>
-            <span className="font-mono font-semibold">{deltaLabel}"</span>
+            <span className={`font-mono font-semibold ${isOverridden ? "text-destructive" : ""}`}>{deltaLabel}"</span>
           </button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMinimized(false)} aria-label="Expand">
             <Maximize2 className="h-3.5 w-3.5" />
@@ -100,10 +100,11 @@ export function TransitionDetailDialog({
   }
 
   function nudgeDelta(step: number) {
-    const a = parseFloat(readingA);
-    if (!isFinite(a)) return;
-    setReadingA((a + step).toFixed(2));
+    const base = overrideDelta !== null ? overrideDelta : computedDelta;
+    const next = Math.round((base + step) * 100) / 100;
+    setOverrideDelta(next);
   }
+
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
