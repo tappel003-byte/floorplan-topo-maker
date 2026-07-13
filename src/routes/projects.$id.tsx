@@ -189,9 +189,11 @@ function ProjectWorkspace() {
         onOpenSetup={() => setMode("setup")}
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
+        onOpenTransitions={() => setTransitionsSheetOpen(true)}
         undoEnabled={undoActive && history.canUndo}
         redoEnabled={undoActive && history.canRedo}
       />
+
       {floors.length > 1 && (
         <div
           data-floor-selector
