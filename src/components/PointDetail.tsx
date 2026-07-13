@@ -57,7 +57,7 @@ export function PointDetail({
 
   const raw = parseFloat(value);
   const validRaw = isFinite(raw);
-  const delta = activeTransition ? transitionDelta(activeTransition) : 0;
+  const delta = activeTransition ? transitionDelta(activeTransition, floor?.transitionGroupAverages) : 0;
   const corrected = validRaw ? raw + delta : NaN;
 
   const dirty =
