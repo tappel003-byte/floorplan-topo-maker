@@ -15,9 +15,9 @@ export const COMMON_SURFACES = [
   "Other",
 ] as const;
 
-/** delta = readingA − readingB. Add to a raw B-side reading to get the A-frame value. */
+/** delta = manual override if set, else readingA − readingB. */
 export function transitionDelta(t: Transition): number {
-  return t.readingA - t.readingB;
+  return t.manualDeltaOverride ?? (t.readingA - t.readingB);
 }
 
 /** Corrected value used by topo/stats/export. Anchor keeps its stored value (already A-frame). */

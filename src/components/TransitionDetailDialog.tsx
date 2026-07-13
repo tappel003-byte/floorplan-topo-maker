@@ -29,6 +29,7 @@ export function TransitionDetailDialog({
   const [surfaceB, setSurfaceB] = useState("");
   const [readingA, setReadingA] = useState("");
   const [readingB, setReadingB] = useState("");
+  const [overrideDelta, setOverrideDelta] = useState<number | null>(null);
   const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
@@ -37,6 +38,9 @@ export function TransitionDetailDialog({
       setSurfaceB(transition.surfaceB);
       setReadingA(String(transition.readingA));
       setReadingB(String(transition.readingB));
+      setOverrideDelta(
+        transition.manualDeltaOverride !== undefined ? transition.manualDeltaOverride : null,
+      );
       setMinimized(false);
     }
   }, [open, transition]);
@@ -46,15 +50,33 @@ export function TransitionDetailDialog({
   const a = parseFloat(readingA);
   const b = parseFloat(readingB);
   const valid = isFinite(a) && isFinite(b);
-  const delta = valid ? a - b : 0;
+  const computedDelta = valid ? a - b : 0;
+  const effectiveDelta = overrideDelta !== null ? overrideDelta : computedDelta;
+  const isOverridden = overrideDelta !== null;
 
   function submit() {
     if (!valid || !transition) return;
-    onSave({ ...transition, surfaceA, surfaceB, readingA: a, readingB: b });
+    onSave({
+      ...transition,
+      surfaceA,
+      surfaceB,
+      readingA: a,
+      readingB: b,
+      manualDeltaOverride: overrideDelta ?? undefined,
+    });
+  }
+
+  function onReadingAChange(v: string) {
+    setReadingA(v);
+    setOverrideDelta(null);
+  }
+  function onReadingBChange(v: string) {
+    setReadingB(v);
+    setOverrideDelta(null);
   }
 
   if (minimized) {
-    const deltaLabel = valid ? formatDelta(delta) : formatDelta(transition.readingA - transition.readingB);
+    const deltaLabel = formatDelta(effectiveDelta);
     return (
       <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background shadow-lg pl-3 pr-1 h-9">
@@ -64,7 +86,7 @@ export function TransitionDetailDialog({
             aria-label="Expand transition"
           >
             <span className="text-muted-foreground">{transition.surfaceB} correction</span>
-            <span className="font-mono font-semibold">{deltaLabel}"</span>
+            <span className={`font-mono font-semibold ${isOverridden ? "text-destructive" : ""}`}>{deltaLabel}"</span>
           </button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMinimized(false)} aria-label="Expand">
             <Maximize2 className="h-3.5 w-3.5" />
@@ -78,10 +100,11 @@ export function TransitionDetailDialog({
   }
 
   function nudgeDelta(step: number) {
-    const a = parseFloat(readingA);
-    if (!isFinite(a)) return;
-    setReadingA((a + step).toFixed(2));
+    const base = overrideDelta !== null ? overrideDelta : computedDelta;
+    const next = Math.round((base + step) * 100) / 100;
+    setOverrideDelta(next);
   }
+
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
@@ -145,7 +168,7 @@ export function TransitionDetailDialog({
               inputMode="decimal"
               step="0.01"
               value={readingA}
-              onChange={(e) => setReadingA(e.target.value)}
+              onChange={(e) => onReadingAChange(e.target.value)}
               placeholder="0.0"
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
@@ -157,7 +180,7 @@ export function TransitionDetailDialog({
               inputMode="decimal"
               step="0.01"
               value={readingB}
-              onChange={(e) => setReadingB(e.target.value)}
+              onChange={(e) => onReadingBChange(e.target.value)}
               placeholder="0.0"
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
@@ -168,22 +191,29 @@ export function TransitionDetailDialog({
           <span className="text-muted-foreground">
             {surfaceB || "Surface"} correction
           </span>
-          <span className="font-mono tabular-nums font-semibold">
-            {valid ? `${formatDelta(delta)}"` : "—"}
+          <span className={`font-mono tabular-nums font-semibold ${isOverridden ? "text-destructive" : ""}`}>
+            {valid || isOverridden ? `${formatDelta(effectiveDelta)}"` : "—"}
           </span>
         </div>
 
         <div className="mt-2 rounded-md border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Manual adjust</span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
               −0.1
             </Button>
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(-0.05)} aria-label="Decrease correction 0.05">
+              −0.05
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.05)} aria-label="Increase correction 0.05">
+              +0.05
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
               +0.1
             </Button>
           </div>
         </div>
+
 
         {downstreamCount > 0 && (
           <p className="mt-2 text-[11px] text-muted-foreground">
