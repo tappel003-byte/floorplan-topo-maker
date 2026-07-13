@@ -1,13 +1,14 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Undo2, X, Waves, Palette, Tag } from "lucide-react";
+import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
+import { TopoDiagnosticPanel } from "../TopoDiagnosticPanel";
 import {
   TOPO_GRID_TARGET_COLS,
   buildGrid,
@@ -101,17 +102,30 @@ export function TopoTab({
     | { kind: "pin-high" | "pin-low"; prevDx: number | undefined; prevDy: number | undefined };
   const [lastMove, setLastMove] = useState<LastMove | null>(null);
 
-  const canRender = points.length >= 3 && floor.boundary.length >= 3;
+  // Diagnostic exclusion (Topo-only, session-only). Removed points do NOT
+  // affect stored data — they're just skipped by the contour math on this tab.
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(() => new Set());
+  const [diagOpen, setDiagOpen] = useState(false);
+  useEffect(() => {
+    setExcludedIds(new Set());
+  }, [floor.id]);
+
+  const visiblePoints = useMemo(
+    () => (excludedIds.size ? points.filter((p) => !excludedIds.has(p.id)) : points),
+    [points, excludedIds],
+  );
+
+  const canRender = visiblePoints.length >= 3 && floor.boundary.length >= 3;
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(points, floor.boundary, TOPO_GRID_TARGET_COLS);
+    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS);
     if (!grid) return null;
     const cs = computeContours(grid, contourOptions(grid, resolved));
     return { grid, contours: cs };
   }, [
     canRender,
-    points,
+    visiblePoints,
     floor.boundary,
     resolved.firstContour,
     resolved.contourStep,
@@ -125,15 +139,17 @@ export function TopoTab({
 
   // Compute current High / Low points (matches renderTopoTop logic).
   const hiLo = useMemo(() => {
-    if (!points.length) return null;
-    let hi = points[0],
-      lo = points[0];
-    for (const p of points) {
+    if (!visiblePoints.length) return null;
+    let hi = visiblePoints[0],
+      lo = visiblePoints[0];
+    for (const p of visiblePoints) {
       if (p.value > hi.value) hi = p;
       if (p.value < lo.value) lo = p;
     }
     return { hi, lo };
-  }, [points]);
+  }, [visiblePoints]);
+
+
 
   type Hit =
     | { kind: "label"; point: SurveyPoint }
@@ -163,7 +179,7 @@ export function TopoTab({
       const fontPx = resolved.pointLabelFontSize;
       const weight = resolved.pointLabelWeight;
       const pad = 4;
-      for (const p of points) {
+      for (const p of visiblePoints) {
         const text = p.value.toFixed(dec);
         const { w, h } = measureLabel(text, fontPx, weight);
         const a = labelAnchor(p);
@@ -286,6 +302,40 @@ export function TopoTab({
         >
           <Tag className="h-4 w-4" />
         </button>
+      )}
+      {/* Diagnostic panel toggle — Topo-only. Excludes points from contour math without touching stored data. */}
+      <button
+        type="button"
+        onClick={() => setDiagOpen((v) => !v)}
+        aria-label="Diagnostic points panel"
+        className={
+          "fixed z-30 h-9 min-w-9 px-2 rounded-full backdrop-blur border shadow-md flex items-center justify-center gap-1 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-[calc(env(safe-area-inset-right)+3.5rem)] " +
+          (diagOpen || excludedIds.size > 0
+            ? "bg-amber-100 border-amber-300 text-amber-900"
+            : "bg-white/95 border-gray-300 text-gray-700 hover:bg-gray-50")
+        }
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+        {excludedIds.size > 0 && (
+          <span className="text-[10px] font-mono tabular-nums">{excludedIds.size}</span>
+        )}
+      </button>
+
+      {diagOpen && (
+        <TopoDiagnosticPanel
+          points={points}
+          excludedIds={excludedIds}
+          onToggleExclude={(id) =>
+            setExcludedIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            })
+          }
+          onRestoreAll={() => setExcludedIds(new Set())}
+          onClose={() => setDiagOpen(false)}
+        />
       )}
 
       {/* Warning */}
@@ -431,7 +481,7 @@ export function TopoTab({
               drag && drag.active && drag.kind === "pin-high" ? { dx: drag.dx, dy: drag.dy } : null;
             const activePinLow =
               drag && drag.active && drag.kind === "pin-low" ? { dx: drag.dx, dy: drag.dy } : null;
-            renderTopoTop(ctx, floor, points, resolved, gridAndContours, {
+            renderTopoTop(ctx, floor, visiblePoints, resolved, gridAndContours, {
               liveDrag: activeLabel,
               highlightId: activeLabel?.id ?? selectedId,
               livePinHigh: activePinHigh,
