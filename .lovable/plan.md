@@ -1,26 +1,24 @@
-## Problem
+## Icon concept
 
-In Color cells mode, thin white lines appear between the grid cells. They aren't real gridlines — they're seams from how the cells are painted.
+A simplified topographic contour map — organic, irregular concentric rings (like a real hill cross-section, not perfect circles) in the app's earth-tone palette. No letters, no floor plan outline. Just contours.
 
-## Cause
+## Design
 
-`renderTopoBase` in `src/components/tabs/TopoTab.tsx` (around line 959) paints each cell with `ctx.fillRect(...)` using `ctx.globalAlpha = resolved.contourOpacity`. Because opacity is <1, every cell blends against the white canvas *individually*. Any sub-pixel gap between adjacent rectangles (from fractional `g.step` values at the current zoom) shows the white background through — producing the vertical/horizontal streaks visible in your screenshot.
+- **Shape**: 3–5 nested irregular contour lines forming a soft blob/hill shape, centered on the icon
+- **Palette**: pulled from the current Earth Tone contour: cream/tan center → warm tan → brown edges. Solid, filled bands (like the "color cells" mode), not just outlines — reads at small sizes
+- **Background**: solid cream (`#f5efe4`-ish) so it stands out on both light and dark home screens
+- **No text, no border, no floor plan** — pure topo shape, corners rounded by iOS automatically
+- **Square, 1024×1024**, exported as PNG, then downsampled to 512 and 192
 
-## Fix
+## Files
 
-Paint the cells fully opaque onto an offscreen canvas first, then blit that composite onto the main canvas once with the opacity applied. That way seams (if any) are between fully opaque neighbors of near-identical color and become invisible, and the fade-to-plan effect is preserved.
-
-Change in `src/components/tabs/TopoTab.tsx` inside `renderTopoBase`:
-
-1. Create an offscreen canvas sized to the boundary bbox at devicePixelRatio.
-2. Loop the grid and `fillRect` cells onto it at `globalAlpha = 1`, with a slightly larger overlap (`g.step + 1`) to defeat sub-pixel gaps.
-3. On the main context, set `globalAlpha = resolved.contourOpacity` once and `drawImage` the offscreen canvas inside the existing clip.
-4. Restore `globalAlpha = 1`.
-
-No other modes (contour lines, points-only, isobands) are touched. No changes to palette, opacity slider, legend, or data.
+1. Generate `public/icon-1024.png` via `imagegen` (premium tier for crispness at small sizes)
+2. Downsample to `public/icon-512.png` and `public/icon-192.png` (overwrite the existing FLS icons)
+3. Leave `public/manifest.webmanifest` and `__root.tsx` head links untouched — same filenames, so no code change needed
+4. Delete `public/icon-1024.png` after downsampling (kept only as source)
 
 ## Verification
 
-- Load a plan, switch mode to Color cells, confirm the white streaks are gone at multiple zoom levels.
-- Toggle opacity slider — fade still works.
-- Switch to Contour lines and Isobands — unchanged.
+- View the generated 512 and 192 PNGs to confirm the topo shape reads clearly at small size
+- Confirm no white/grey fallback box — full-bleed cream background
+- User will re-add to home screen after next publish to see it
