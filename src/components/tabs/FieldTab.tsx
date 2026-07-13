@@ -31,6 +31,7 @@ interface Props {
 type DragState = {
   id: string;
   moved: boolean;
+  active: boolean; // becomes true after long-press fires; must be true to move the point
   startClientX: number;
   startClientY: number;
   startImgX: number;
@@ -710,6 +711,7 @@ export function FieldTab({
           const drag: DragState = {
             id: hp.id,
             moved: false,
+            active: false,
             startClientX: event.clientX,
             startClientY: event.clientY,
             startImgX: x,
@@ -721,6 +723,18 @@ export function FieldTab({
           };
           dragRef.current = drag;
           setDragging(drag);
+          // Long-press to arm point dragging. Without this, a pinch that starts
+          // near a point drags it before the second finger registers.
+          if (longPressTimerRef.current) {
+            window.clearTimeout(longPressTimerRef.current);
+          }
+          longPressTimerRef.current = window.setTimeout(() => {
+            const cur = dragRef.current;
+            if (!cur || cur.id !== hp.id || cur.moved) return;
+            cur.active = true;
+            dragRef.current = cur;
+            setDragging({ ...cur });
+          }, LONG_PRESS_MS);
           // Anchor long-press → open detail dialog. Plain tap re-arms the chain.
           if (hp.isTransitionAnchor && hp.transitionId) {
             anchorLongPressFiredRef.current = false;
@@ -761,7 +775,23 @@ export function FieldTab({
             event.clientX - drag.startClientX,
             event.clientY - drag.startClientY,
           );
-          if (!drag.moved && screenDist < 18) return;
+          // Must long-press first. Any pre-arm movement > 8px aborts the drag
+          // so pinch-zoom / pan doesn't slide points.
+          if (!drag.active) {
+            if (screenDist > 8) {
+              if (longPressTimerRef.current) {
+                window.clearTimeout(longPressTimerRef.current);
+                longPressTimerRef.current = null;
+              }
+              if (anchorLongPressTimerRef.current) {
+                window.clearTimeout(anchorLongPressTimerRef.current);
+                anchorLongPressTimerRef.current = null;
+              }
+              dragRef.current = null;
+              setDragging(null);
+            }
+            return;
+          }
           if (anchorLongPressTimerRef.current) {
             window.clearTimeout(anchorLongPressTimerRef.current);
             anchorLongPressTimerRef.current = null;
@@ -829,6 +859,10 @@ export function FieldTab({
           const finalY = drag.lastY ?? y;
           dragRef.current = null;
           setDragging(null);
+          if (longPressTimerRef.current) {
+            window.clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+          }
           if (anchorLongPressTimerRef.current) {
             window.clearTimeout(anchorLongPressTimerRef.current);
             anchorLongPressTimerRef.current = null;
