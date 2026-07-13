@@ -108,8 +108,9 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     d.moved = true;
     const w = ref.current?.offsetWidth ?? 0;
     const h = ref.current?.offsetHeight ?? 0;
+    const top = topChromeHeight();
     const x = Math.min(Math.max(4, d.originX + dx), window.innerWidth - w - 4);
-    const y = Math.min(Math.max(4, d.originY + dy), window.innerHeight - h - 4);
+    const y = Math.min(Math.max(top, d.originY + dy), window.innerHeight - h - 4);
     setPos({ x, y });
   };
   const endDrag = (e: React.PointerEvent, target?: "hi" | "lo") => {
