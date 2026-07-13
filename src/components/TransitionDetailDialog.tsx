@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, Minus, Maximize2 } from "lucide-react";
+import { Trash2, X, Minus, Maximize2, Plus } from "lucide-react";
 import { COMMON_SURFACES, formatDelta } from "@/lib/transitions";
 import type { Transition } from "@/lib/types";
 
@@ -56,14 +56,7 @@ export function TransitionDetailDialog({
   if (minimized) {
     const deltaLabel = valid ? formatDelta(delta) : formatDelta(transition.readingA - transition.readingB);
     return (
-      <div
-        className={
-          positionScreen
-            ? "fixed z-[60] pointer-events-none"
-            : "fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] pointer-events-none"
-        }
-        style={positionScreen ? { left: positionScreen.left, top: positionScreen.top } : undefined}
-      >
+      <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background shadow-lg pl-3 pr-1 h-9">
           <button
             onClick={() => setMinimized(false)}
@@ -84,19 +77,16 @@ export function TransitionDetailDialog({
     );
   }
 
+  function nudgeDelta(step: number) {
+    const a = parseFloat(readingA);
+    if (!isFinite(a)) return;
+    setReadingA((a + step).toFixed(2));
+  }
+
   return (
-    <div
-      className={
-        positionScreen
-          ? "fixed z-[60] pointer-events-none"
-          : "fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] w-[min(18rem,calc(100vw-1rem))] pointer-events-none"
-      }
-      style={
-        positionScreen
-          ? { left: positionScreen.left, top: positionScreen.top, width: 288 }
-          : undefined
-      }
-    >
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+      <div className="w-[min(20rem,calc(100vw-1rem))] pointer-events-none">
+
       <div
         className="bg-background rounded-xl shadow-2xl border p-4 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
@@ -183,6 +173,24 @@ export function TransitionDetailDialog({
           </span>
         </div>
 
+        <div className="mt-2 rounded-md border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">Manual adjust</span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(-0.05)} aria-label="Decrease correction 0.05">
+              −0.05
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.05)} aria-label="Increase correction 0.05">
+              +0.05
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
         {downstreamCount > 0 && (
           <p className="mt-2 text-[11px] text-muted-foreground">
             {downstreamCount} downstream point{downstreamCount === 1 ? "" : "s"} reference this
@@ -209,6 +217,8 @@ export function TransitionDetailDialog({
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
 }
+

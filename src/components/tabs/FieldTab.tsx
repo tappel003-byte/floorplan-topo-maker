@@ -544,7 +544,7 @@ export function FieldTab({
               aria-expanded={chainPopoverOpen}
               aria-label="Edit chain corrections"
             >
-              Active: {activeTransition.surfaceB} chain
+              Active flooring corrections
             </button>
             <button
               onClick={() => {
@@ -1168,7 +1168,7 @@ export function FieldTab({
           onClose={() => setViewingTransitionId(null)}
           onSave={handleSaveTransition}
           onDelete={() => handleDeleteTransition(viewingTransitionId)}
-          positionScreen={transitionScreen ?? undefined}
+          
         />
       )}
 
