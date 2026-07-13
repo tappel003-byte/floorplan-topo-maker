@@ -1,15 +1,14 @@
-## Fix: selected point should show a blue halo on the canvas
+## Topo legend: default 1.5× and persist position
 
-### What's happening
-When you tap a row in the Data panel (e.g., point 21 = 9.50), the canvas pans/zooms to that point (`focusRequest` fires), but nothing on the canvas visually marks it. There is halo logic in `FieldTab.tsx` `drawOverlay`, but it only lights up yellow rings for points tied to an active/viewed **transition chain**. There is no branch that reads `selectedIds` and draws a ring around a normally-selected point.
+**Behavior**
+- Default scale on first open: `1.5×` (instead of `1×`).
+- Legend position and scale persist across app restarts / project reopens via `localStorage`.
+- Once moved, the legend stays put until moved again — no auto-reset when toggling Topo, switching floors, or reloading.
 
-That's why it feels like functionality regressed — the pan works, but the "which dot am I looking at" cue is missing.
+**Technical**
+- In `TopoTab.tsx`, replace the in-memory `useState` for legend `scale` and `position` with a `localStorage`-backed hook (key: `topo.legend.v1` → `{ scale, x, y }`).
+- Initial state: read from storage; if missing, use `{ scale: 1.5, x: <current default>, y: <current default> }`.
+- Write on every change (drag end + slider change), debounced or on commit.
+- SSR-safe read (guard `typeof window`), no other files touched.
 
-### Fix (one file, ~6 lines)
-`src/components/tabs/FieldTab.tsx`, inside the existing `drawOverlay` loop (around line 945, right after the marker is drawn, before the transition-highlight block):
-
-- Add: `const isSelected = selectedIds.has(p.id);`
-- If `isSelected`, stroke a blue ring (`#2563eb`, lineWidth 2) at radius `markerR + 4` (or `+5` for anchors, matching the yellow ring math).
-- Keep the yellow transition ring exactly as-is — the two can coexist (blue for user selection, yellow for chain membership). If a point is both, both rings render (yellow is slightly larger, so they nest cleanly).
-
-No other files change. No data model change. No effect on transitions, notes, or the keypad flow.
+Scope: `src/components/tabs/TopoTab.tsx` only.
