@@ -1,18 +1,33 @@
-Replace the current home-screen icon with a new design inspired by the screenshot: flowing organic contour lines running across earth-tone bands (tan, green, brown), like a small crop of a real topographic survey map — no text, no border.
+## Shared label font size
 
-## What changes
+Add a single `labelFontSize` setting that controls the elevation label text on both the plan (Field/Data view) and the Topo view. A stepper appears in both the Data panel and the Topo controls — change it from either screen and the other follows.
 
-- Regenerate `public/icon-512.png` and `public/icon-192.png` using the new design brief below.
-- No code changes — filenames stay the same, so the manifest and `<link>` tags in `src/routes/__root.tsx` don't need edits.
+### What gets added
 
-## Design brief for the icon
+1. **New shared setting: `labelFontSize`**
+   - Stored in localStorage alongside the existing `pointSize` / `dotSize` settings.
+   - Range: `8px – 24px`, default `11px` (matches current label size).
+   - `–` / `+` steppers in 1px increments, matching the existing "Dot size" row.
 
-- Square, filled edge-to-edge (no rounded corners — iOS/Android add their own mask).
-- Soft earth-tone regions flowing diagonally: warm tan/sand on one side, muted sage green on the other, with a hint of deeper brown at one corner.
-- Thin dark contour lines (like the screenshot) curving organically across the whole square, ignoring the color boundaries.
-- No text, no letters, no floor-plan walls — just contours + earth bands, so it reads clearly at 48px on a home screen.
-- Palette pulled from the screenshot: cream `#f5ebd6`, tan `#d9b881`, sage `#b8c49a`, brown `#8a6a3e`, contour lines dark brown `#4a3a24`.
+2. **Data panel control**
+   - New row directly under Dot size: `TEXT   [ – ]  11px  [ + ]`
+   - Same visual treatment as the current px stepper.
 
-## After it's built
+3. **Topo panel control**
+   - Same `TEXT [ – ] 11px [ + ]` stepper in the Topo controls, near the existing point/legend size controls.
 
-You'll need to remove the old home-screen shortcut and re-add it after the next Publish → Update to see the new icon (iOS caches the old one).
+4. **Rendering**
+   - Plan labels (Field/Data canvas): elevation text uses `labelFontSize`.
+   - Topo labels: elevation text uses `labelFontSize`.
+   - Dot size and legend size are unchanged — this only touches label text.
+
+### Not in scope
+
+- No desktop-mode work — parked per your note.
+- No change to dot rendering, note pins, diamonds, legend sizing, or PIN badges.
+
+### Technical notes
+
+- Add `labelFontSize` to the same context/store that already holds `pointSize`, same persistence pattern.
+- Files likely touched: `DataPointsPanel.tsx`, `TopoTab.tsx`, `PlanCanvas.tsx` (label draw call), and the settings/context module.
+- Both steppers bind to the same state so edits from either screen propagate immediately.
