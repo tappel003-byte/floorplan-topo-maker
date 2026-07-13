@@ -216,10 +216,9 @@ export function TransitionDetailDialog({
             </Button>
           </div>
         </div>
-        </div>
       </div>
       </div>
     </div>
   );
 }
-}
+
