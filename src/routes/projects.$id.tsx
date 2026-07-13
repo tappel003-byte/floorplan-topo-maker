@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { deletePoint, getProject, listFloors, listPoints, savePoint } from "@/lib/db";
+import { deletePoint, getProject, listFloors, listPoints, savePoint, saveFloor } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { SetupTab } from "@/components/tabs/SetupTab";
@@ -12,8 +12,11 @@ import { AppTopBar } from "@/components/chrome/AppTopBar";
 import { ModeToggle } from "@/components/chrome/ModeToggle";
 import { DataPointsPanel } from "@/components/DataPointsPanel";
 import { StatsChip } from "@/components/chrome/StatsChip";
+import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrectionsChip";
+import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues } from "@/lib/transitions";
+
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
 
@@ -139,9 +142,27 @@ function ProjectWorkspace() {
   useUndoRedoEvents(onUndo, onRedo);
 
   const correctedPoints = useMemo(
-    () => withCorrectedValues(points, activeFloor?.transitions),
-    [points, activeFloor?.transitions],
+    () =>
+      withCorrectedValues(
+        points,
+        activeFloor?.transitions,
+        activeFloor?.transitionGroupAverages,
+      ),
+    [points, activeFloor?.transitions, activeFloor?.transitionGroupAverages],
   );
+
+  const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
+  const handleFloorChange = useCallback((f: Floor) => {
+    setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)));
+  }, []);
+  const handleFloorAveragesChange = useCallback(
+    async (f: Floor) => {
+      await saveFloor(f);
+      handleFloorChange(f);
+    },
+    [handleFloorChange],
+  );
+
 
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
@@ -168,9 +189,11 @@ function ProjectWorkspace() {
         onOpenSetup={() => setMode("setup")}
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
+        onOpenTransitions={() => setTransitionsSheetOpen(true)}
         undoEnabled={undoActive && history.canUndo}
         redoEnabled={undoActive && history.canRedo}
       />
+
       {floors.length > 1 && (
         <div
           data-floor-selector
@@ -304,6 +327,21 @@ function ProjectWorkspace() {
           }}
         />
       )}
+      {(mode === "field" || mode === "topo") && (
+        <AveragedCorrectionsChip
+          floor={activeFloor}
+          storageKey={`avg-chip:${activeFloor.id}:${mode}`}
+          onManage={() => setTransitionsSheetOpen(true)}
+        />
+      )}
+      <TransitionsSheet
+        open={transitionsSheetOpen}
+        floor={activeFloor}
+        points={points}
+        onClose={() => setTransitionsSheetOpen(false)}
+        onFloorChange={handleFloorAveragesChange}
+      />
     </div>
   );
 }
+

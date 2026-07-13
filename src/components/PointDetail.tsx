@@ -21,9 +21,10 @@ interface Props {
   onReassignTransition?: (pointId: string, transitionId: string | null) => Promise<void> | void;
 }
 
-function transitionOptionLabel(t: Transition): string {
-  return `${t.surfaceA} → ${t.surfaceB} (${formatDelta(transitionDelta(t))}")`;
+function transitionOptionLabel(t: Transition, averages?: Record<string, number>): string {
+  return `${t.surfaceA} → ${t.surfaceB} (${formatDelta(transitionDelta(t, averages))}")`;
 }
+
 
 export function PointDetail({
   point,
@@ -56,7 +57,7 @@ export function PointDetail({
 
   const raw = parseFloat(value);
   const validRaw = isFinite(raw);
-  const delta = activeTransition ? transitionDelta(activeTransition) : 0;
+  const delta = activeTransition ? transitionDelta(activeTransition, floor?.transitionGroupAverages) : 0;
   const corrected = validRaw ? raw + delta : NaN;
 
   const dirty =
@@ -145,7 +146,7 @@ export function PointDetail({
                     <option value="">None (plain reading)</option>
                     {transitions.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {transitionOptionLabel(t)}
+                        {transitionOptionLabel(t, floor?.transitionGroupAverages)}
                       </option>
                     ))}
                   </select>

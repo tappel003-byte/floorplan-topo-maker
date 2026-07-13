@@ -8,9 +8,11 @@ type Props = {
   onOpenSetup: () => void;
   onOpenReview: () => void;
   onOpenExport: () => void;
+  onOpenTransitions?: () => void;
   undoEnabled?: boolean;
   redoEnabled?: boolean;
 };
+
 
 /**
  * Shared top strip: back · title · Undo · Redo · ⋯
@@ -23,9 +25,11 @@ export function AppTopBar({
   onOpenSetup,
   onOpenReview,
   onOpenExport,
+  onOpenTransitions,
   undoEnabled = true,
   redoEnabled = true,
 }: Props) {
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -109,6 +113,15 @@ export function AppTopBar({
                   onOpenSetup();
                 }}
               />
+              {onOpenTransitions && (
+                <MenuItem
+                  label="Transitions"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenTransitions();
+                  }}
+                />
+              )}
               <MenuItem
                 label="Export"
                 onClick={() => {
@@ -116,6 +129,7 @@ export function AppTopBar({
                   onOpenExport();
                 }}
               />
+
             </div>
           )}
         </div>
