@@ -238,7 +238,10 @@ function ProjectWorkspace() {
             onSettingsChange={setSettings}
             pointSize={pointSize}
             selectedIds={topoHighlightIds}
+            excludedIds={topoExcludedIds}
+            onExcludedIdsChange={setTopoExcludedIds}
           />
+
         )}
         {mode === "export" && (
           <ExportTab project={project} floor={activeFloor} points={correctedPoints} settings={settings} />
