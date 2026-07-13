@@ -711,6 +711,7 @@ export function FieldTab({
           const drag: DragState = {
             id: hp.id,
             moved: false,
+            active: false,
             startClientX: event.clientX,
             startClientY: event.clientY,
             startImgX: x,
@@ -722,6 +723,18 @@ export function FieldTab({
           };
           dragRef.current = drag;
           setDragging(drag);
+          // Long-press to arm point dragging. Without this, a pinch that starts
+          // near a point drags it before the second finger registers.
+          if (longPressTimerRef.current) {
+            window.clearTimeout(longPressTimerRef.current);
+          }
+          longPressTimerRef.current = window.setTimeout(() => {
+            const cur = dragRef.current;
+            if (!cur || cur.id !== hp.id || cur.moved) return;
+            cur.active = true;
+            dragRef.current = cur;
+            setDragging({ ...cur });
+          }, LONG_PRESS_MS);
           // Anchor long-press → open detail dialog. Plain tap re-arms the chain.
           if (hp.isTransitionAnchor && hp.transitionId) {
             anchorLongPressFiredRef.current = false;
