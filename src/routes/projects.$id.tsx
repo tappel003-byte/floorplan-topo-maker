@@ -255,7 +255,11 @@ function ProjectWorkspace() {
             onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
           />
           <StatsChip
-            points={correctedPoints}
+            points={
+              mode === "topo" && topoExcludedIds.size
+                ? correctedPoints.filter((p) => !topoExcludedIds.has(p.id))
+                : correctedPoints
+            }
             onHighlight={(p) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
