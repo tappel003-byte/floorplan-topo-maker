@@ -108,10 +108,18 @@ export function TopoTab({
 
   // Diagnostic exclusion (Topo-only, session-only). Removed points do NOT
   // affect stored data — they're just skipped by the contour math on this tab.
-  const [excludedIds, setExcludedIds] = useState<Set<string>>(() => new Set());
+  // Controlled from the route when props are provided so StatsChip can share the set.
+  const [excludedIdsLocal, setExcludedIdsLocal] = useState<Set<string>>(() => new Set());
+  const excludedIds = excludedIdsProp ?? excludedIdsLocal;
+  const setExcludedIds = (ids: Set<string>) => {
+    if (onExcludedIdsChange) onExcludedIdsChange(ids);
+    else setExcludedIdsLocal(ids);
+  };
   const [diagOpen, setDiagOpen] = useState(false);
   useEffect(() => {
-    setExcludedIds(new Set());
+    if (onExcludedIdsChange) onExcludedIdsChange(new Set());
+    else setExcludedIdsLocal(new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [floor.id]);
 
   const visiblePoints = useMemo(
