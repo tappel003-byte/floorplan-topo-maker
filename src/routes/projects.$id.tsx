@@ -142,9 +142,27 @@ function ProjectWorkspace() {
   useUndoRedoEvents(onUndo, onRedo);
 
   const correctedPoints = useMemo(
-    () => withCorrectedValues(points, activeFloor?.transitions),
-    [points, activeFloor?.transitions],
+    () =>
+      withCorrectedValues(
+        points,
+        activeFloor?.transitions,
+        activeFloor?.transitionGroupAverages,
+      ),
+    [points, activeFloor?.transitions, activeFloor?.transitionGroupAverages],
   );
+
+  const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
+  const handleFloorChange = useCallback((f: Floor) => {
+    setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)));
+  }, []);
+  const handleFloorAveragesChange = useCallback(
+    async (f: Floor) => {
+      await saveFloor(f);
+      handleFloorChange(f);
+    },
+    [handleFloorChange],
+  );
+
 
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
