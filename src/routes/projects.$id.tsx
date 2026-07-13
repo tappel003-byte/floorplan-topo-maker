@@ -244,10 +244,14 @@ function ProjectWorkspace() {
             excludedIds={topoExcludedIds}
             onExcludedIdsChange={setTopoExcludedIds}
           />
-
         )}
         {mode === "export" && (
-          <ExportTab project={project} floor={activeFloor} points={correctedPoints} settings={settings} />
+          <ExportTab
+            project={project}
+            floor={activeFloor}
+            points={correctedPoints}
+            settings={settings}
+          />
         )}
       </main>
 

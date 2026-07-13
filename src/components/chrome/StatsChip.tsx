@@ -12,7 +12,8 @@ interface Props {
 function topChromeHeight() {
   const header = document.querySelector("header");
   const selector = document.querySelector("[data-floor-selector]");
-  const h = (header?.getBoundingClientRect().height ?? 0) + (selector?.getBoundingClientRect().height ?? 0);
+  const h =
+    (header?.getBoundingClientRect().height ?? 0) + (selector?.getBoundingClientRect().height ?? 0);
   return h + 4; // 4px gap below chrome
 }
 
@@ -41,7 +42,9 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) return JSON.parse(raw);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return null;
   });
 
@@ -118,14 +121,24 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     if (!d || d.pointerId !== e.pointerId) return;
     drag.current = null;
     if (d.moved) {
-      try { localStorage.setItem(storageKey, JSON.stringify(pos)); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(pos));
+      } catch {
+        /* ignore */
+      }
       return;
     }
     if (target && stats) onHighlight?.(target === "hi" ? stats.hi : stats.lo);
   };
 
   if (!stats || !pos) {
-    return <div ref={ref} className="fixed pointer-events-none opacity-0" style={{ left: -9999, top: -9999 }} />;
+    return (
+      <div
+        ref={ref}
+        className="fixed pointer-events-none opacity-0"
+        style={{ left: -9999, top: -9999 }}
+      />
+    );
   }
 
   return (
