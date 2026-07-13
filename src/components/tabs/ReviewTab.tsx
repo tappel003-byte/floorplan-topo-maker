@@ -7,6 +7,7 @@ import { PointDetail } from "@/components/PointDetail";
 interface Props {
   floor: Floor;
   points: SurveyPoint[];
+  correctedById?: Map<string, number>;
   onPointsChange: (points: SurveyPoint[]) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
@@ -14,9 +15,11 @@ interface Props {
   onCommit?: (points: SurveyPoint[]) => void;
 }
 
+
 export function ReviewTab({
   floor,
   points,
+  correctedById,
   onPointsChange,
   selectedIds,
   setSelectedIds,
@@ -26,33 +29,39 @@ export function ReviewTab({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<"index" | "high" | "low">("index");
 
+  const displayValue = (p: SurveyPoint) => correctedById?.get(p.id) ?? p.value;
+
   const stats = useMemo(() => {
     if (points.length === 0) return null;
-    const vals = points.map((p) => p.value);
+    const vals = points.map(displayValue);
     const min = Math.min(...vals);
     const max = Math.max(...vals);
     const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
     const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length;
     const std = Math.sqrt(variance);
     return { min, max, mean, std, range: max - min };
-  }, [points]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, correctedById]);
 
   const outliers = useMemo(() => {
     if (!stats || points.length < 4) return new Set<string>();
     const set = new Set<string>();
     for (const p of points) {
-      if (Math.abs(p.value - stats.mean) > 2 * stats.std) set.add(p.id);
+      if (Math.abs(displayValue(p) - stats.mean) > 2 * stats.std) set.add(p.id);
     }
     return set;
-  }, [points, stats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, stats, correctedById]);
 
   const sortedPoints = useMemo(() => {
     const arr = [...points];
-    if (sortMode === "high") arr.sort((a, b) => b.value - a.value);
-    else if (sortMode === "low") arr.sort((a, b) => a.value - b.value);
+    if (sortMode === "high") arr.sort((a, b) => displayValue(b) - displayValue(a));
+    else if (sortMode === "low") arr.sort((a, b) => displayValue(a) - displayValue(b));
     else arr.sort((a, b) => a.index - b.index);
     return arr;
-  }, [points, sortMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, sortMode, correctedById]);
+
 
   const detail = detailId ? (points.find((p) => p.id === detailId) ?? null) : null;
 
@@ -149,7 +158,7 @@ export function ReviewTab({
                         {p.notes && (
                           <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />
                         )}
-                        <span>{p.value.toFixed(2)}"</span>
+                        <span>{displayValue(p).toFixed(2)}"</span>
                       </div>
                       {p.notes && (
                         <p className="text-[11px] font-sans font-normal text-muted-foreground mt-0.5 whitespace-pre-wrap break-words text-left">

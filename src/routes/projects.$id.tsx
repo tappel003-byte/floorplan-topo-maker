@@ -247,6 +247,7 @@ function ProjectWorkspace() {
           <ReviewTab
             floor={activeFloor}
             points={points}
+            correctedById={new Map(correctedPoints.map((p) => [p.id, p.value]))}
             onPointsChange={setPoints}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
@@ -254,6 +255,7 @@ function ProjectWorkspace() {
             onCommit={(pts) => history.commit({ points: pts })}
           />
         )}
+
         {mode === "topo" && (
           <TopoTab
             floor={activeFloor}
