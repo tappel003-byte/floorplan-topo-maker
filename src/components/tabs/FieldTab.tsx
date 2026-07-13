@@ -70,6 +70,7 @@ export function FieldTab({
   setSelectedIds,
   pointSize,
   pointColor,
+  labelFontSize,
   focusRequest,
   onCommit,
 }: Props) {
