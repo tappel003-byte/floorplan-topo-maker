@@ -119,13 +119,13 @@ export function TopoTab({
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(points, floor.boundary, TOPO_GRID_TARGET_COLS);
+    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS);
     if (!grid) return null;
     const cs = computeContours(grid, contourOptions(grid, resolved));
     return { grid, contours: cs };
   }, [
     canRender,
-    points,
+    visiblePoints,
     floor.boundary,
     resolved.firstContour,
     resolved.contourStep,
@@ -133,6 +133,21 @@ export function TopoTab({
     resolved.minClamp,
     resolved.maxClamp,
   ]);
+
+  const update = (patch: Partial<RenderSettings>) =>
+    onSettingsChange(resolveSettings({ ...resolved, ...patch }));
+
+  // Compute current High / Low points (matches renderTopoTop logic).
+  const hiLo = useMemo(() => {
+    if (!visiblePoints.length) return null;
+    let hi = visiblePoints[0],
+      lo = visiblePoints[0];
+    for (const p of visiblePoints) {
+      if (p.value > hi.value) hi = p;
+      if (p.value < lo.value) lo = p;
+    }
+    return { hi, lo };
+  }, [visiblePoints]);
 
   const update = (patch: Partial<RenderSettings>) =>
     onSettingsChange(resolveSettings({ ...resolved, ...patch }));
