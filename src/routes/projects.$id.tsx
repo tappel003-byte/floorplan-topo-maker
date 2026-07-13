@@ -172,7 +172,10 @@ function ProjectWorkspace() {
         redoEnabled={undoActive && history.canRedo}
       />
       {floors.length > 1 && (
-        <div className="flex items-center gap-2 px-2 h-7 text-xs border-b bg-background/70">
+        <div
+          data-floor-selector
+          className="flex items-center gap-2 px-2 h-7 text-xs border-b bg-background/70"
+        >
           <span className="text-muted-foreground">Floor</span>
           <select
             value={activeFloor.id}
