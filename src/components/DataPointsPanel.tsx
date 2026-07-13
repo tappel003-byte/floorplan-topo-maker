@@ -13,6 +13,8 @@ import { deletePoint, reindexFloorPoints, savePoint } from "@/lib/db";
 interface Props {
   projectId: string;
   points: SurveyPoint[];
+  /** id → corrected (transition-adjusted) value. When absent for an id, falls back to point.value. */
+  correctedById?: Map<string, number>;
   floor?: Floor;
   selectedIds: Set<string>;
   onSelect: (id: string, additive?: boolean) => void;
@@ -23,6 +25,7 @@ interface Props {
   onPointColorChange: (c: string) => void;
   onCommit?: (points: SurveyPoint[]) => void;
 }
+
 
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
 
@@ -63,6 +66,7 @@ function loadState(projectId: string): PanelState {
 export function DataPointsPanel({
   projectId,
   points,
+  correctedById,
   floor,
   selectedIds,
   onSelect,
@@ -86,13 +90,16 @@ export function DataPointsPanel({
   const portraitPositionRef = useRef<{ x: number; y: number }>({ x: state.x, y: state.y });
   const wasLandscapeShortRef = useRef(isLandscapeShort);
 
+  const displayValue = (p: SurveyPoint) => correctedById?.get(p.id) ?? p.value;
+
   const sortMode = state.sortMode ?? "index";
   const sortedPoints = useMemo(() => {
     const list = [...points];
     if (sortMode === "index") return list.sort((a, b) => a.index - b.index);
-    if (sortMode === "desc") return list.sort((a, b) => b.value - a.value);
-    return list.sort((a, b) => a.value - b.value);
-  }, [points, sortMode]);
+    if (sortMode === "desc") return list.sort((a, b) => displayValue(b) - displayValue(a));
+    return list.sort((a, b) => displayValue(a) - displayValue(b));
+  }, [points, sortMode, correctedById]);
+
 
   const dragRef = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null);
   const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -333,7 +340,7 @@ export function DataPointsPanel({
                       </span>
                       <span className="flex-1 min-w-0">
                         <div className="font-mono tabular-nums">
-                          {p.value.toFixed(2)}
+                          {displayValue(p).toFixed(2)}
                           {p.isBasePoint && (
                             <span className="ml-1.5 text-[9px] uppercase text-green-700">
                               {p.label ?? "BP"}

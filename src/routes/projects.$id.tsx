@@ -305,6 +305,7 @@ function ProjectWorkspace() {
         <DataPointsPanel
           projectId={project.id}
           points={points}
+          correctedById={new Map(correctedPoints.map((p) => [p.id, p.value]))}
           floor={activeFloor}
           selectedIds={selectedIds}
           pointSize={pointSize}
@@ -327,6 +328,7 @@ function ProjectWorkspace() {
           }}
         />
       )}
+
       {(mode === "field" || mode === "topo") && (
         <AveragedCorrectionsChip
           floor={activeFloor}
