@@ -179,14 +179,8 @@ export function TransitionDetailDialog({
             <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
               <Minus className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(-0.05)} aria-label="Decrease correction 0.05">
-              −0.05
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.05)} aria-label="Increase correction 0.05">
-              +0.05
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
-              <Plus className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
+              +0.1
             </Button>
           </div>
         </div>
