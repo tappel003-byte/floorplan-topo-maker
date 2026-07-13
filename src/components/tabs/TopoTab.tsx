@@ -28,6 +28,8 @@ interface Props {
   onSettingsChange: (s: RenderSettings) => void;
   selectedIds?: Set<string>;
   pointSize?: number;
+  excludedIds?: Set<string>;
+  onExcludedIdsChange?: (ids: Set<string>) => void;
 }
 
 const DEFAULT_LABEL_DX = 8;
