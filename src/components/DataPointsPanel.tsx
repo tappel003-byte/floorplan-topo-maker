@@ -301,6 +301,9 @@ export function DataPointsPanel({
                   disabled={labelFontSize >= 28}
                   aria-label="Larger label"
                 >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
               {colorOpen && (
                 <div className="absolute z-50 top-full left-0 mt-1 rounded-lg border bg-popover shadow-lg p-2 flex gap-1.5">
                   {COLOR_PRESETS.map((c) => (
