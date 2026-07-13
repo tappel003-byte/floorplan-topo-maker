@@ -1383,11 +1383,11 @@ function paletteColor(input: number, palette: RenderSettings["palette"], reverse
       [90, 95, 105],
     ],
     mountain: [
-      [255, 255, 255],
-      [230, 220, 200],
-      [190, 160, 120],
       [140, 100, 70],
-      [60, 110, 60],
+      [80, 130, 60],
+      [120, 170, 90],
+      [230, 220, 200],
+      [255, 255, 255],
     ],
   };
   const s = stops[palette];
