@@ -637,23 +637,14 @@ export function TopoTab({
         {/* Palette popover — upper right */}
         {openCorner === "palette" && (
           <CornerPanel
-            pos="top-12 right-2 w-56 landscape-short:top-2"
+            pos="top-12 right-2 w-60 landscape-short:top-2"
             onClose={() => setOpenCorner(null)}
             title="Palette"
           >
-            <div>
-              <Label className="text-xs">Palette</Label>
-              <select
-                value={resolved.palette}
-                onChange={(e) => update({ palette: e.target.value as RenderSettings["palette"] })}
-                className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
-              >
-                <option value="brown">Brown elevation</option>
-                <option value="rainbow">Rainbow</option>
-                <option value="blue-red">Blue to red</option>
-                <option value="gray">Grayscale</option>
-              </select>
-            </div>
+            <PalettePicker
+              value={resolved.palette}
+              onChange={(p) => update({ palette: p })}
+            />
             <div className="flex items-center justify-between">
               <Label className="text-xs">Reverse</Label>
               <Switch
@@ -1217,6 +1208,98 @@ function contourOptions(grid: Grid, settings: RenderSettings) {
   };
 }
 
+const PALETTE_LABELS: Record<RenderSettings["palette"], string> = {
+  brown: "Earth Tone",
+  rainbow: "Rainbow",
+  "blue-red": "Blue → Red",
+  gray: "Grayscale",
+  ocean: "Ocean",
+  sunset: "Sunset",
+  forest: "Forest",
+  viridis: "Viridis",
+  topographic: "Topographic",
+  "gray-amber": "Gray + Amber",
+  "nm-sunset": "New Mexico Sunset",
+};
+const PRIMARY_PALETTES: RenderSettings["palette"][] = ["brown", "rainbow", "blue-red", "gray"];
+const EXTRA_PALETTES: RenderSettings["palette"][] = [
+  "ocean",
+  "sunset",
+  "forest",
+  "viridis",
+  "topographic",
+  "gray-amber",
+  "nm-sunset",
+];
+
+function PaletteSwatch({ palette }: { palette: RenderSettings["palette"] }) {
+  const bg = `linear-gradient(to right, ${[0, 0.25, 0.5, 0.75, 1]
+    .map((t) => paletteColor(t, palette, false))
+    .join(", ")})`;
+  return <div className="h-4 w-full rounded-sm border" style={{ background: bg }} />;
+}
+
+function PaletteRow({
+  palette,
+  active,
+  onClick,
+}: {
+  palette: RenderSettings["palette"];
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left rounded-md border px-2 py-1.5 text-xs transition ${
+        active ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border hover:bg-accent"
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-medium">{PALETTE_LABELS[palette]}</span>
+        {active && <span className="text-[10px] text-primary">Selected</span>}
+      </div>
+      <PaletteSwatch palette={palette} />
+    </button>
+  );
+}
+
+function PalettePicker({
+  value,
+  onChange,
+}: {
+  value: RenderSettings["palette"];
+  onChange: (p: RenderSettings["palette"]) => void;
+}) {
+  const activeInExtras = EXTRA_PALETTES.includes(value);
+  const [expanded, setExpanded] = useState(activeInExtras);
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs">Palette</Label>
+      <div className="space-y-1.5">
+        {PRIMARY_PALETTES.map((p) => (
+          <PaletteRow key={p} palette={p} active={value === p} onClick={() => onChange(p)} />
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full text-left text-xs text-muted-foreground hover:text-foreground py-1"
+      >
+        {expanded ? "▾" : "▸"} More palettes
+      </button>
+      {expanded && (
+        <div className="space-y-1.5">
+          {EXTRA_PALETTES.map((p) => (
+            <PaletteRow key={p} palette={p} active={value === p} onClick={() => onChange(p)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function paletteColor(input: number, palette: RenderSettings["palette"], reverse: boolean) {
   const t = reverse ? 1 - input : input;
   const stops: Record<RenderSettings["palette"], Array<[number, number, number]>> = {
@@ -1247,6 +1330,55 @@ function paletteColor(input: number, palette: RenderSettings["palette"], reverse
       [145, 145, 145],
       [198, 198, 198],
       [238, 238, 238],
+    ],
+    ocean: [
+      [10, 30, 70],
+      [20, 80, 130],
+      [40, 150, 175],
+      [130, 210, 210],
+      [235, 230, 200],
+    ],
+    sunset: [
+      [50, 20, 80],
+      [130, 40, 120],
+      [220, 70, 110],
+      [245, 140, 60],
+      [250, 215, 100],
+    ],
+    forest: [
+      [20, 50, 30],
+      [45, 90, 55],
+      [110, 140, 70],
+      [180, 175, 110],
+      [240, 232, 200],
+    ],
+    viridis: [
+      [68, 1, 84],
+      [59, 82, 139],
+      [33, 145, 140],
+      [94, 201, 98],
+      [253, 231, 37],
+    ],
+    topographic: [
+      [90, 130, 80],
+      [175, 190, 120],
+      [220, 190, 140],
+      [165, 120, 85],
+      [245, 245, 245],
+    ],
+    "gray-amber": [
+      [55, 55, 55],
+      [110, 110, 110],
+      [175, 175, 175],
+      [220, 200, 150],
+      [240, 175, 60],
+    ],
+    "nm-sunset": [
+      [90, 95, 105],
+      [150, 145, 150],
+      [200, 165, 170],
+      [235, 145, 145],
+      [250, 170, 175],
     ],
   };
   const s = stops[palette];
