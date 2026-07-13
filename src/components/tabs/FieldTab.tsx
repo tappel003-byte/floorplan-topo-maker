@@ -944,6 +944,17 @@ export function FieldTab({
               ctx.fill();
             }
 
+            // Blue halo for user-selected points (from Data panel row tap, etc.)
+            const isSelected = selectedIds.has(p.id);
+            if (isSelected) {
+              const r = (isAnchor ? Math.max(markerR + 3, 6) : markerR) + 4;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+              ctx.strokeStyle = "#2563eb";
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+
             // Highlight ring: any point (anchor or downstream) tied to a
             // transition in the highlighted chain.
             if (isHighlighted && (isDownstream || isAnchor)) {
@@ -954,6 +965,7 @@ export function FieldTab({
               ctx.lineWidth = 2.5;
               ctx.stroke();
             }
+
 
             // Label — anchors show only the raw reading, downstream points show `raw+delta`.
             const label = isDownstream
