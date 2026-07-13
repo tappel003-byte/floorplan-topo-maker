@@ -87,6 +87,46 @@ export function TopoTab({
   const [legendSelected, setLegendSelected] = useState(false);
   const resolved = resolveSettings(settings);
 
+  // Persist legend scale/position across sessions (localStorage). Defaults: 1.5×.
+  const LEGEND_STORAGE_KEY = "topo.legend.v1";
+  const legendHydratedRef = useRef(false);
+  useEffect(() => {
+    if (legendHydratedRef.current) return;
+    legendHydratedRef.current = true;
+    if (typeof window === "undefined") return;
+    let stored: { scale?: number; x?: number; y?: number } | null = null;
+    try {
+      const raw = window.localStorage.getItem(LEGEND_STORAGE_KEY);
+      if (raw) stored = JSON.parse(raw);
+    } catch {
+      stored = null;
+    }
+    const patch: Partial<RenderSettings> = {};
+    if (stored && typeof stored.scale === "number") patch.legendScale = stored.scale;
+    else patch.legendScale = 1.5;
+    if (stored && typeof stored.x === "number") patch.legendX = stored.x;
+    if (stored && typeof stored.y === "number") patch.legendY = stored.y;
+    onSettingsChange(resolveSettings({ ...resolved, ...patch }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!legendHydratedRef.current) return;
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        LEGEND_STORAGE_KEY,
+        JSON.stringify({
+          scale: resolved.legendScale ?? 1.5,
+          x: resolved.legendX,
+          y: resolved.legendY,
+        }),
+      );
+    } catch {
+      /* ignore quota */
+    }
+  }, [resolved.legendScale, resolved.legendX, resolved.legendY]);
+
+
   // Live drag (long-press-and-drag). One kind at a time: a point label or a H/L pin.
   type DragKind = "label" | "pin-high" | "pin-low";
   const [drag, setDrag] = useState<{
