@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, Minus, Maximize2 } from "lucide-react";
+import { Trash2, X, Minus, Maximize2, Plus } from "lucide-react";
 import { COMMON_SURFACES, formatDelta } from "@/lib/transitions";
 import type { Transition } from "@/lib/types";
 
@@ -56,14 +56,7 @@ export function TransitionDetailDialog({
   if (minimized) {
     const deltaLabel = valid ? formatDelta(delta) : formatDelta(transition.readingA - transition.readingB);
     return (
-      <div
-        className={
-          positionScreen
-            ? "fixed z-[60] pointer-events-none"
-            : "fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] pointer-events-none"
-        }
-        style={positionScreen ? { left: positionScreen.left, top: positionScreen.top } : undefined}
-      >
+      <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1 rounded-full border bg-background shadow-lg pl-3 pr-1 h-9">
           <button
             onClick={() => setMinimized(false)}
