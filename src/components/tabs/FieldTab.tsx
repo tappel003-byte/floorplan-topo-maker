@@ -24,6 +24,7 @@ interface Props {
   setSelectedIds: (ids: Set<string>) => void;
   pointSize: number;
   pointColor: string;
+  labelFontSize: number;
   focusRequest?: { x: number; y: number; nonce: number };
   onCommit?: (snap: FloorSnapshot) => void;
 }
