@@ -327,6 +327,21 @@ function ProjectWorkspace() {
           }}
         />
       )}
+      {(mode === "field" || mode === "topo") && (
+        <AveragedCorrectionsChip
+          floor={activeFloor}
+          storageKey={`avg-chip:${activeFloor.id}:${mode}`}
+          onManage={() => setTransitionsSheetOpen(true)}
+        />
+      )}
+      <TransitionsSheet
+        open={transitionsSheetOpen}
+        floor={activeFloor}
+        points={points}
+        onClose={() => setTransitionsSheetOpen(false)}
+        onFloorChange={handleFloorAveragesChange}
+      />
     </div>
   );
 }
+
