@@ -21,9 +21,10 @@ interface Props {
   onReassignTransition?: (pointId: string, transitionId: string | null) => Promise<void> | void;
 }
 
-function transitionOptionLabel(t: Transition): string {
-  return `${t.surfaceA} → ${t.surfaceB} (${formatDelta(transitionDelta(t))}")`;
+function transitionOptionLabel(t: Transition, averages?: Record<string, number>): string {
+  return `${t.surfaceA} → ${t.surfaceB} (${formatDelta(transitionDelta(t, averages))}")`;
 }
+
 
 export function PointDetail({
   point,
