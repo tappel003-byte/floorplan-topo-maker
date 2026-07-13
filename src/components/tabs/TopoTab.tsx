@@ -28,6 +28,8 @@ interface Props {
   onSettingsChange: (s: RenderSettings) => void;
   selectedIds?: Set<string>;
   pointSize?: number;
+  excludedIds?: Set<string>;
+  onExcludedIdsChange?: (ids: Set<string>) => void;
 }
 
 const DEFAULT_LABEL_DX = 8;
@@ -74,6 +76,8 @@ export function TopoTab({
   onSettingsChange,
   selectedIds,
   pointSize = 6,
+  excludedIds: excludedIdsProp,
+  onExcludedIdsChange,
 }: Props) {
   const selectedId =
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
@@ -104,10 +108,18 @@ export function TopoTab({
 
   // Diagnostic exclusion (Topo-only, session-only). Removed points do NOT
   // affect stored data — they're just skipped by the contour math on this tab.
-  const [excludedIds, setExcludedIds] = useState<Set<string>>(() => new Set());
+  // Controlled from the route when props are provided so StatsChip can share the set.
+  const [excludedIdsLocal, setExcludedIdsLocal] = useState<Set<string>>(() => new Set());
+  const excludedIds = excludedIdsProp ?? excludedIdsLocal;
+  const setExcludedIds = (ids: Set<string>) => {
+    if (onExcludedIdsChange) onExcludedIdsChange(ids);
+    else setExcludedIdsLocal(ids);
+  };
   const [diagOpen, setDiagOpen] = useState(false);
   useEffect(() => {
-    setExcludedIds(new Set());
+    if (onExcludedIdsChange) onExcludedIdsChange(new Set());
+    else setExcludedIdsLocal(new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [floor.id]);
 
   const visiblePoints = useMemo(
@@ -325,14 +337,12 @@ export function TopoTab({
         <TopoDiagnosticPanel
           points={points}
           excludedIds={excludedIds}
-          onToggleExclude={(id) =>
-            setExcludedIds((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            })
-          }
+          onToggleExclude={(id) => {
+            const next = new Set(excludedIds);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            setExcludedIds(next);
+          }}
           onRestoreAll={() => setExcludedIds(new Set())}
           onClose={() => setDiagOpen(false)}
         />
