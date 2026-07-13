@@ -585,7 +585,7 @@ export function FieldTab({
                         {t.surfaceA} → {t.surfaceB}
                       </span>
                       <span className="font-mono tabular-nums font-semibold">
-                        {formatDelta(transitionDelta(t))}"
+                        {formatDelta(transitionDelta(t, floor.transitionGroupAverages))}"
                       </span>
                     </button>
                   </li>
@@ -969,7 +969,7 @@ export function FieldTab({
 
             // Label — anchors show only the raw reading, downstream points show `raw+delta`.
             const label = isDownstream
-              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!))}`
+              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!, floor.transitionGroupAverages))}`
               : p.value.toFixed(2);
             const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
             const lx = p.x + markerHalo + 4;
@@ -1107,7 +1107,7 @@ export function FieldTab({
             ...group.map((t) => ({
               id: t.id,
               surface: t.surfaceB,
-              delta: transitionDelta(t),
+              delta: transitionDelta(t, floor.transitionGroupAverages),
             })),
           ];
           return opts.length >= 2 ? opts : undefined;
