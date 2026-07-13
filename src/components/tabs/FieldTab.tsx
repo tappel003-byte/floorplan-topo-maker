@@ -255,6 +255,9 @@ export function FieldTab({
     // overrideTransitionId: string = tag with this; null = force no tag (root anchor surface); undefined = use activeTransitionId
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
+      if (overrideTransitionId !== undefined && !editingPoint.isTransitionAnchor) {
+        updated.transitionId = overrideTransitionId ?? undefined;
+      }
       await savePoint(updated);
       const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
       onPointsChange(nextPts);
@@ -288,6 +291,7 @@ export function FieldTab({
     setPending(null);
     setBpPromptOpen(false);
   }
+
 
   /** Called from AddTransitionSheet. Creates the transition record and plots the diamond anchor at the pending location. */
   async function handleAddTransition(data: {
@@ -1025,10 +1029,15 @@ export function FieldTab({
         onSubmit={(v) => submitValue(v)}
         onSubmitWithOption={(v, opt) => submitValue(v, opt.id)}
         surfaceOptions={(() => {
-          // Only offer surface choice when placing a NEW point in an active chain.
-          if (editingPoint || isBasePointCapture || !activeTransitionId) return undefined;
+          // Show surface-choice row when:
+          //  (a) placing a NEW point while a chain is active, OR
+          //  (b) editing an existing non-anchor point that's tagged to a chain.
+          const chainSeedId = editingPoint
+            ? (!editingPoint.isTransitionAnchor ? (editingPoint.transitionId ?? null) : null)
+            : (!isBasePointCapture ? activeTransitionId : null);
+          if (!chainSeedId) return undefined;
           const byId = new Map(transitions.map((t) => [t.id, t]));
-          let root = byId.get(activeTransitionId);
+          let root = byId.get(chainSeedId);
           while (root?.parentId) {
             const p = byId.get(root.parentId);
             if (!p) break;
@@ -1057,6 +1066,12 @@ export function FieldTab({
           ];
           return opts.length >= 2 ? opts : undefined;
         })()}
+        selectedSurfaceId={
+          editingPoint && !editingPoint.isTransitionAnchor
+            ? (editingPoint.transitionId ?? null)
+            : undefined
+        }
+
         onDelete={
           editingPoint
             ? async () => {
