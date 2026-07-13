@@ -113,7 +113,18 @@ export interface RenderSettings {
   minClamp: number | null;
   maxClamp: number | null;
   decimalPlaces: number;
-  palette: "brown" | "rainbow" | "blue-red" | "gray";
+  palette:
+    | "brown"
+    | "rainbow"
+    | "blue-red"
+    | "gray"
+    | "ocean"
+    | "sunset"
+    | "forest"
+    | "viridis"
+    | "topographic"
+    | "gray-amber"
+    | "nm-sunset";
   reversePalette: boolean;
   lineThickness: number;
   showPlan: boolean;
