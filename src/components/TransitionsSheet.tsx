@@ -40,7 +40,7 @@ export function TransitionsSheet({ open, floor, points, onClose, onFloorChange }
   const appliedCount = Object.keys(averages).length;
 
   return (
-    <div className="fixed inset-0 z-[70] bg-background/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-[70] bg-background/70 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4">
       <div className="w-full max-w-md max-h-[90dvh] flex flex-col rounded-lg border bg-popover shadow-xl">
         <div className="flex items-center justify-between px-3 h-10 border-b">
           <div className="flex flex-col leading-tight">
