@@ -30,6 +30,8 @@ interface Props {
   surfaceOptions?: SurfaceOption[];
   /** Required when surfaceOptions is provided. Submits value + chosen surface. */
   onSubmitWithOption?: (value: number, opt: SurfaceOption) => void;
+  /** Highlights the currently-selected option (e.g. the transition id this point is already tagged with). */
+  selectedSurfaceId?: string | null;
   onUndo?: () => void;
   canUndo?: boolean;
   /** Ends the active transition chain without submitting a point. Shown when activeTransition is set. */
@@ -38,6 +40,7 @@ interface Props {
   baselineSurface?: string | null;
 
 }
+
 
 /** Large arm's-length numeric keypad (bottom sheet). */
 export function NumericKeypad({
