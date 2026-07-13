@@ -641,10 +641,6 @@ export function TopoTab({
             onClose={() => setOpenCorner(null)}
             title="Palette"
           >
-            <PalettePicker
-              value={resolved.palette}
-              onChange={(p) => update({ palette: p })}
-            />
             <div className="flex items-center justify-between">
               <Label className="text-xs">Reverse</Label>
               <Switch
@@ -652,6 +648,10 @@ export function TopoTab({
                 onCheckedChange={(v) => update({ reversePalette: v })}
               />
             </div>
+            <PalettePicker
+              value={resolved.palette}
+              onChange={(p) => update({ palette: p })}
+            />
           </CornerPanel>
         )}
 
@@ -1374,11 +1374,11 @@ function paletteColor(input: number, palette: RenderSettings["palette"], reverse
       [240, 175, 60],
     ],
     "nm-sunset": [
-      [90, 95, 105],
-      [150, 145, 150],
-      [200, 165, 170],
-      [235, 145, 145],
       [250, 170, 175],
+      [235, 145, 145],
+      [200, 165, 170],
+      [150, 145, 150],
+      [90, 95, 105],
     ],
   };
   const s = stops[palette];
