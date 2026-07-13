@@ -1151,7 +1151,7 @@ export function FieldTab({
           if (!tid) return undefined;
           const t = transitions.find((x) => x.id === tid);
           if (!t) return undefined;
-          return { label: `${t.surfaceB} correction`, delta: transitionDelta(t) };
+          return { label: `${t.surfaceB} correction`, delta: transitionDelta(t, floor.transitionGroupAverages) };
         })()}
         onRemoveTransition={
           editingPoint
