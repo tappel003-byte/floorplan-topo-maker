@@ -13,6 +13,8 @@ import { deletePoint, reindexFloorPoints, savePoint } from "@/lib/db";
 interface Props {
   projectId: string;
   points: SurveyPoint[];
+  /** id → corrected (transition-adjusted) value. When absent for an id, falls back to point.value. */
+  correctedById?: Map<string, number>;
   floor?: Floor;
   selectedIds: Set<string>;
   onSelect: (id: string, additive?: boolean) => void;
@@ -23,6 +25,7 @@ interface Props {
   onPointColorChange: (c: string) => void;
   onCommit?: (points: SurveyPoint[]) => void;
 }
+
 
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
 
