@@ -976,13 +976,13 @@ export function FieldTab({
             const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
             const lx = p.x + markerHalo + 4;
             const ly = p.y + markerHalo + 3;
-            ctx.font = "bold 12px sans-serif";
+            ctx.font = `bold ${labelFontSize}px sans-serif`;
             const tm = ctx.measureText(label);
             const padX = 3;
             const padY = 2;
             ctx.fillStyle = "#ffffff";
             ctx.beginPath();
-            ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, 12 + padY * 2, 4);
+            ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, labelFontSize + padY * 2, 4);
             ctx.fill();
 
             ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
@@ -992,7 +992,7 @@ export function FieldTab({
             ctx.fillStyle = "#111827";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(label, lx + tm.width / 2, ly - padY + (12 + padY * 2) / 2);
+            ctx.fillText(label, lx + tm.width / 2, ly - padY + (labelFontSize + padY * 2) / 2);
           }
 
 
