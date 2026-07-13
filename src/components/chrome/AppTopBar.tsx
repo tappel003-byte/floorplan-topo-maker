@@ -113,6 +113,15 @@ export function AppTopBar({
                   onOpenSetup();
                 }}
               />
+              {onOpenTransitions && (
+                <MenuItem
+                  label="Transitions"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenTransitions();
+                  }}
+                />
+              )}
               <MenuItem
                 label="Export"
                 onClick={() => {
@@ -120,6 +129,7 @@ export function AppTopBar({
                   onOpenExport();
                 }}
               />
+
             </div>
           )}
         </div>
