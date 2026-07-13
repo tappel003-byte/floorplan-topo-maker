@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, Minus, Maximize2, Plus } from "lucide-react";
+import { Trash2, X, Minus, Maximize2 } from "lucide-react";
 import { COMMON_SURFACES, formatDelta } from "@/lib/transitions";
 import type { Transition } from "@/lib/types";
 
