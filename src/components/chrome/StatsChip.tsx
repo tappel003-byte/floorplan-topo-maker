@@ -8,11 +8,21 @@ interface Props {
   storageKey?: string;
 }
 
+/** Height in px of the top chrome (header + optional floor selector) plus a gap. */
+function topChromeHeight() {
+  const header = document.querySelector("header");
+  const selector = document.querySelector("[data-floor-selector]");
+  const h = (header?.getBoundingClientRect().height ?? 0) + (selector?.getBoundingClientRect().height ?? 0);
+  return h + 4; // 4px gap below chrome
+}
+
 /**
  * Floating pill: High / Low / Delta.
  * - Drag anywhere on the chip to move it (5px threshold).
  * - Quick tap on High/Low = highlight that point.
  * - Position persists per storageKey and clamps to viewport on resize/rotate.
+ *   Top edge is clamped below the live header/floor selector so the pill can never
+ *   hide under the chrome in portrait or landscape.
  */
 export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }: Props) {
   const stats = useMemo(() => {
@@ -40,9 +50,10 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     if (pos) return;
     const w = ref.current?.offsetWidth ?? 180;
     const h = ref.current?.offsetHeight ?? 24;
+    const top = topChromeHeight();
     setPos({
       x: Math.max(8, window.innerWidth / 2 - w / 2),
-      y: Math.max(44, window.innerHeight - h - 80),
+      y: Math.max(top, window.innerHeight - h - 80),
     });
   }, [pos]);
 
@@ -53,8 +64,9 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
         if (!p || !ref.current) return p;
         const w = ref.current.offsetWidth;
         const h = ref.current.offsetHeight;
+        const top = topChromeHeight();
         const x = Math.min(Math.max(4, p.x), window.innerWidth - w - 4);
-        const y = Math.min(Math.max(44, p.y), window.innerHeight - h - 60);
+        const y = Math.min(Math.max(top, p.y), window.innerHeight - h - 60);
         return x === p.x && y === p.y ? p : { x, y };
       });
     };
