@@ -957,18 +957,32 @@ function renderTopoBase(
     ctx.clip();
 
     if (g && resolved.showContours && resolved.mode === "contour-cells") {
-      for (let r = 0; r < g.height; r++) {
-        for (let c = 0; c < g.width; c++) {
-          const idx = r * g.width + c;
-          if (!g.mask[idx]) continue;
-          const t = clampValue(g.values[idx], paletteMin, paletteMax);
-          ctx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
-          ctx.globalAlpha = resolved.contourOpacity;
-          ctx.fillRect(g.x0 + c * g.step, g.y0 + r * g.step, g.step + 0.5, g.step + 0.5);
+      // Paint cells opaque to an offscreen canvas first, then blit with opacity.
+      // Prevents sub-pixel seams (white streaks) between adjacent cells when
+      // globalAlpha < 1 blends each cell individually against the canvas.
+      const pad = 2;
+      const offW = Math.max(1, Math.ceil(g.width * g.step) + pad * 2);
+      const offH = Math.max(1, Math.ceil(g.height * g.step) + pad * 2);
+      const off = document.createElement("canvas");
+      off.width = offW;
+      off.height = offH;
+      const octx = off.getContext("2d");
+      if (octx) {
+        for (let r = 0; r < g.height; r++) {
+          for (let c = 0; c < g.width; c++) {
+            const idx = r * g.width + c;
+            if (!g.mask[idx]) continue;
+            const t = clampValue(g.values[idx], paletteMin, paletteMax);
+            octx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
+            octx.fillRect(pad + c * g.step, pad + r * g.step, g.step + 1, g.step + 1);
+          }
         }
+        ctx.globalAlpha = resolved.contourOpacity;
+        ctx.drawImage(off, g.x0 - pad, g.y0 - pad);
+        ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1;
     }
+
 
     // Contour polygons
     const cs = gridAndContours?.contours;
