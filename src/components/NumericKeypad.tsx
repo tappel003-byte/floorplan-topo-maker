@@ -282,6 +282,9 @@ export function NumericKeypad({
                 const sign = opt.delta > 0 ? "+" : opt.delta < 0 ? "−" : "";
                 const deltaText = opt.delta === 0 ? "0.0" : `${sign}${Math.abs(opt.delta).toFixed(1)}`;
                 const disabled = !text || !isFinite(parseFloat(text));
+                const isSelected =
+                  selectedSurfaceId !== undefined &&
+                  (opt.id ?? null) === (selectedSurfaceId ?? null);
                 return (
                   <button
                     key={opt.id ?? "root"}
@@ -290,7 +293,12 @@ export function NumericKeypad({
                       if (isFinite(n)) onSubmitWithOption?.(n, opt);
                     }}
                     disabled={disabled}
-                    className="flex-1 min-w-0 h-14 landscape-short:h-10 rounded-lg bg-primary text-primary-foreground font-semibold disabled:opacity-40 flex flex-col items-center justify-center leading-tight px-1"
+                    className={
+                      "flex-1 min-w-0 h-14 landscape-short:h-10 rounded-lg font-semibold disabled:opacity-40 flex flex-col items-center justify-center leading-tight px-1 " +
+                      (isSelected
+                        ? "bg-amber-500 text-white ring-2 ring-amber-300"
+                        : "bg-primary text-primary-foreground")
+                    }
                   >
                     <span className="text-sm landscape-short:text-xs truncate max-w-full">
                       {opt.surface}
@@ -301,6 +309,7 @@ export function NumericKeypad({
                   </button>
                 );
               }) : (
+
                 <button
                   onClick={submit}
                   disabled={!text || !isFinite(parseFloat(text))}
