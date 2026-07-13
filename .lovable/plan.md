@@ -1,24 +1,18 @@
-## Icon concept
+Replace the current home-screen icon with a new design inspired by the screenshot: flowing organic contour lines running across earth-tone bands (tan, green, brown), like a small crop of a real topographic survey map — no text, no border.
 
-A simplified topographic contour map — organic, irregular concentric rings (like a real hill cross-section, not perfect circles) in the app's earth-tone palette. No letters, no floor plan outline. Just contours.
+## What changes
 
-## Design
+- Regenerate `public/icon-512.png` and `public/icon-192.png` using the new design brief below.
+- No code changes — filenames stay the same, so the manifest and `<link>` tags in `src/routes/__root.tsx` don't need edits.
 
-- **Shape**: 3–5 nested irregular contour lines forming a soft blob/hill shape, centered on the icon
-- **Palette**: pulled from the current Earth Tone contour: cream/tan center → warm tan → brown edges. Solid, filled bands (like the "color cells" mode), not just outlines — reads at small sizes
-- **Background**: solid cream (`#f5efe4`-ish) so it stands out on both light and dark home screens
-- **No text, no border, no floor plan** — pure topo shape, corners rounded by iOS automatically
-- **Square, 1024×1024**, exported as PNG, then downsampled to 512 and 192
+## Design brief for the icon
 
-## Files
+- Square, filled edge-to-edge (no rounded corners — iOS/Android add their own mask).
+- Soft earth-tone regions flowing diagonally: warm tan/sand on one side, muted sage green on the other, with a hint of deeper brown at one corner.
+- Thin dark contour lines (like the screenshot) curving organically across the whole square, ignoring the color boundaries.
+- No text, no letters, no floor-plan walls — just contours + earth bands, so it reads clearly at 48px on a home screen.
+- Palette pulled from the screenshot: cream `#f5ebd6`, tan `#d9b881`, sage `#b8c49a`, brown `#8a6a3e`, contour lines dark brown `#4a3a24`.
 
-1. Generate `public/icon-1024.png` via `imagegen` (premium tier for crispness at small sizes)
-2. Downsample to `public/icon-512.png` and `public/icon-192.png` (overwrite the existing FLS icons)
-3. Leave `public/manifest.webmanifest` and `__root.tsx` head links untouched — same filenames, so no code change needed
-4. Delete `public/icon-1024.png` after downsampling (kept only as source)
+## After it's built
 
-## Verification
-
-- View the generated 512 and 192 PNGs to confirm the topo shape reads clearly at small size
-- Confirm no white/grey fallback box — full-bleed cream background
-- User will re-add to home screen after next publish to see it
+You'll need to remove the old home-screen shortcut and re-add it after the next Publish → Update to see the new icon (iOS caches the old one).
