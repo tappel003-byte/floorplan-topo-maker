@@ -23,6 +23,8 @@ interface Props {
   onPointSizeChange: (n: number) => void;
   pointColor: string;
   onPointColorChange: (c: string) => void;
+  labelFontSize: number;
+  onLabelFontSizeChange: (n: number) => void;
   onCommit?: (points: SurveyPoint[]) => void;
 }
 
