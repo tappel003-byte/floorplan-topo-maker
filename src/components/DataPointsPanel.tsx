@@ -280,6 +280,27 @@ export function DataPointsPanel({
                   <Plus className="h-3 w-3" />
                 </button>
               </div>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 w-7">
+                  Text
+                </span>
+                <button
+                  className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+                  onClick={() => onLabelFontSizeChange(Math.max(7, labelFontSize - 1))}
+                  disabled={labelFontSize <= 7}
+                  aria-label="Smaller label"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="text-[10px] font-mono flex-1 text-center tabular-nums">
+                  {labelFontSize}px
+                </span>
+                <button
+                  className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+                  onClick={() => onLabelFontSizeChange(Math.min(28, labelFontSize + 1))}
+                  disabled={labelFontSize >= 28}
+                  aria-label="Larger label"
+                >
               {colorOpen && (
                 <div className="absolute z-50 top-full left-0 mt-1 rounded-lg border bg-popover shadow-lg p-2 flex gap-1.5">
                   {COLOR_PRESETS.map((c) => (
