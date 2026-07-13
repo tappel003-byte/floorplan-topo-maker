@@ -340,7 +340,7 @@ export function DataPointsPanel({
                       </span>
                       <span className="flex-1 min-w-0">
                         <div className="font-mono tabular-nums">
-                          {p.value.toFixed(2)}
+                          {displayValue(p).toFixed(2)}
                           {p.isBasePoint && (
                             <span className="ml-1.5 text-[9px] uppercase text-green-700">
                               {p.label ?? "BP"}
