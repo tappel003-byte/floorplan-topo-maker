@@ -124,7 +124,8 @@ export interface RenderSettings {
     | "viridis"
     | "topographic"
     | "gray-amber"
-    | "nm-sunset";
+    | "nm-sunset"
+    | "mountain";
   reversePalette: boolean;
   lineThickness: number;
   showPlan: boolean;
