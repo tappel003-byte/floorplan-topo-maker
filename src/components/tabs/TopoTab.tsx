@@ -1,13 +1,14 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlanCanvas } from "../PlanCanvas";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Undo2, X, Waves, Palette, Tag } from "lucide-react";
+import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
+import { TopoDiagnosticPanel } from "../TopoDiagnosticPanel";
 import {
   TOPO_GRID_TARGET_COLS,
   buildGrid,
