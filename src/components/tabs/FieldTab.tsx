@@ -255,6 +255,9 @@ export function FieldTab({
     // overrideTransitionId: string = tag with this; null = force no tag (root anchor surface); undefined = use activeTransitionId
     if (editingPoint) {
       const updated: SurveyPoint = { ...editingPoint, value: v };
+      if (overrideTransitionId !== undefined && !editingPoint.isTransitionAnchor) {
+        updated.transitionId = overrideTransitionId ?? undefined;
+      }
       await savePoint(updated);
       const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
       onPointsChange(nextPts);
@@ -288,6 +291,7 @@ export function FieldTab({
     setPending(null);
     setBpPromptOpen(false);
   }
+
 
   /** Called from AddTransitionSheet. Creates the transition record and plots the diamond anchor at the pending location. */
   async function handleAddTransition(data: {
