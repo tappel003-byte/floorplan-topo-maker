@@ -337,14 +337,12 @@ export function TopoTab({
         <TopoDiagnosticPanel
           points={points}
           excludedIds={excludedIds}
-          onToggleExclude={(id) =>
-            setExcludedIds((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            })
-          }
+          onToggleExclude={(id) => {
+            const next = new Set(excludedIds);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            setExcludedIds(next);
+          }}
           onRestoreAll={() => setExcludedIds(new Set())}
           onClose={() => setDiagOpen(false)}
         />
