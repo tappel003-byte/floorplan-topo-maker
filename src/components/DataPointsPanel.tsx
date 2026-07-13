@@ -77,6 +77,8 @@ export function DataPointsPanel({
   onPointSizeChange,
   pointColor,
   onPointColorChange,
+  labelFontSize,
+  onLabelFontSizeChange,
   onCommit,
 }: Props) {
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
