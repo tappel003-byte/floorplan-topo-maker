@@ -8,9 +8,11 @@ type Props = {
   onOpenSetup: () => void;
   onOpenReview: () => void;
   onOpenExport: () => void;
+  onOpenTransitions?: () => void;
   undoEnabled?: boolean;
   redoEnabled?: boolean;
 };
+
 
 /**
  * Shared top strip: back · title · Undo · Redo · ⋯
