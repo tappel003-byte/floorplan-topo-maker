@@ -102,7 +102,11 @@ export function TransitionDetailDialog({
   function nudgeDelta(step: number) {
     const base = overrideDelta !== null ? overrideDelta : computedDelta;
     const next = Math.round((base + step) * 100) / 100;
-    setOverrideDelta(next);
+    if (valid && Math.abs(next - computedDelta) < 0.005) {
+      setOverrideDelta(null);
+    } else {
+      setOverrideDelta(next);
+    }
   }
 
 
