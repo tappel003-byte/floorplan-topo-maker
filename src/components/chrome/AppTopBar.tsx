@@ -25,9 +25,11 @@ export function AppTopBar({
   onOpenSetup,
   onOpenReview,
   onOpenExport,
+  onOpenTransitions,
   undoEnabled = true,
   redoEnabled = true,
 }: Props) {
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
