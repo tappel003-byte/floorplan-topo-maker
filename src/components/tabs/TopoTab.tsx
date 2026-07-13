@@ -1220,6 +1220,7 @@ const PALETTE_LABELS: Record<RenderSettings["palette"], string> = {
   topographic: "Topographic",
   "gray-amber": "Gray + Amber",
   "nm-sunset": "New Mexico Sunset",
+  mountain: "Mountain Top",
 };
 const PRIMARY_PALETTES: RenderSettings["palette"][] = ["brown", "rainbow", "blue-red", "gray"];
 const EXTRA_PALETTES: RenderSettings["palette"][] = [
@@ -1230,6 +1231,7 @@ const EXTRA_PALETTES: RenderSettings["palette"][] = [
   "topographic",
   "gray-amber",
   "nm-sunset",
+  "mountain",
 ];
 
 function PaletteSwatch({ palette }: { palette: RenderSettings["palette"] }) {
@@ -1379,6 +1381,13 @@ function paletteColor(input: number, palette: RenderSettings["palette"], reverse
       [200, 165, 170],
       [150, 145, 150],
       [90, 95, 105],
+    ],
+    mountain: [
+      [255, 255, 255],
+      [230, 220, 200],
+      [190, 160, 120],
+      [140, 100, 70],
+      [60, 110, 60],
     ],
   };
   const s = stops[palette];
