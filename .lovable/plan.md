@@ -1,24 +1,15 @@
-# Fix: points move too easily during pinch-zoom
+## Fix: selected point should show a blue halo on the canvas
 
-## Problem
-In `src/components/tabs/FieldTab.tsx`, tapping a data point immediately arms a drag. Any finger movement over ~18px moves the point. During a pinch, the first finger can travel that far before the second finger registers, so the point slides.
+### What's happening
+When you tap a row in the Data panel (e.g., point 21 = 9.50), the canvas pans/zooms to that point (`focusRequest` fires), but nothing on the canvas visually marks it. There is halo logic in `FieldTab.tsx` `drawOverlay`, but it only lights up yellow rings for points tied to an active/viewed **transition chain**. There is no branch that reads `selectedIds` and draws a ring around a normally-selected point.
 
-Note pins and anchor-detail already gate on a long-press (`LONG_PRESS_MS = 380`). Regular points do not.
+That's why it feels like functionality regressed — the pan works, but the "which dot am I looking at" cue is missing.
 
-## Change (one file)
-`src/components/tabs/FieldTab.tsx` — apply the same long-press arming used for notes to ordinary point drags:
+### Fix (one file, ~6 lines)
+`src/components/tabs/FieldTab.tsx`, inside the existing `drawOverlay` loop (around line 945, right after the marker is drawn, before the transition-highlight block):
 
-1. Add an `active: boolean` flag to `DragState` (default `false`).
-2. In `onImagePointerDown`, after setting `dragRef.current`, start a `LONG_PRESS_MS` timer that flips `dragRef.current.active = true`. Keep the anchor-detail long-press timer as-is (they run in parallel — whichever fires first wins for anchors; for anchors we still open the dialog since `moved` stays false).
-3. In `onImagePointerMove`, before applying position updates:
-   - If screen distance > ~8px before `active`, treat it as a scroll/pinch attempt → clear both timers, clear `dragRef.current`, and return (do NOT move the point).
-   - Only mutate point coordinates when `active` is true.
-4. In `onImagePointerUp` / `Cancel`, clear the new timer alongside the existing ones. Tap-to-select behavior (no move, no long-press) stays intact — pointer-up with `!moved && !active` still runs the current selection/keypad path.
-5. PlanCanvas pinch-preempt logic already cancels custom drags when a second pointer arrives (`onImagePointerCancel`), so no changes there.
+- Add: `const isSelected = selectedIds.has(p.id);`
+- If `isSelected`, stroke a blue ring (`#2563eb`, lineWidth 2) at radius `markerR + 4` (or `+5` for anchors, matching the yellow ring math).
+- Keep the yellow transition ring exactly as-is — the two can coexist (blue for user selection, yellow for chain membership). If a point is both, both rings render (yellow is slightly larger, so they nest cleanly).
 
-## Result
-- Short tap → select / open keypad (unchanged).
-- Long-press then drag → move the point (new gate).
-- Pinch-zoom starting on or near a point → no accidental move.
-
-No other files, no data model changes.
+No other files change. No data model change. No effect on transitions, notes, or the keypad flow.
