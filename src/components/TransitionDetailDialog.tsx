@@ -77,19 +77,16 @@ export function TransitionDetailDialog({
     );
   }
 
+  function nudgeDelta(step: number) {
+    const a = parseFloat(readingA);
+    if (!isFinite(a)) return;
+    setReadingA((a + step).toFixed(2));
+  }
+
   return (
-    <div
-      className={
-        positionScreen
-          ? "fixed z-[60] pointer-events-none"
-          : "fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] w-[min(18rem,calc(100vw-1rem))] pointer-events-none"
-      }
-      style={
-        positionScreen
-          ? { left: positionScreen.left, top: positionScreen.top, width: 288 }
-          : undefined
-      }
-    >
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+      <div className="w-[min(20rem,calc(100vw-1rem))] pointer-events-none">
+
       <div
         className="bg-background rounded-xl shadow-2xl border p-4 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
