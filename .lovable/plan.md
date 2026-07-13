@@ -1,11 +1,20 @@
-Tweak the New Mexico Sunset palette default and move the Reverse control.
+## Fix: Review tab shows raw values instead of corrected
 
-1. **New Mexico Sunset default orientation** — swap the `nm-sunset` stops so the low end is pink and the high end is gray (current stops are gray-low → pink-high). This makes the palette match the user's intent out of the box; the existing Reverse switch can still flip it back.
+Same bug as the Data panel. `ReviewTab.tsx` reads `p.value` directly in five places, so a point with a 9.8−0.8 transition renders as 9.80 and sorts/stats on 9.80.
 
-2. **Move Reverse switch up** — relocate the Reverse toggle in the Palette panel so it sits at the top, above the palette list, instead of below it.
+### Changes
+1. **`src/components/tabs/ReviewTab.tsx`**
+   - Accept a `correctedById: Map<string, number>` prop (same shape already passed to `DataPointsPanel`).
+   - Add a `displayValue(p)` helper: `correctedById.get(p.id) ?? p.value`.
+   - Route all five current `p.value` reads through it: stats calc (line 31), outlier detection (44), high/low sort (51–52), and the row cell (152).
+2. **`src/routes/projects.$id.tsx`**
+   - Pass the existing `correctedById` map into `<ReviewTab />` (already computed for the Data panel — no new computation).
 
-Scope: `src/components/tabs/TopoTab.tsx` only.
-- Reverse the `nm-sunset` RGB array order.
-- Reorder the `PalettePicker` / `CornerPanel` contents so the Reverse switch appears first.
+### Risk check — anywhere else still on raw?
+Ran a sweep for `p.value` / `.value` reads across components. Already corrected: Topo, StatsChip, Export, Data panel (last turn). Remaining raw-value site: **Review only**. `PointDetail` and `NumericKeypad` intentionally show raw because they're the editor for the underlying reading — that's correct, not a bug.
 
-No data model, math, or other UI changes.
+### Won't break
+- No data model or persistence changes.
+- Stats numbers on Review will shift to match Topo/Stats/Export — that's the intended alignment, not a regression.
+- Sort order changes only for points that have a transition applied; unaffected points sort identically.
+- Prop is additive with a safe fallback (`?? p.value`), so if the map is ever empty the tab renders exactly as today.
