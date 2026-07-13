@@ -1,21 +1,21 @@
-## Fix Manual adjust behavior
+## Fix correction display precision + auto-clear override
 
-**What's wrong now:** Manual adjust ±0.1 edits the raw reading of the "to surface" (which recomputes the delta indirectly and also shifts every downstream point's raw value). That's not what you want.
+**Two small changes to `TransitionDetailDialog.tsx` and `transitions.ts`.**
 
-**What you want:** Manual adjust nudges the **correction delta itself** — a manual override on the transition. Raw readings stay untouched. Downstream points still resolve through the (now-overridden) delta, but the readings you originally logged aren't rewritten.
+### 1. Show 2 decimals on the correction value
 
-### Changes to `src/components/TransitionDetailDialog.tsx`
+Right now `formatDelta()` returns `+0.4` — the hundredths digit is invisible, so a nudge from `+0.40` to `+0.45` looks identical to `+0.4`.
 
-1. **Restore the ±0.05 buttons.** Row becomes: `−0.1  −0.05  +0.05  +0.1`.
-2. **Rewire the handlers.** Instead of mutating `rawB` (the "to surface" reading), write to a `manualDeltaOverride` field on the transition (new optional field, falls back to computed `rawB − rawA` when absent).
-3. **Color the override red.** When `manualDeltaOverride` is set, render the "Carpet correction +0.4"" row value in red (`text-destructive`) so it's obvious the delta is a manual override, not derived from the two readings.
-4. **Clear-override affordance.** If a user then edits either reading field, drop the override and revert to computed delta (returns to normal color).
+- Change `formatDelta()` in `src/lib/transitions.ts` to `toFixed(2)` so it renders `+0.40`, `+0.45`, `-0.35`, etc.
+- This flows through the dialog's correction row, the minimized pill, and the `transitionLabel()` chip automatically.
 
-### Downstream
+### 2. Return to black when the override matches the computed delta
 
-- `getCorrectedValue` / chain math reads `manualDeltaOverride ?? (rawB − rawA)` — one-line change in `src/lib/transitions.ts`.
-- No changes to point records. No raw readings on downstream points get rewritten.
+If the user nudges the override back to the same value as `readingA − readingB`, the row should go back to black (no override).
+
+- In `TransitionDetailDialog.tsx`, after `nudgeDelta()` computes `next`, if `Math.abs(next − computedDelta) < 0.005`, call `setOverrideDelta(null)` instead of setting the value. The row's `isOverridden` flag then flips back to false and the text renders in the default color.
 
 ### Not touching
 
-- Point editing flows, keypad, chain highlighting, pill, centering — all stay as-is.
+- Manual adjust step sizes (still ±0.05 / ±0.1).
+- Reading fields, downstream point math, dialog layout, pill wording.
