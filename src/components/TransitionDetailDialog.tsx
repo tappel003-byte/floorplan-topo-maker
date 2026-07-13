@@ -168,7 +168,7 @@ export function TransitionDetailDialog({
               inputMode="decimal"
               step="0.01"
               value={readingA}
-              onChange={(e) => setReadingA(e.target.value)}
+              onChange={(e) => onReadingAChange(e.target.value)}
               placeholder="0.0"
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
@@ -180,7 +180,7 @@ export function TransitionDetailDialog({
               inputMode="decimal"
               step="0.01"
               value={readingB}
-              onChange={(e) => setReadingB(e.target.value)}
+              onChange={(e) => onReadingBChange(e.target.value)}
               placeholder="0.0"
               className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
@@ -191,22 +191,29 @@ export function TransitionDetailDialog({
           <span className="text-muted-foreground">
             {surfaceB || "Surface"} correction
           </span>
-          <span className="font-mono tabular-nums font-semibold">
-            {valid ? `${formatDelta(delta)}"` : "—"}
+          <span className={`font-mono tabular-nums font-semibold ${isOverridden ? "text-destructive" : ""}`}>
+            {valid || isOverridden ? `${formatDelta(effectiveDelta)}"` : "—"}
           </span>
         </div>
 
         <div className="mt-2 rounded-md border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Manual adjust</span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
               −0.1
             </Button>
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(-0.05)} aria-label="Decrease correction 0.05">
+              −0.05
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.05)} aria-label="Increase correction 0.05">
+              +0.05
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
               +0.1
             </Button>
           </div>
         </div>
+
 
         {downstreamCount > 0 && (
           <p className="mt-2 text-[11px] text-muted-foreground">
