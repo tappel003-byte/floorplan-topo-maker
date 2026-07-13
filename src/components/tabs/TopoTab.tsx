@@ -179,7 +179,7 @@ export function TopoTab({
       const fontPx = resolved.pointLabelFontSize;
       const weight = resolved.pointLabelWeight;
       const pad = 4;
-      for (const p of points) {
+      for (const p of visiblePoints) {
         const text = p.value.toFixed(dec);
         const { w, h } = measureLabel(text, fontPx, weight);
         const a = labelAnchor(p);
