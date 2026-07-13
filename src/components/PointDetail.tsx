@@ -146,7 +146,7 @@ export function PointDetail({
                     <option value="">None (plain reading)</option>
                     {transitions.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {transitionOptionLabel(t)}
+                        {transitionOptionLabel(t, floor?.transitionGroupAverages)}
                       </option>
                     ))}
                   </select>
