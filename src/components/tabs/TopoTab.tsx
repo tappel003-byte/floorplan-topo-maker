@@ -1208,6 +1208,98 @@ function contourOptions(grid: Grid, settings: RenderSettings) {
   };
 }
 
+const PALETTE_LABELS: Record<RenderSettings["palette"], string> = {
+  brown: "Earth Tone",
+  rainbow: "Rainbow",
+  "blue-red": "Blue → Red",
+  gray: "Grayscale",
+  ocean: "Ocean",
+  sunset: "Sunset",
+  forest: "Forest",
+  viridis: "Viridis",
+  topographic: "Topographic",
+  "gray-amber": "Gray + Amber",
+  "nm-sunset": "New Mexico Sunset",
+};
+const PRIMARY_PALETTES: RenderSettings["palette"][] = ["brown", "rainbow", "blue-red", "gray"];
+const EXTRA_PALETTES: RenderSettings["palette"][] = [
+  "ocean",
+  "sunset",
+  "forest",
+  "viridis",
+  "topographic",
+  "gray-amber",
+  "nm-sunset",
+];
+
+function PaletteSwatch({ palette }: { palette: RenderSettings["palette"] }) {
+  const bg = `linear-gradient(to right, ${[0, 0.25, 0.5, 0.75, 1]
+    .map((t) => paletteColor(t, palette, false))
+    .join(", ")})`;
+  return <div className="h-4 w-full rounded-sm border" style={{ background: bg }} />;
+}
+
+function PaletteRow({
+  palette,
+  active,
+  onClick,
+}: {
+  palette: RenderSettings["palette"];
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left rounded-md border px-2 py-1.5 text-xs transition ${
+        active ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border hover:bg-accent"
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-medium">{PALETTE_LABELS[palette]}</span>
+        {active && <span className="text-[10px] text-primary">Selected</span>}
+      </div>
+      <PaletteSwatch palette={palette} />
+    </button>
+  );
+}
+
+function PalettePicker({
+  value,
+  onChange,
+}: {
+  value: RenderSettings["palette"];
+  onChange: (p: RenderSettings["palette"]) => void;
+}) {
+  const activeInExtras = EXTRA_PALETTES.includes(value);
+  const [expanded, setExpanded] = useState(activeInExtras);
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs">Palette</Label>
+      <div className="space-y-1.5">
+        {PRIMARY_PALETTES.map((p) => (
+          <PaletteRow key={p} palette={p} active={value === p} onClick={() => onChange(p)} />
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full text-left text-xs text-muted-foreground hover:text-foreground py-1"
+      >
+        {expanded ? "▾" : "▸"} More palettes
+      </button>
+      {expanded && (
+        <div className="space-y-1.5">
+          {EXTRA_PALETTES.map((p) => (
+            <PaletteRow key={p} palette={p} active={value === p} onClick={() => onChange(p)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function paletteColor(input: number, palette: RenderSettings["palette"], reverse: boolean) {
   const t = reverse ? 1 - input : input;
   const stops: Record<RenderSettings["palette"], Array<[number, number, number]>> = {
