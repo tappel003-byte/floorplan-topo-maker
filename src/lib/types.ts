@@ -71,6 +71,10 @@ export interface Transition {
   // The raw reading typed on the parent surface (before parent delta added).
   // Kept for display and for re-deriving readingA if the parent is edited.
   readingARawOnParent?: number;
+  // Manual override of the correction delta. When set, transitionDelta()
+  // returns this value instead of (readingA − readingB). Editing either
+  // reading in the detail dialog clears the override.
+  manualDeltaOverride?: number;
 }
 
 
