@@ -390,7 +390,7 @@ export function FieldTab({
     for (const p of points) {
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
-    const fontPx = 12;
+    const fontPx = labelFontSize;
     const pad = 4 / s;
     for (const p of points) {
       const text = p.value.toFixed(2);
