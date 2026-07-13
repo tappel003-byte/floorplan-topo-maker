@@ -36,6 +36,15 @@ function ProjectWorkspace() {
   const [missing, setMissing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [topoHighlightIds, setTopoHighlightIds] = useState<Set<string>>(new Set());
+  // Diagnostic exclusions live at the route so the StatsChip can filter with
+  // them on Topo. Session-only: cleared when floor changes or when leaving Topo.
+  const [topoExcludedIds, setTopoExcludedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setTopoExcludedIds(new Set());
+  }, [activeFloorId]);
+  useEffect(() => {
+    if (mode !== "topo") setTopoExcludedIds(new Set());
+  }, [mode]);
   const [focusRequest, setFocusRequest] = useState<
     { x: number; y: number; nonce: number } | undefined
   >(undefined);
