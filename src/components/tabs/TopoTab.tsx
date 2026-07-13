@@ -637,23 +637,14 @@ export function TopoTab({
         {/* Palette popover — upper right */}
         {openCorner === "palette" && (
           <CornerPanel
-            pos="top-12 right-2 w-56 landscape-short:top-2"
+            pos="top-12 right-2 w-60 landscape-short:top-2"
             onClose={() => setOpenCorner(null)}
             title="Palette"
           >
-            <div>
-              <Label className="text-xs">Palette</Label>
-              <select
-                value={resolved.palette}
-                onChange={(e) => update({ palette: e.target.value as RenderSettings["palette"] })}
-                className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
-              >
-                <option value="brown">Brown elevation</option>
-                <option value="rainbow">Rainbow</option>
-                <option value="blue-red">Blue to red</option>
-                <option value="gray">Grayscale</option>
-              </select>
-            </div>
+            <PalettePicker
+              value={resolved.palette}
+              onChange={(p) => update({ palette: p })}
+            />
             <div className="flex items-center justify-between">
               <Label className="text-xs">Reverse</Label>
               <Switch
