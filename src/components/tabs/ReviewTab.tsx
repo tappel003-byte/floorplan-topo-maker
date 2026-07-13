@@ -15,6 +15,7 @@ interface Props {
 }
 
 export function ReviewTab({
+  floor,
   points,
   onPointsChange,
   selectedIds,
@@ -178,10 +179,20 @@ export function ReviewTab({
         <PointDetail
           key={detail.id}
           point={detail}
+          floor={floor}
           onClose={() => setDetailId(null)}
           onSave={async (updated) => {
             await savePoint(updated);
             const next = points.map((x) => (x.id === updated.id ? updated : x));
+            onPointsChange(next);
+            onCommit?.(next);
+          }}
+          onReassignTransition={async (pid, tid) => {
+            const target = points.find((p) => p.id === pid);
+            if (!target) return;
+            const updated = { ...target, transitionId: tid ?? undefined };
+            await savePoint(updated);
+            const next = points.map((x) => (x.id === pid ? updated : x));
             onPointsChange(next);
             onCommit?.(next);
           }}
