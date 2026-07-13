@@ -1,16 +1,24 @@
-Make the floating summary pill stay clear of the top chrome in landscape and stay repositionable anywhere on the screen.
+# Fix: points move too easily during pinch-zoom
 
-### Problem
-The High/Low/Δ pill can be dragged under the top header bar in landscape mode, where it gets hidden.
+## Problem
+In `src/components/tabs/FieldTab.tsx`, tapping a data point immediately arms a drag. Any finger movement over ~18px moves the point. During a pinch, the first finger can travel that far before the second finger registers, so the point slides.
 
-### What will change
-- In `src/components/chrome/StatsChip.tsx`:
-  - Measure the live height of the top chrome (header + optional floor selector) and use that as the minimum top boundary instead of the hardcoded `44`/`4` px values.
-  - Keep the existing drag behavior exactly as-is: tap anywhere on the pill to drag, tap High/Low to highlight that point.
-  - On window resize or orientation change, re-clamp the saved position so it cannot sit under the top bar after rotating from portrait to landscape.
-  - Default initial position will sit just below the measured chrome, centered horizontally.
-- No other components touched. Data model, Field/Topo behavior, and the diagnostic panel remain unchanged.
+Note pins and anchor-detail already gate on a long-press (`LONG_PRESS_MS = 380`). Regular points do not.
 
-### Verification
-- Open the Topo tab in landscape preview, drag the pill to the top, rotate back to portrait, and confirm it remains visible and draggable.
-- Confirm the pill can still be dragged anywhere else on the canvas without restriction.
+## Change (one file)
+`src/components/tabs/FieldTab.tsx` — apply the same long-press arming used for notes to ordinary point drags:
+
+1. Add an `active: boolean` flag to `DragState` (default `false`).
+2. In `onImagePointerDown`, after setting `dragRef.current`, start a `LONG_PRESS_MS` timer that flips `dragRef.current.active = true`. Keep the anchor-detail long-press timer as-is (they run in parallel — whichever fires first wins for anchors; for anchors we still open the dialog since `moved` stays false).
+3. In `onImagePointerMove`, before applying position updates:
+   - If screen distance > ~8px before `active`, treat it as a scroll/pinch attempt → clear both timers, clear `dragRef.current`, and return (do NOT move the point).
+   - Only mutate point coordinates when `active` is true.
+4. In `onImagePointerUp` / `Cancel`, clear the new timer alongside the existing ones. Tap-to-select behavior (no move, no long-press) stays intact — pointer-up with `!moved && !active` still runs the current selection/keypad path.
+5. PlanCanvas pinch-preempt logic already cancels custom drags when a second pointer arrives (`onImagePointerCancel`), so no changes there.
+
+## Result
+- Short tap → select / open keypad (unchanged).
+- Long-press then drag → move the point (new gate).
+- Pinch-zoom starting on or near a point → no accidental move.
+
+No other files, no data model changes.
