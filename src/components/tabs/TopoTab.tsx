@@ -149,20 +149,7 @@ export function TopoTab({
     return { hi, lo };
   }, [visiblePoints]);
 
-  const update = (patch: Partial<RenderSettings>) =>
-    onSettingsChange(resolveSettings({ ...resolved, ...patch }));
 
-  // Compute current High / Low points (matches renderTopoTop logic).
-  const hiLo = useMemo(() => {
-    if (!points.length) return null;
-    let hi = points[0],
-      lo = points[0];
-    for (const p of points) {
-      if (p.value > hi.value) hi = p;
-      if (p.value < lo.value) lo = p;
-    }
-    return { hi, lo };
-  }, [points]);
 
   type Hit =
     | { kind: "label"; point: SurveyPoint }
