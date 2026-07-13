@@ -303,6 +303,40 @@ export function TopoTab({
           <Tag className="h-4 w-4" />
         </button>
       )}
+      {/* Diagnostic panel toggle — Topo-only. Excludes points from contour math without touching stored data. */}
+      <button
+        type="button"
+        onClick={() => setDiagOpen((v) => !v)}
+        aria-label="Diagnostic points panel"
+        className={
+          "fixed z-30 h-9 min-w-9 px-2 rounded-full backdrop-blur border shadow-md flex items-center justify-center gap-1 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-[calc(env(safe-area-inset-right)+3.5rem)] " +
+          (diagOpen || excludedIds.size > 0
+            ? "bg-amber-100 border-amber-300 text-amber-900"
+            : "bg-white/95 border-gray-300 text-gray-700 hover:bg-gray-50")
+        }
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+        {excludedIds.size > 0 && (
+          <span className="text-[10px] font-mono tabular-nums">{excludedIds.size}</span>
+        )}
+      </button>
+
+      {diagOpen && (
+        <TopoDiagnosticPanel
+          points={points}
+          excludedIds={excludedIds}
+          onToggleExclude={(id) =>
+            setExcludedIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            })
+          }
+          onRestoreAll={() => setExcludedIds(new Set())}
+          onClose={() => setDiagOpen(false)}
+        />
+      )}
 
       {/* Warning */}
       {!canRender && !warningDismissed && (
