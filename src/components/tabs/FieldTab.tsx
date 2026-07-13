@@ -775,7 +775,23 @@ export function FieldTab({
             event.clientX - drag.startClientX,
             event.clientY - drag.startClientY,
           );
-          if (!drag.moved && screenDist < 18) return;
+          // Must long-press first. Any pre-arm movement > 8px aborts the drag
+          // so pinch-zoom / pan doesn't slide points.
+          if (!drag.active) {
+            if (screenDist > 8) {
+              if (longPressTimerRef.current) {
+                window.clearTimeout(longPressTimerRef.current);
+                longPressTimerRef.current = null;
+              }
+              if (anchorLongPressTimerRef.current) {
+                window.clearTimeout(anchorLongPressTimerRef.current);
+                anchorLongPressTimerRef.current = null;
+              }
+              dragRef.current = null;
+              setDragging(null);
+            }
+            return;
+          }
           if (anchorLongPressTimerRef.current) {
             window.clearTimeout(anchorLongPressTimerRef.current);
             anchorLongPressTimerRef.current = null;
