@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, Minus, Maximize2, Plus } from "lucide-react";
+import { Trash2, X, Minus, Maximize2 } from "lucide-react";
 import { COMMON_SURFACES, formatDelta } from "@/lib/transitions";
 import type { Transition } from "@/lib/types";
 
@@ -176,17 +176,11 @@ export function TransitionDetailDialog({
         <div className="mt-2 rounded-md border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Manual adjust</span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
-              <Minus className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => nudgeDelta(-0.1)} aria-label="Decrease correction 0.1">
+              −0.1
             </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(-0.05)} aria-label="Decrease correction 0.05">
-              −0.05
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => nudgeDelta(0.05)} aria-label="Increase correction 0.05">
-              +0.05
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
-              <Plus className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => nudgeDelta(0.1)} aria-label="Increase correction 0.1">
+              +0.1
             </Button>
           </div>
         </div>
