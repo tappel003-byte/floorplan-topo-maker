@@ -57,11 +57,13 @@ export function NumericKeypad({
   onRemoveTransition,
   surfaceOptions,
   onSubmitWithOption,
+  selectedSurfaceId,
   onUndo,
   canUndo,
   onEndTransition,
   baselineSurface,
 }: Props) {
+
 
   void onRemoveTransition;
 
