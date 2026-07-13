@@ -239,6 +239,7 @@ function ProjectWorkspace() {
             setSelectedIds={setSelectedIds}
             pointSize={pointSize}
             pointColor={pointColor}
+            labelFontSize={settings.pointLabelFontSize}
             focusRequest={focusRequest}
             onCommit={(snap) => history.commit(snap)}
           />
@@ -314,6 +315,8 @@ function ProjectWorkspace() {
           onPointSizeChange={setPointSize}
           pointColor={pointColor}
           onPointColorChange={setPointColor}
+          labelFontSize={settings.pointLabelFontSize}
+          onLabelFontSizeChange={(n) => setSettings((s) => ({ ...s, pointLabelFontSize: n }))}
           onPointsChange={setPoints}
           onCommit={(pts) => history.commit({ points: pts })}
           onSelect={(pid, additive) => {

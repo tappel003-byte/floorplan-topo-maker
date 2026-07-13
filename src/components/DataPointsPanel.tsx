@@ -23,6 +23,8 @@ interface Props {
   onPointSizeChange: (n: number) => void;
   pointColor: string;
   onPointColorChange: (c: string) => void;
+  labelFontSize: number;
+  onLabelFontSizeChange: (n: number) => void;
   onCommit?: (points: SurveyPoint[]) => void;
 }
 
@@ -75,6 +77,8 @@ export function DataPointsPanel({
   onPointSizeChange,
   pointColor,
   onPointColorChange,
+  labelFontSize,
+  onLabelFontSizeChange,
   onCommit,
 }: Props) {
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
@@ -272,6 +276,30 @@ export function DataPointsPanel({
                   onClick={() => onPointSizeChange(Math.min(8, pointSize + 1))}
                   disabled={pointSize >= 8}
                   aria-label="Larger dot"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 w-7">
+                  Text
+                </span>
+                <button
+                  className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+                  onClick={() => onLabelFontSizeChange(Math.max(7, labelFontSize - 1))}
+                  disabled={labelFontSize <= 7}
+                  aria-label="Smaller label"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="text-[10px] font-mono flex-1 text-center tabular-nums">
+                  {labelFontSize}px
+                </span>
+                <button
+                  className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
+                  onClick={() => onLabelFontSizeChange(Math.min(28, labelFontSize + 1))}
+                  disabled={labelFontSize >= 28}
+                  aria-label="Larger label"
                 >
                   <Plus className="h-3 w-3" />
                 </button>
