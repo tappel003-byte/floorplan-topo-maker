@@ -158,7 +158,7 @@ export function ReviewTab({
                         {p.notes && (
                           <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />
                         )}
-                        <span>{p.value.toFixed(2)}"</span>
+                        <span>{displayValue(p).toFixed(2)}"</span>
                       </div>
                       {p.notes && (
                         <p className="text-[11px] font-sans font-normal text-muted-foreground mt-0.5 whitespace-pre-wrap break-words text-left">
