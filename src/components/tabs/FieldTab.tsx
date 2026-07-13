@@ -31,6 +31,7 @@ interface Props {
 type DragState = {
   id: string;
   moved: boolean;
+  active: boolean; // becomes true after long-press fires; must be true to move the point
   startClientX: number;
   startClientY: number;
   startImgX: number;
