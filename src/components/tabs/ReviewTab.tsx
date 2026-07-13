@@ -7,12 +7,14 @@ import { PointDetail } from "@/components/PointDetail";
 interface Props {
   floor: Floor;
   points: SurveyPoint[];
+  correctedById?: Map<string, number>;
   onPointsChange: (points: SurveyPoint[]) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
   onClose?: () => void;
   onCommit?: (points: SurveyPoint[]) => void;
 }
+
 
 export function ReviewTab({
   floor,
