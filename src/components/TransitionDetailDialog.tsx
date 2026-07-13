@@ -29,6 +29,7 @@ export function TransitionDetailDialog({
   const [surfaceB, setSurfaceB] = useState("");
   const [readingA, setReadingA] = useState("");
   const [readingB, setReadingB] = useState("");
+  const [overrideDelta, setOverrideDelta] = useState<number | null>(null);
   const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
@@ -37,6 +38,9 @@ export function TransitionDetailDialog({
       setSurfaceB(transition.surfaceB);
       setReadingA(String(transition.readingA));
       setReadingB(String(transition.readingB));
+      setOverrideDelta(
+        transition.manualDeltaOverride !== undefined ? transition.manualDeltaOverride : null,
+      );
       setMinimized(false);
     }
   }, [open, transition]);
@@ -46,11 +50,29 @@ export function TransitionDetailDialog({
   const a = parseFloat(readingA);
   const b = parseFloat(readingB);
   const valid = isFinite(a) && isFinite(b);
-  const delta = valid ? a - b : 0;
+  const computedDelta = valid ? a - b : 0;
+  const effectiveDelta = overrideDelta !== null ? overrideDelta : computedDelta;
+  const isOverridden = overrideDelta !== null;
 
   function submit() {
     if (!valid || !transition) return;
-    onSave({ ...transition, surfaceA, surfaceB, readingA: a, readingB: b });
+    onSave({
+      ...transition,
+      surfaceA,
+      surfaceB,
+      readingA: a,
+      readingB: b,
+      manualDeltaOverride: overrideDelta ?? undefined,
+    });
+  }
+
+  function onReadingAChange(v: string) {
+    setReadingA(v);
+    setOverrideDelta(null);
+  }
+  function onReadingBChange(v: string) {
+    setReadingB(v);
+    setOverrideDelta(null);
   }
 
   if (minimized) {
