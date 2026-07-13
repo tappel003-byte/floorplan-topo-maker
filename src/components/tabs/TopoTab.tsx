@@ -102,7 +102,20 @@ export function TopoTab({
     | { kind: "pin-high" | "pin-low"; prevDx: number | undefined; prevDy: number | undefined };
   const [lastMove, setLastMove] = useState<LastMove | null>(null);
 
-  const canRender = points.length >= 3 && floor.boundary.length >= 3;
+  // Diagnostic exclusion (Topo-only, session-only). Removed points do NOT
+  // affect stored data — they're just skipped by the contour math on this tab.
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(() => new Set());
+  const [diagOpen, setDiagOpen] = useState(false);
+  useEffect(() => {
+    setExcludedIds(new Set());
+  }, [floor.id]);
+
+  const visiblePoints = useMemo(
+    () => (excludedIds.size ? points.filter((p) => !excludedIds.has(p.id)) : points),
+    [points, excludedIds],
+  );
+
+  const canRender = visiblePoints.length >= 3 && floor.boundary.length >= 3;
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
