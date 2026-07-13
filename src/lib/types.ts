@@ -46,6 +46,11 @@ export interface Floor {
   // one anchor SurveyPoint (isTransitionAnchor + transitionId) at (x, y) and
   // may be referenced by downstream points (transitionId set, not anchor).
   transitions?: Transition[];
+  // Per-surface-pair averaged correction overrides. Key = `${surfaceA}→${surfaceB}`.
+  // When set, every transition in that group resolves to this delta instead of
+  // its own measured (readingA − readingB). Cleared by "Revert" in the sheet.
+  transitionGroupAverages?: Record<string, number>;
+
 }
 
 export interface NotePin {
