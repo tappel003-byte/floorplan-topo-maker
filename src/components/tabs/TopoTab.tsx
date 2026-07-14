@@ -1185,8 +1185,8 @@ function renderTopoTop(
       const hDy = livePinHigh ? livePinHigh.dy : (floor.highPinDy ?? 0);
       const lDx = livePinLow ? livePinLow.dx : (floor.lowPinDx ?? 0);
       const lDy = livePinLow ? livePinLow.dy : (floor.lowPinDy ?? 0);
-      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", highlightPin === "pin-high");
-      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", highlightPin === "pin-low");
+      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", fontPx, highlightPin === "pin-high");
+      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", fontPx, highlightPin === "pin-low");
     }
   }
 }
@@ -1197,12 +1197,14 @@ function drawPin(
   y: number,
   letter: string,
   color: string,
+  fontPx: number,
   highlighted = false,
 ) {
-  ctx.font = "bold 11px sans-serif";
-  const w = Math.max(PIN_MIN_W, ctx.measureText(letter).width + 14);
+  const pm = pinMetrics(fontPx);
+  ctx.font = `bold ${fontPx}px sans-serif`;
+  const w = Math.max(pm.minW, ctx.measureText(letter).width + pm.padX * 2);
   ctx.beginPath();
-  roundRectPath(ctx, x - w / 2, y + PIN_TOP_OFFSET, w, PIN_H, 10);
+  roundRectPath(ctx, x - w / 2, y + pm.topOffset, w, pm.h, pm.radius);
   ctx.fillStyle = color;
   ctx.fill();
   ctx.strokeStyle = highlighted ? "#17130e" : "#fff";
@@ -1211,8 +1213,9 @@ function drawPin(
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(letter, x, y + PIN_TOP_OFFSET + PIN_H / 2);
+  ctx.fillText(letter, x, y + pm.topOffset + pm.h / 2);
 }
+
 
 export function resolveSettings(settings: RenderSettings): RenderSettings {
   const contourStep =
