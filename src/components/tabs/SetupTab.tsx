@@ -16,6 +16,8 @@ interface Props {
   onProjectChange: (p: ProjectMeta) => void;
   onFloorsChange: (floors: Floor[]) => void;
   onActiveFloorChange: (id: string) => void;
+  onStartSurveying?: () => void;
+
 }
 
 export function SetupTab({
