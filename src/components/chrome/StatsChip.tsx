@@ -63,6 +63,20 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     return null;
   });
 
+  const [tier, setTier] = useState<SizeTier>(() =>
+    typeof window === "undefined" ? "sm" : pickTier(window.innerWidth),
+  );
+  useEffect(() => {
+    const onResize = () => setTier(pickTier(window.innerWidth));
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, []);
+  const sz = SIZE_STYLES[tier];
+
   // Default: bottom center, above the bottom pill row. Persisted position wins.
   useEffect(() => {
     if (pos) return;
