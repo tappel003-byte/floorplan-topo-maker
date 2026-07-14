@@ -27,8 +27,11 @@ export function SetupTab({
   onProjectChange,
   onFloorsChange,
   onActiveFloorChange,
+  onStartSurveying,
 }: Props) {
   const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
+  const canStart = !!activeFloor?.planDataUrl;
+
 
   return (
     <div className="flex flex-col h-full">
