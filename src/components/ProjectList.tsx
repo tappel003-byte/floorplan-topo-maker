@@ -79,23 +79,56 @@ export function ProjectList() {
     refresh();
   }
 
+  async function handleExport(id: string) {
+    try {
+      await exportProjectToFile(id);
+    } catch (err) {
+      alert(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    try {
+      const newId = await importProjectFromFile(file);
+      await refresh();
+      navigate({ to: "/projects/$id", params: { id: newId } });
+    } catch (err) {
+      alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
+      <header className="mb-8 flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <h1 className="text-3xl font-semibold tracking-tight">Floor Survey</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Topographical mapping for foundation inspection
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg">
-              <Plus className="mr-2 h-4 w-4" /> New project
-            </Button>
-          </DialogTrigger>
-          <NewProjectDialog onCreate={handleCreate} />
-        </Dialog>
+        <div className="flex items-center gap-2 shrink-0">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button size="lg" variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" /> Import
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg">
+                <Plus className="mr-2 h-4 w-4" /> New project
+              </Button>
+            </DialogTrigger>
+            <NewProjectDialog onCreate={handleCreate} />
+          </Dialog>
+        </div>
       </header>
 
       {loading ? (
