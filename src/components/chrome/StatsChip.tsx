@@ -161,10 +161,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     const d = drag.current;
     if (!d || d.pointerId !== e.pointerId) return;
     drag.current = null;
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
+
+
     if (d.moved) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(pos));
