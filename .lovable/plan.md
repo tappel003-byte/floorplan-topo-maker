@@ -1,25 +1,19 @@
-Plan to fix the trash can mismatch:
+Match the Distress Survey trash button exactly.
 
-1. Match the reference button, not approximate it
-   - Bottom-right fixed circle.
-   - Larger soft cream/off-white circular surface.
-   - Very light grey trash icon.
-   - Subtle border and shadow.
-   - No dark outline, no strong contrast, no badge unless we intentionally need it later.
+What Distress Survey actually renders (from its `survey.html`):
+- A 56×56 fixed circular button in the bottom-right.
+- 1px border in the app's line color.
+- Paper/cream background.
+- Box shadow: `0 4px 12px rgba(0,0,0,0.15)`.
+- **The icon is the emoji `🗑` at 24px font-size** — not a Lucide SVG.
+- Empty state: `opacity: 0.35`, not clickable.
+- Non-empty: full opacity, small red badge with the count top-right.
 
-2. Match the reference placement
-   - Keep it low in the bottom-right corner above the phone home indicator/safe area.
-   - Use the same visual spacing as the Distress Survey screenshot: close to the right edge and bottom, not floating too high.
+Changes in Floor Survey (`src/components/ProjectList.tsx` only):
 
-3. Keep behavior already agreed
-   - Trash can is always visible.
-   - Empty trash: faded/quiet and tapping says “Trash is empty.”
-   - Non-empty trash: opens the trash dialog.
+1. Replace the Lucide `<Trash2 />` inside the floating button with the literal emoji character `🗑` rendered at ~24px.
+2. Set the button to 56×56, 1px border, cream background, `shadow-[0_4px_12px_rgba(0,0,0,0.15)]`, fixed bottom-right with safe-area padding.
+3. Empty state uses `opacity-35`; non-empty state uses full opacity and shows the small red count badge (matching Distress Survey which does show a badge when non-empty).
+4. Keep the current behavior: empty → toast "Trash is empty"; non-empty → open trash dialog.
 
-4. Limit the change
-   - Update only the home-screen trash button styling in `ProjectList.tsx`.
-   - Do not change project delete/restore/permanent-delete behavior.
-
-Technical detail:
-- Replace the current button classes with reference-matching dimensions, background, shadow, border, icon size/color, and safe-area positioning.
-- Remove the red count badge if matching the Distress Survey screen is the priority, because the reference trash button does not show one.
+No other files change. Behavior for delete/restore/permanent-delete is untouched.
