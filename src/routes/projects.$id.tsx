@@ -16,6 +16,7 @@ import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrections
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues } from "@/lib/transitions";
+import { computeExclusionMap } from "@/lib/exclusions";
 
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
@@ -152,6 +153,17 @@ function ProjectWorkspace() {
         activeFloor?.transitionGroupAverages,
       ),
     [points, activeFloor?.transitions, activeFloor?.transitionGroupAverages],
+  );
+
+  // Points inside an exclusion zone are dropped from stats and from the topo
+  // interpolator. They still render on the plan and appear in Review.
+  const exclusionMap = useMemo(
+    () => computeExclusionMap(correctedPoints, activeFloor?.exclusions),
+    [correctedPoints, activeFloor?.exclusions],
+  );
+  const nonExcludedPoints = useMemo(
+    () => correctedPoints.filter((p) => !exclusionMap.has(p.id)),
+    [correctedPoints, exclusionMap],
   );
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
