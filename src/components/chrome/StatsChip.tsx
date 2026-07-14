@@ -173,7 +173,7 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
   return (
     <div
       ref={ref}
-      className="fixed z-40 h-6 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden text-[10px] font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing"
+      className={`fixed z-40 ${sz.height} ${sz.text} flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing`}
       style={{ left: pos.x, top: pos.y }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -182,20 +182,20 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       aria-label="Elevation stats — drag to move"
     >
       <div
-        className="px-1.5 flex items-center gap-0.5 text-gray-700"
+        className={`${sz.pad} flex items-center gap-0.5 text-gray-700`}
         onPointerUp={(e) => endDrag(e, "hi")}
       >
-        <ArrowUp className="w-2.5 h-2.5 text-emerald-600" />
+        <ArrowUp className={`${sz.icon} text-emerald-600`} />
         <span className="font-mono">{stats.hi.value.toFixed(2)}</span>
       </div>
       <div
-        className="px-1.5 flex items-center gap-0.5 border-l border-gray-200 text-gray-700"
+        className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-700`}
         onPointerUp={(e) => endDrag(e, "lo")}
       >
-        <ArrowDown className="w-2.5 h-2.5 text-sky-600" />
+        <ArrowDown className={`${sz.icon} text-sky-600`} />
         <span className="font-mono">{stats.lo.value.toFixed(2)}</span>
       </div>
-      <div className="px-1.5 flex items-center gap-0.5 border-l border-gray-200 text-gray-500">
+      <div className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-500`}>
         <span className="font-mono">Δ{stats.delta.toFixed(2)}</span>
       </div>
     </div>
