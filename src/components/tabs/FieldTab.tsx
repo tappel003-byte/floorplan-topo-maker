@@ -998,6 +998,16 @@ export function FieldTab({
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, lx + tm.width / 2, ly - padY + (labelFontSize + padY * 2) / 2);
+
+            // Zone tag for excluded points — small muted label below the pin
+            const zone = zoneOfXY(p.x, p.y, floor.exclusions);
+            if (zone && zone.label) {
+              ctx.font = `${Math.max(9, labelFontSize - 2)}px sans-serif`;
+              ctx.fillStyle = "rgba(75,85,99,0.9)";
+              ctx.textAlign = "left";
+              ctx.textBaseline = "top";
+              ctx.fillText(zone.label, lx, ly + labelFontSize + padY * 2 + 2);
+            }
           }
 
 
