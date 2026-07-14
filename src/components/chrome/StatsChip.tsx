@@ -1,19 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
-type SizeTier = "sm" | "md" | "lg";
+type SizeTier = "xs" | "sm" | "md" | "lg" | "xl";
+const TIER_ORDER: SizeTier[] = ["xs", "sm", "md", "lg", "xl"];
 const SIZE_STYLES: Record<
   SizeTier,
   { height: string; text: string; icon: string; pad: string }
 > = {
+  xs: { height: "h-5", text: "text-[9px]", icon: "w-2 h-2", pad: "px-1" },
   sm: { height: "h-6", text: "text-[10px]", icon: "w-2.5 h-2.5", pad: "px-1.5" },
   md: { height: "h-8", text: "text-xs", icon: "w-3 h-3", pad: "px-2" },
   lg: { height: "h-10", text: "text-sm", icon: "w-3.5 h-3.5", pad: "px-2.5" },
+  xl: { height: "h-12", text: "text-base", icon: "w-4 h-4", pad: "px-3" },
 };
-function pickTier(w: number): SizeTier {
+function pickBaseTier(w: number): SizeTier {
   if (w >= 1280) return "lg";
   if (w >= 768) return "md";
   return "sm";
+}
+function applyNudge(base: SizeTier, nudge: number): SizeTier {
+  const i = TIER_ORDER.indexOf(base);
+  const j = Math.max(0, Math.min(TIER_ORDER.length - 1, i + nudge));
+  return TIER_ORDER[j];
 }
 import type { SurveyPoint } from "@/lib/types";
 
