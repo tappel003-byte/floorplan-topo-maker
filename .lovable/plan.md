@@ -1,34 +1,25 @@
-I understand the correction: the trash can should not be hidden. It should look and behave like the Distress Survey home-screen trash can.
+Plan to fix the trash can mismatch:
 
-Plan:
+1. Match the reference button, not approximate it
+   - Bottom-right fixed circle.
+   - Larger soft cream/off-white circular surface.
+   - Very light grey trash icon.
+   - Subtle border and shadow.
+   - No dark outline, no strong contrast, no badge unless we intentionally need it later.
 
-1. Keep the existing two-step delete logic
-   - Project row delete still moves a project to trash.
-   - Trash screen still allows Restore and Delete forever.
-   - Permanent delete remains protected by confirmation.
+2. Match the reference placement
+   - Keep it low in the bottom-right corner above the phone home indicator/safe area.
+   - Use the same visual spacing as the Distress Survey screenshot: close to the right edge and bottom, not floating too high.
 
-2. Change the home-screen trash button to match Distress Survey
-   - Always render the trash can on the home screen, even when empty.
-   - Bottom-right fixed circular button.
-   - 56px by 56px.
-   - Warm paper background, border, shadow.
-   - Empty state is visible but faded/disabled-looking.
-   - When trash has projects, show the count badge in the top-right.
+3. Keep behavior already agreed
+   - Trash can is always visible.
+   - Empty trash: faded/quiet and tapping says “Trash is empty.”
+   - Non-empty trash: opens the trash dialog.
 
-3. Change empty-trash behavior to match Distress Survey
-   - Tapping the empty trash can does not open the dialog.
-   - It gives a small “Trash is empty” message.
-   - Tapping it when non-empty opens the trash screen/dialog.
+4. Limit the change
+   - Update only the home-screen trash button styling in `ProjectList.tsx`.
+   - Do not change project delete/restore/permanent-delete behavior.
 
-4. Make the trash contents match the Distress Survey pattern
-   - Project row with title/address info.
-   - Restore button.
-   - Delete forever button.
-   - Remove the separate “Empty trash” bulk-delete footer, because the Distress Survey model deletes forever per project rather than encouraging accidental bulk emptying.
-
-Technical notes:
-
-- Update `src/components/ProjectList.tsx` only.
-- Replace the conditional floating trash button with an always-rendered button.
-- Use the existing `trashed.length` state for empty styling, badge display, and click behavior.
-- Keep the already-added `deletedAt`, `trashProject`, `restoreProject`, and `deleteProject` functions as-is.
+Technical detail:
+- Replace the current button classes with reference-matching dimensions, background, shadow, border, icon size/color, and safe-area positioning.
+- Remove the red count badge if matching the Distress Survey screen is the priority, because the reference trash button does not show one.
