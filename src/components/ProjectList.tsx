@@ -34,6 +34,7 @@ export function ProjectList() {
   const [projects, setProjects] = useState<Row[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   async function refresh() {
     const list = await listProjects();
