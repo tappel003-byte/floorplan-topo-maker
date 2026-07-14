@@ -1,10 +1,14 @@
-The A−/A+ buttons already exist but are hidden behind a 500ms long-press on the chip — with no visible hint, you'd never know they're there.
+Misread the last request. You want:
 
-**Fix:** Make the size controls discoverable.
+1. **Revert the stats chip** back to just `↑10.20  ↓8.20  Δ2.00` — remove the A−, A+, and ⋯ buttons entirely.
+2. **Make the "High" / "Low" pin labels on the plan resizable** — the red/blue pills that mark the high and low points on the canvas (image 1). Right now they're a fixed size and don't scale with the plan.
 
-- Add a small chevron/handle segment at the right end of the chip (always visible, ~10px wide, subtle gray "···" or "⋯").
-- Tap that handle to toggle the A−/A+ buttons inline (same behavior as today's long-press, just discoverable).
-- Long-press still works as a shortcut for anyone who finds it.
-- Nudge value continues to persist in localStorage and stacks on top of the auto responsive base tier (xs → xl, ±2 range).
+**For the pin label resizing**, my proposal:
+- Reuse the existing "Shared label font size" slider (the one that already scales point value labels and topo labels). The High/Low pin pills read the same size setting, so all on-plan text scales together.
+- No new UI. One slider, everything on the plan scales in unison.
 
-Only `src/components/chrome/StatsChip.tsx` changes. No logic changes to High/Low/Delta or drag behavior.
+Files touched:
+- `src/components/chrome/StatsChip.tsx` — remove the A−/A+/⋯ additions.
+- Wherever the High/Low pin markers render on the canvas (likely `PlanCanvas.tsx` or `FieldTab.tsx` — will confirm on the build) — wire pill font/padding to the shared label size.
+
+Sound right?
