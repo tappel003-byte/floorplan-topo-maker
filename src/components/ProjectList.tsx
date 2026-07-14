@@ -267,11 +267,16 @@ export function ProjectList() {
           setTrashOpen(true);
         }}
         aria-label={trashed.length > 0 ? `Trash (${trashed.length})` : "Trash"}
-        className={`fixed right-7 bottom-[calc(28px+env(safe-area-inset-bottom))] z-40 flex h-16 w-16 items-center justify-center rounded-full border border-border/40 bg-card/80 shadow-[0_10px_28px_rgba(0,0,0,0.08)] backdrop-blur-sm transition-opacity ${
-          trashed.length === 0 ? "cursor-default opacity-55" : "cursor-pointer opacity-100 hover:opacity-90"
+        className={`fixed right-[18px] bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${
+          trashed.length === 0 ? "cursor-default opacity-[0.35]" : "cursor-pointer opacity-100"
         }`}
       >
-        <Trash2 className="h-7 w-7 text-muted-foreground/55" strokeWidth={1.65} />
+        <span className="text-[24px] leading-none" aria-hidden>🗑</span>
+        {trashed.length > 0 && (
+          <span className="absolute -top-1 -right-1 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold">
+            {trashed.length}
+          </span>
+        )}
       </button>
     </div>
   );
