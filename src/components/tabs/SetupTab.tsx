@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2, Upload, Undo2 } from "lucide-react";
+import { Plus, Trash2, Upload, Undo2, ArrowRight } from "lucide-react";
 import { PlanCanvas } from "../PlanCanvas";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import type { Floor, ProjectMeta } from "@/lib/types";
