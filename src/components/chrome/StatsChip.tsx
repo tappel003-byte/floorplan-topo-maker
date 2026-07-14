@@ -71,11 +71,19 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     return null;
   });
 
-  const [tier, setTier] = useState<SizeTier>(() =>
-    typeof window === "undefined" ? "sm" : pickTier(window.innerWidth),
+  const NUDGE_KEY = `${storageKey}:nudge`;
+  const [nudge, setNudge] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(NUDGE_KEY);
+      if (raw != null) return Math.max(-2, Math.min(2, parseInt(raw, 10) || 0));
+    } catch { /* ignore */ }
+    return 0;
+  });
+  const [base, setBase] = useState<SizeTier>(() =>
+    typeof window === "undefined" ? "sm" : pickBaseTier(window.innerWidth),
   );
   useEffect(() => {
-    const onResize = () => setTier(pickTier(window.innerWidth));
+    const onResize = () => setBase(pickBaseTier(window.innerWidth));
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     return () => {
@@ -83,7 +91,17 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       window.removeEventListener("orientationchange", onResize);
     };
   }, []);
+  const tier = applyNudge(base, nudge);
   const sz = SIZE_STYLES[tier];
+  const bumpNudge = (delta: number) => {
+    setNudge((n) => {
+      const next = Math.max(-2, Math.min(2, n + delta));
+      try { localStorage.setItem(NUDGE_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const [showNudge, setShowNudge] = useState(false);
+  const longPressTimer = useRef<number | null>(null);
 
   // Default: bottom center, above the bottom pill row. Persisted position wins.
   useEffect(() => {
