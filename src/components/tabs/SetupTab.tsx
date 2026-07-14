@@ -30,25 +30,31 @@ export function SetupTab({
   onStartSurveying,
 }: Props) {
   const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
-  const canStart = !!activeFloor?.planDataUrl;
+  const hasPlan = !!activeFloor?.planDataUrl;
 
+  const steps: Array<{ key: "details" | "plan" | "boundary"; label: string }> = [
+    { key: "details", label: "1. Details" },
+    { key: "plan", label: "2. Plan" },
+    { key: "boundary", label: "3. Boundary" },
+  ];
+  const stepIndex = steps.findIndex((s) => s.key === tab);
+  const prevStep = stepIndex > 0 ? steps[stepIndex - 1] : null;
+  const nextStep = stepIndex < steps.length - 1 ? steps[stepIndex + 1] : null;
+
+  // Next / Start conditions
+  const nextDisabled = tab === "plan" && !hasPlan;
+  const startDisabled = !hasPlan;
 
   return (
     <div className="flex flex-col h-full">
       <div className="border-b flex overflow-x-auto">
-        {(
-          [
-            ["details", "Details"],
-            ["plan", "Plan & floors"],
-            ["boundary", "Boundary"],
-          ] as const
-        ).map(([k, label]) => (
+        {steps.map(({ key, label }) => (
           <button
-            key={k}
-            onClick={() => setTab(k)}
+            key={key}
+            onClick={() => setTab(key)}
             className={
               "px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px " +
-              (tab === k
+              (tab === key
                 ? "border-primary text-foreground font-medium"
                 : "border-transparent text-muted-foreground")
             }
@@ -79,17 +85,42 @@ export function SetupTab({
           />
         )}
       </div>
-      {onStartSurveying && (
-        <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center justify-end gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
-          {!canStart && (
+
+      <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+        {prevStep ? (
+          <Button variant="ghost" size="sm" onClick={() => setTab(prevStep.key)}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        ) : (
+          <div />
+        )}
+        <div className="ml-auto flex items-center gap-3">
+          {tab === "plan" && !hasPlan && (
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
-          <Button onClick={onStartSurveying} disabled={!canStart}>
-            Start surveying
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
+          {tab === "boundary" && !hasPlan && (
+            <span className="text-xs text-muted-foreground">Upload a plan first</span>
+          )}
+          {nextStep ? (
+            <Button
+              onClick={() => setTab(nextStep.key)}
+              disabled={nextDisabled}
+              variant={tab === "details" ? "default" : "default"}
+            >
+              Next: {nextStep.key === "plan" ? "Plan" : "Boundary"}
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            onStartSurveying && (
+              <Button onClick={onStartSurveying} disabled={startDisabled}>
+                Start surveying
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
