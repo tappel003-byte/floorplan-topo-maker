@@ -1,28 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
-type SizeTier = "xs" | "sm" | "md" | "lg" | "xl";
-const TIER_ORDER: SizeTier[] = ["xs", "sm", "md", "lg", "xl"];
+type SizeTier = "sm" | "md" | "lg";
 const SIZE_STYLES: Record<
   SizeTier,
   { height: string; text: string; icon: string; pad: string }
 > = {
-  xs: { height: "h-5", text: "text-[9px]", icon: "w-2 h-2", pad: "px-1" },
   sm: { height: "h-6", text: "text-[10px]", icon: "w-2.5 h-2.5", pad: "px-1.5" },
   md: { height: "h-8", text: "text-xs", icon: "w-3 h-3", pad: "px-2" },
   lg: { height: "h-10", text: "text-sm", icon: "w-3.5 h-3.5", pad: "px-2.5" },
-  xl: { height: "h-12", text: "text-base", icon: "w-4 h-4", pad: "px-3" },
 };
 function pickBaseTier(w: number): SizeTier {
   if (w >= 1280) return "lg";
   if (w >= 768) return "md";
   return "sm";
 }
-function applyNudge(base: SizeTier, nudge: number): SizeTier {
-  const i = TIER_ORDER.indexOf(base);
-  const j = Math.max(0, Math.min(TIER_ORDER.length - 1, i + nudge));
-  return TIER_ORDER[j];
-}
+
 import type { SurveyPoint } from "@/lib/types";
 
 interface Props {
@@ -71,14 +64,6 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     return null;
   });
 
-  const NUDGE_KEY = `${storageKey}:nudge`;
-  const [nudge, setNudge] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem(NUDGE_KEY);
-      if (raw != null) return Math.max(-2, Math.min(2, parseInt(raw, 10) || 0));
-    } catch { /* ignore */ }
-    return 0;
-  });
   const [base, setBase] = useState<SizeTier>(() =>
     typeof window === "undefined" ? "sm" : pickBaseTier(window.innerWidth),
   );
@@ -91,17 +76,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       window.removeEventListener("orientationchange", onResize);
     };
   }, []);
-  const tier = applyNudge(base, nudge);
-  const sz = SIZE_STYLES[tier];
-  const bumpNudge = (delta: number) => {
-    setNudge((n) => {
-      const next = Math.max(-2, Math.min(2, n + delta));
-      try { localStorage.setItem(NUDGE_KEY, String(next)); } catch { /* ignore */ }
-      return next;
-    });
-  };
-  const [showNudge, setShowNudge] = useState(false);
-  const longPressTimer = useRef<number | null>(null);
+  const sz = SIZE_STYLES[base];
+
 
   // Default: bottom center, above the bottom pill row. Persisted position wins.
   useEffect(() => {
@@ -156,11 +132,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       pointerId: e.pointerId,
       moved: false,
     };
-    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-    longPressTimer.current = window.setTimeout(() => {
-      if (drag.current && !drag.current.moved) setShowNudge((s) => !s);
-    }, 500);
   };
+
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || d.pointerId !== e.pointerId) return;
@@ -168,10 +141,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     const dy = e.clientY - d.startY;
     if (!d.moved && Math.hypot(dx, dy) < 5) return;
     d.moved = true;
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
+
+
     const w = ref.current?.offsetWidth ?? 0;
     const h = ref.current?.offsetHeight ?? 0;
     const top = topChromeHeight();
@@ -183,10 +154,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     const d = drag.current;
     if (!d || d.pointerId !== e.pointerId) return;
     drag.current = null;
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
+
+
     if (d.moved) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(pos));
@@ -236,41 +205,6 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       <div className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-500`}>
         <span className="font-mono">Δ{stats.delta.toFixed(2)}</span>
       </div>
-      {showNudge && (
-        <>
-          <button
-            type="button"
-            className={`${sz.pad} flex items-center justify-center border-l border-gray-200 text-gray-700 hover:bg-gray-100 active:bg-gray-200 font-semibold`}
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); bumpNudge(-1); }}
-            aria-label="Shrink stats chip"
-          >
-            A−
-          </button>
-          <button
-            type="button"
-            className={`${sz.pad} flex items-center justify-center border-l border-gray-200 text-gray-700 hover:bg-gray-100 active:bg-gray-200 font-semibold`}
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); bumpNudge(1); }}
-            aria-label="Enlarge stats chip"
-          >
-            A+
-          </button>
-        </>
-      )}
-      <button
-        type="button"
-        className={`${sz.pad} flex items-center justify-center border-l border-gray-200 text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:bg-gray-200`}
-        onPointerDown={(e) => e.stopPropagation()}
-        onPointerUp={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); setShowNudge((s) => !s); }}
-        aria-label={showNudge ? "Hide size controls" : "Show size controls"}
-        title="Resize"
-      >
-        <span className="font-bold leading-none">⋯</span>
-      </button>
 
     </div>
   );
