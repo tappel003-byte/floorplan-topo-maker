@@ -266,6 +266,11 @@ function ProjectWorkspace() {
             floor={activeFloor}
             points={points}
             correctedById={new Map(correctedPoints.map((p) => [p.id, p.value]))}
+            zoneLabelById={
+              new Map(
+                Array.from(exclusionMap.entries()).map(([id, z]) => [id, z.label ?? ""]),
+              )
+            }
             onPointsChange={setPoints}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
