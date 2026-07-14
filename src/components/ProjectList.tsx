@@ -277,6 +277,19 @@ export function ProjectList() {
           )}
         </DialogContent>
       </Dialog>
+
+      {trashed.length > 0 && (
+        <button
+          onClick={() => setTrashOpen(true)}
+          aria-label={`Trash (${trashed.length})`}
+          className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-background border border-border shadow-lg flex items-center justify-center hover:bg-accent transition-colors"
+        >
+          <Trash2 className="h-6 w-6 text-muted-foreground" />
+          <span className="absolute -top-1 -right-1 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-semibold">
+            {trashed.length}
+          </span>
+        </button>
+      )}
     </div>
   );
 }
