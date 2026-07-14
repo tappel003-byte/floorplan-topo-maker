@@ -1,45 +1,34 @@
-## Goal
+I understand the correction: the trash can should not be hidden. It should look and behave like the Distress Survey home-screen trash can.
 
-Match the Distress Survey pattern: deleting a project from the home screen moves it to a Trash bin instead of erasing it. A separate "empty trash" step is what actually deletes. So a stray tap can't lose a project.
+Plan:
 
-## Behavior
+1. Keep the existing two-step delete logic
+   - Project row delete still moves a project to trash.
+   - Trash screen still allows Restore and Delete forever.
+   - Permanent delete remains protected by confirmation.
 
-**Project row overflow menu**
-- "Delete" is replaced with **"Move to trash"** (still one confirm, but low-stakes wording: "Move to trash? You can restore it later.").
-- Export stays as-is.
+2. Change the home-screen trash button to match Distress Survey
+   - Always render the trash can on the home screen, even when empty.
+   - Bottom-right fixed circular button.
+   - 56px by 56px.
+   - Warm paper background, border, shadow.
+   - Empty state is visible but faded/disabled-looking.
+   - When trash has projects, show the count badge in the top-right.
 
-**Home screen (project list)**
-- A **Trash** button appears in the header next to Import, with a small count badge when non-empty. Hidden or disabled when trash is empty.
-- Trashed projects do not appear in the main list.
+3. Change empty-trash behavior to match Distress Survey
+   - Tapping the empty trash can does not open the dialog.
+   - It gives a small “Trash is empty” message.
+   - Tapping it when non-empty opens the trash screen/dialog.
 
-**Trash screen** (opens as a dialog / sheet from the header button)
-- Lists trashed projects with name, address, date trashed.
-- Each row: **Restore** and **Delete forever** (Delete forever asks a hard confirm: "Permanently delete 'Smith House'? This cannot be undone.").
-- Footer button: **Empty trash** — hard confirm ("Permanently delete all N projects in trash?"), then wipes them all.
-- No auto-purge timer — items stay until the user empties trash. (Distress Survey uses 30 days; skipping that keeps this simple, and it's what you actually asked for. Say the word if you want auto-purge.)
+4. Make the trash contents match the Distress Survey pattern
+   - Project row with title/address info.
+   - Restore button.
+   - Delete forever button.
+   - Remove the separate “Empty trash” bulk-delete footer, because the Distress Survey model deletes forever per project rather than encouraging accidental bulk emptying.
 
-**Restore behavior**
-- Restore puts the project back in the main list untouched (same id, same data). No V2 renaming — this isn't an import.
+Technical notes:
 
-## Data model
-
-`ProjectMeta` gains an optional `deletedAt?: number` field.
-- `listProjects()` filters out rows with `deletedAt` set.
-- New `listTrashedProjects()` returns only rows with `deletedAt` set, newest-first.
-- New `trashProject(id)` sets `deletedAt = Date.now()` and saves.
-- New `restoreProject(id)` clears `deletedAt` and saves.
-- Existing `deleteProject(id)` (hard delete + cascades floors/points) is what "Delete forever" and "Empty trash" call.
-
-No IndexedDB schema bump needed — `deletedAt` is just an optional property on existing project records.
-
-## Files touched
-
-- `src/lib/types.ts` — add `deletedAt?: number` to `ProjectMeta`.
-- `src/lib/db.ts` — filter `listProjects`, add `listTrashedProjects`, `trashProject`, `restoreProject`.
-- `src/components/ProjectList.tsx` — rename menu item, add Trash header button + badge, add Trash dialog with Restore / Delete forever / Empty trash.
-
-Nothing else changes. Export/import, setup flow, and everything inside a project are untouched.
-
-## Open question
-
-One thing I want to confirm before building: **should the Trash button be visible when empty (disabled/greyed) or hidden entirely until something is in it?** Distress Survey shows a dimmed FAB always. Your call — I'll default to "hidden until non-empty" unless you say otherwise.
+- Update `src/components/ProjectList.tsx` only.
+- Replace the conditional floating trash button with an always-rendered button.
+- Use the existing `trashed.length` state for empty styling, badge display, and click behavior.
+- Keep the already-added `deletedAt`, `trashProject`, `restoreProject`, and `deleteProject` functions as-is.
