@@ -11,6 +11,7 @@ import { Pencil, List, Trash2 } from "lucide-react";
 import type { Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
 import { transitionDelta, formatDelta, getChainBaselineSurface } from "@/lib/transitions";
+import { drawExclusionShape, zoneOfXY } from "@/lib/exclusions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 
@@ -896,6 +897,10 @@ export function FieldTab({
           commitSnap(nextPts);
         }}
         drawOverlay={(ctx) => {
+          // Excluded areas — hatched fill under everything else so pins remain legible.
+          for (const ex of floor.exclusions ?? []) {
+            drawExclusionShape(ctx, ex.polygon, { closed: true, muted: true });
+          }
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
           // Highlighted ids = full chain of the viewed transition, plus the
           // active chain when its popover is open (so tapping the pill lights
@@ -993,6 +998,16 @@ export function FieldTab({
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, lx + tm.width / 2, ly - padY + (labelFontSize + padY * 2) / 2);
+
+            // Zone tag for excluded points — small muted label below the pin
+            const zone = zoneOfXY(p.x, p.y, floor.exclusions);
+            if (zone && zone.label) {
+              ctx.font = `${Math.max(9, labelFontSize - 2)}px sans-serif`;
+              ctx.fillStyle = "rgba(75,85,99,0.9)";
+              ctx.textAlign = "left";
+              ctx.textBaseline = "top";
+              ctx.fillText(zone.label, lx, ly + labelFontSize + padY * 2 + 2);
+            }
           }
 
 

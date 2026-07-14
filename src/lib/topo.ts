@@ -141,8 +141,16 @@ export function buildGrid(
   points: SurveyPoint[],
   boundary: Array<{ x: number; y: number }>,
   targetCols = TOPO_GRID_TARGET_COLS,
+  exclusions?: Array<Array<{ x: number; y: number }>>,
 ): Grid | null {
-  if (points.length < 3 || boundary.length < 3) return null;
+  // Drop readings that fall inside any exclusion — they must not influence
+  // the interpolated surface.
+  const excl = exclusions?.filter((p) => p.length >= 3) ?? [];
+  const activePoints = excl.length
+    ? points.filter((p) => !excl.some((poly) => pointInPolygon(p.x, p.y, poly)))
+    : points;
+
+  if (activePoints.length < 3 || boundary.length < 3) return null;
 
   const xs = boundary.map((p) => p.x);
   const ys = boundary.map((p) => p.y);
@@ -158,10 +166,10 @@ export function buildGrid(
 
   const values = new Float64Array(cols * rows);
   const mask = new Uint8Array(cols * rows);
-  const minV = Math.min(...points.map((p) => p.value));
-  const maxV = Math.max(...points.map((p) => p.value));
+  const minV = Math.min(...activePoints.map((p) => p.value));
+  const maxV = Math.max(...activePoints.map((p) => p.value));
 
-  const tps = fitTps(points);
+  const tps = fitTps(activePoints);
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -172,7 +180,12 @@ export function buildGrid(
         values[idx] = NaN;
         continue;
       }
-      const rawValue = tps ? evalTps(tps, px, py) : interpolateIdw(px, py, points, 2);
+      // Skip cells inside any exclusion — they render as "no data".
+      if (excl.length && excl.some((poly) => pointInPolygon(px, py, poly))) {
+        values[idx] = NaN;
+        continue;
+      }
+      const rawValue = tps ? evalTps(tps, px, py) : interpolateIdw(px, py, activePoints, 2);
       // The topo should never invent elevations beyond the measured high/low.
       // TPS can mathematically overshoot near an edge; clamping keeps every
       // rendered color and contour inside the same range shown in the legend.

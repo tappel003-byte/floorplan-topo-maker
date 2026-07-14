@@ -16,6 +16,7 @@ import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrections
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues } from "@/lib/transitions";
+import { computeExclusionMap } from "@/lib/exclusions";
 
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
@@ -154,6 +155,17 @@ function ProjectWorkspace() {
     [points, activeFloor?.transitions, activeFloor?.transitionGroupAverages],
   );
 
+  // Points inside an exclusion zone are dropped from stats and from the topo
+  // interpolator. They still render on the plan and appear in Review.
+  const exclusionMap = useMemo(
+    () => computeExclusionMap(correctedPoints, activeFloor?.exclusions),
+    [correctedPoints, activeFloor?.exclusions],
+  );
+  const nonExcludedPoints = useMemo(
+    () => correctedPoints.filter((p) => !exclusionMap.has(p.id)),
+    [correctedPoints, exclusionMap],
+  );
+
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
   const handleFloorChange = useCallback((f: Floor) => {
     setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)));
@@ -254,6 +266,11 @@ function ProjectWorkspace() {
             floor={activeFloor}
             points={points}
             correctedById={new Map(correctedPoints.map((p) => [p.id, p.value]))}
+            zoneLabelById={
+              new Map(
+                Array.from(exclusionMap.entries()).map(([id, z]) => [id, z.label ?? ""]),
+              )
+            }
             onPointsChange={setPoints}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
@@ -295,8 +312,8 @@ function ProjectWorkspace() {
           <StatsChip
             points={
               mode === "topo" && topoExcludedIds.size
-                ? correctedPoints.filter((p) => !topoExcludedIds.has(p.id))
-                : correctedPoints
+                ? nonExcludedPoints.filter((p) => !topoExcludedIds.has(p.id))
+                : nonExcludedPoints
             }
             onHighlight={(p) => {
               if (mode === "field") {

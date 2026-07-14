@@ -51,7 +51,18 @@ export interface Floor {
   // When set, every transition in that group resolves to this delta instead of
   // its own measured (readingA − readingB). Cleared by "Revert" in the sheet.
   transitionGroupAverages?: Record<string, number>;
+  // Excluded areas — polygons inside the outer boundary that the topo engine
+  // treats as holes. Readings inside still plot and appear in Review; they
+  // just don't influence the contour surface or the stats.
+  exclusions?: Exclusion[];
 
+}
+
+export interface Exclusion {
+  id: string;
+  label?: string;                        // "Garage", "Sunken LR"
+  polygon: Array<{ x: number; y: number }>; // image coords
+  createdAt: number;
 }
 
 export interface NotePin {

@@ -8,6 +8,7 @@ interface Props {
   floor: Floor;
   points: SurveyPoint[];
   correctedById?: Map<string, number>;
+  zoneLabelById?: Map<string, string>;
   onPointsChange: (points: SurveyPoint[]) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
@@ -20,6 +21,7 @@ export function ReviewTab({
   floor,
   points,
   correctedById,
+  zoneLabelById,
   onPointsChange,
   selectedIds,
   setSelectedIds,
@@ -30,18 +32,23 @@ export function ReviewTab({
   const [sortMode, setSortMode] = useState<"index" | "high" | "low">("index");
 
   const displayValue = (p: SurveyPoint) => correctedById?.get(p.id) ?? p.value;
+  const zoneLabel = (p: SurveyPoint) => zoneLabelById?.get(p.id) ?? "";
+  const isExcluded = (p: SurveyPoint) => !!zoneLabelById && zoneLabelById.has(p.id);
 
+  // Stats exclude points inside an exclusion zone. Range/min/max reflect the
+  // topo-visible surface, not readings that were intentionally dropped.
   const stats = useMemo(() => {
-    if (points.length === 0) return null;
-    const vals = points.map(displayValue);
+    const active = points.filter((p) => !isExcluded(p));
+    if (active.length === 0) return null;
+    const vals = active.map(displayValue);
     const min = Math.min(...vals);
     const max = Math.max(...vals);
     const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
     const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length;
     const std = Math.sqrt(variance);
-    return { min, max, mean, std, range: max - min };
+    return { min, max, mean, std, range: max - min, count: active.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, correctedById]);
+  }, [points, correctedById, zoneLabelById]);
 
   const outliers = useMemo(() => {
     if (!stats || points.length < 4) return new Set<string>();
@@ -95,7 +102,14 @@ export function ReviewTab({
       </div>
       {stats && (
         <div className="border-b p-3 grid grid-cols-4 gap-2 text-center text-xs">
-          <Stat label="Points" value={points.length.toString()} />
+          <Stat
+            label="Points"
+            value={
+              points.length === stats.count
+                ? points.length.toString()
+                : `${stats.count} / ${points.length}`
+            }
+          />
           <Stat label="Range" value={stats.range.toFixed(2) + '"'} />
           <Stat label="Min" value={stats.min.toFixed(2) + '"'} />
           <Stat label="Max" value={stats.max.toFixed(2) + '"'} />
@@ -112,6 +126,7 @@ export function ReviewTab({
               <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
                 <th className="text-left font-medium px-3 py-2 w-10">Pin</th>
                 <th className="text-right font-medium px-2 py-2">Elev</th>
+                <th className="text-left font-medium px-2 py-2">Zone</th>
                 <th className="text-right font-medium px-2 py-2">X</th>
                 <th className="text-right font-medium px-3 py-2">Y</th>
               </tr>
@@ -120,6 +135,7 @@ export function ReviewTab({
               {sortedPoints.map((p) => {
                 const selected = selectedIds.has(p.id);
                 const isOutlier = outliers.has(p.id);
+                const excluded = isExcluded(p);
                 return (
                   <tr
                     key={p.id}
@@ -166,6 +182,15 @@ export function ReviewTab({
                         </p>
                       )}
                     </td>
+                    <td className="px-2 py-2 text-left text-xs text-muted-foreground align-top">
+                      {excluded ? (
+                        <span className="inline-flex items-center rounded bg-amber-100 text-amber-900 px-1.5 py-0.5 text-[10px] font-medium">
+                          {zoneLabel(p) || "Excluded"}
+                        </span>
+                      ) : (
+                        <span className="opacity-50">—</span>
+                      )}
+                    </td>
                     <td className="px-2 py-2 text-right font-mono text-xs text-muted-foreground tabular-nums align-top">
                       {Math.round(p.x)}
                     </td>
@@ -176,7 +201,7 @@ export function ReviewTab({
                 );
               })}
               <tr>
-                <td colSpan={4} className="h-24" />
+                <td colSpan={5} className="h-24" />
               </tr>
             </tbody>
           </table>

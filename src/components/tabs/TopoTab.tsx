@@ -17,6 +17,7 @@ import {
   contourThresholds,
   type Grid,
 } from "@/lib/topo";
+import { drawExclusionShape } from "@/lib/exclusions";
 import { savePoint, saveFloor } from "@/lib/db";
 
 interface Props {
@@ -171,7 +172,8 @@ export function TopoTab({
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS);
+    const exPolys = (floor.exclusions ?? []).map((e) => e.polygon);
+    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS, exPolys);
     if (!grid) return null;
     const cs = computeContours(grid, contourOptions(grid, resolved));
     return { grid, contours: cs };
@@ -179,6 +181,7 @@ export function TopoTab({
     canRender,
     visiblePoints,
     floor.boundary,
+    floor.exclusions,
     resolved.firstContour,
     resolved.contourStep,
     resolved.contourCount,
@@ -1039,6 +1042,12 @@ function renderTopoBase(
     ctx.restore();
   }
 
+  // Excluded areas — draw hatched shapes on top of the contour fill so viewers
+  // see WHY there's a gap. Rendered inside renderTopoBase so they sit under
+  // the wall plan (plan draws on top when planOnTop is set).
+  for (const ex of floor.exclusions ?? []) {
+    drawExclusionShape(ctx, ex.polygon, { closed: true, muted: false });
+  }
 }
 
 // Top pass: points, point labels, high/low pins, legend. Meant to sit OVER the wall plan.

@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { TOPO_GRID_TARGET_COLS, buildGrid, computeContours } from "@/lib/topo";
+import { zoneOfXY } from "@/lib/exclusions";
 import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
 
@@ -38,8 +39,9 @@ export function ExportTab({ project, floor, points, settings }: Props) {
 
   const grid = useMemo(() => {
     if (points.length < 3 || floor.boundary.length < 3) return null;
-    return buildGrid(points, floor.boundary, TOPO_GRID_TARGET_COLS);
-  }, [points, floor.boundary]);
+    const exPolys = (floor.exclusions ?? []).map((e) => e.polygon);
+    return buildGrid(points, floor.boundary, TOPO_GRID_TARGET_COLS, exPolys);
+  }, [points, floor.boundary, floor.exclusions]);
 
   const gridAndContours = useMemo(() => {
     if (!grid) return null;
@@ -102,9 +104,10 @@ export function ExportTab({ project, floor, points, settings }: Props) {
   function downloadCsv() {
     const safe = project.name.replace(/[^a-z0-9-]+/gi, "_");
     const rows: string[] = [];
-    rows.push(["index", "label", "x", "y", "value", "role", "notes"].join(","));
+    rows.push(["index", "label", "x", "y", "value", "role", "zone", "notes"].join(","));
     for (const p of points) {
       const role = p.isBasePoint ? "base-point" : "normal";
+      const zone = zoneOfXY(p.x, p.y, floor.exclusions);
       const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
       rows.push(
         [
@@ -114,6 +117,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
           p.y.toFixed(2),
           p.value.toFixed(3),
           role,
+          esc(zone?.label ?? ""),
           esc(p.notes ?? ""),
         ].join(","),
       );
