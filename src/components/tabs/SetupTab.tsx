@@ -316,123 +316,362 @@ function PlanPanel({
 
 function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) => void }) {
   const boundary = floor.boundary;
-  // Drag state for moving an existing vertex.
+  const exclusions = floor.exclusions ?? [];
+  const boundaryClosed = boundary.length >= 3;
+
+  // Which polygon are we drawing / editing?
+  // "boundary": outer boundary. "exclusion:new": drafting a new exclusion.
+  // "exclusion:<id>": editing an existing one (vertex drag).
+  const [tool, setTool] = useState<"boundary" | "exclusion">("boundary");
+  const [draft, setDraft] = useState<{ x: number; y: number }[] | null>(null);
+
+  // Drag state — works for boundary and any exclusion polygon.
   const dragRef = useRef<{
+    target: "boundary" | { exclusionId: string };
     index: number;
     original: { x: number; y: number };
     moved: boolean;
   } | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [, force] = useState(0);
 
-  // Hit radius in image pixels. Vertex circles are r=6; give a generous grab zone.
   const HIT_RADIUS = 18;
 
-  function findVertexAt(x: number, y: number): number {
-    let best = -1;
+  function findVertexAt(x: number, y: number):
+    | { target: "boundary"; index: number }
+    | { target: { exclusionId: string }; index: number }
+    | null {
+    let best: { target: "boundary" | { exclusionId: string }; index: number } | null = null;
     let bestD2 = HIT_RADIUS * HIT_RADIUS;
-    for (let i = 0; i < boundary.length; i++) {
-      const dx = boundary[i].x - x;
-      const dy = boundary[i].y - y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 <= bestD2) {
-        bestD2 = d2;
-        best = i;
+    if (tool === "boundary" || tool === "exclusion") {
+      for (let i = 0; i < boundary.length; i++) {
+        const dx = boundary[i].x - x;
+        const dy = boundary[i].y - y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= bestD2 && tool === "boundary") {
+          bestD2 = d2;
+          best = { target: "boundary", index: i };
+        }
       }
     }
-    return best;
+    if (tool === "exclusion") {
+      for (const ex of exclusions) {
+        for (let i = 0; i < ex.polygon.length; i++) {
+          const dx = ex.polygon[i].x - x;
+          const dy = ex.polygon[i].y - y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= bestD2) {
+            bestD2 = d2;
+            best = { target: { exclusionId: ex.id }, index: i };
+          }
+        }
+      }
+    }
+    return best as ReturnType<typeof findVertexAt>;
   }
+
+  function saveDraft() {
+    if (!draft || draft.length < 3) return;
+    const ex: Exclusion = {
+      id: uid(),
+      polygon: draft,
+      label: `Excluded ${exclusions.length + 1}`,
+      createdAt: Date.now(),
+    };
+    onChange({ ...floor, exclusions: [...exclusions, ex] });
+    setDraft(null);
+  }
+
+  function updateExclusion(id: string, patch: Partial<Exclusion>) {
+    onChange({
+      ...floor,
+      exclusions: exclusions.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+    });
+  }
+
+  function deleteExclusion(id: string) {
+    if (!confirm("Delete this excluded area?")) return;
+    onChange({ ...floor, exclusions: exclusions.filter((e) => e.id !== id) });
+  }
+
+  const drafting = tool === "exclusion" && !!draft;
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b p-2 flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">
-          Tap to add vertices. Drag a vertex to move it.
-        </span>
-        <div className="ml-auto flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onChange({ ...floor, boundary: boundary.slice(0, -1) })}
-            disabled={boundary.length === 0}
-          >
-            <Undo2 className="h-4 w-4 mr-1" /> Undo
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onChange({ ...floor, boundary: [] })}
-            disabled={boundary.length === 0}
-          >
-            Clear
-          </Button>
+      {/* Tool switcher */}
+      <div className="border-b bg-background/70 px-2 py-1.5 flex items-center gap-1">
+        <Button
+          size="sm"
+          variant={tool === "boundary" ? "default" : "ghost"}
+          onClick={() => {
+            setTool("boundary");
+            setDraft(null);
+          }}
+          className="h-7"
+        >
+          Outer boundary
+        </Button>
+        <Button
+          size="sm"
+          variant={tool === "exclusion" ? "default" : "ghost"}
+          onClick={() => setTool("exclusion")}
+          disabled={!boundaryClosed}
+          className="h-7"
+          title={boundaryClosed ? undefined : "Draw the outer boundary first"}
+        >
+          <Ban className="h-3.5 w-3.5 mr-1" />
+          Excluded areas
+        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          {tool === "boundary" && (
+            <>
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                Tap to add · drag a vertex to move
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onChange({ ...floor, boundary: boundary.slice(0, -1) })}
+                disabled={boundary.length === 0}
+              >
+                <Undo2 className="h-4 w-4 mr-1" /> Undo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onChange({ ...floor, boundary: [] })}
+                disabled={boundary.length === 0}
+              >
+                Clear
+              </Button>
+            </>
+          )}
+          {tool === "exclusion" && !drafting && (
+            <Button size="sm" variant="outline" onClick={() => setDraft([])}>
+              <Plus className="h-4 w-4 mr-1" /> New excluded area
+            </Button>
+          )}
+          {tool === "exclusion" && drafting && (
+            <>
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                Tap to add corners · at least 3
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDraft((d) => (d ? d.slice(0, -1) : d))}
+                disabled={!draft || draft.length === 0}
+              >
+                <Undo2 className="h-4 w-4 mr-1" /> Undo
+              </Button>
+              <Button
+                size="sm"
+                variant="default"
+                onClick={saveDraft}
+                disabled={!draft || draft.length < 3}
+              >
+                <Check className="h-4 w-4 mr-1" /> Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setDraft(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Exclusion list (only when in exclusion mode with some existing) */}
+      {tool === "exclusion" && exclusions.length > 0 && (
+        <div className="border-b px-2 py-1.5 flex flex-wrap gap-1.5 bg-muted/30">
+          {exclusions.map((ex) => (
+            <div
+              key={ex.id}
+              className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs"
+            >
+              <input
+                value={ex.label ?? ""}
+                onChange={(e) => updateExclusion(ex.id, { label: e.target.value })}
+                className="w-24 bg-transparent outline-none border-b border-transparent focus:border-primary"
+                placeholder="Label"
+              />
+              <button
+                type="button"
+                onClick={() => deleteExclusion(ex.id)}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="Delete excluded area"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <PlanCanvas
         planDataUrl={floor.planDataUrl}
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
         onTap={(x, y) => {
-          // Suppress add-vertex if this tap was on an existing vertex (handled as drag).
-          if (findVertexAt(x, y) >= 0) return;
-          onChange({ ...floor, boundary: [...boundary, { x, y }] });
+          if (tool === "boundary") {
+            const hit = findVertexAt(x, y);
+            if (hit) return; // handled as drag
+            onChange({ ...floor, boundary: [...boundary, { x, y }] });
+          } else if (drafting && draft) {
+            setDraft([...draft, { x, y }]);
+          }
         }}
         onImagePointerDown={(x, y) => {
-          const idx = findVertexAt(x, y);
-          if (idx < 0) return false;
-          dragRef.current = {
-            index: idx,
-            original: { x: boundary[idx].x, y: boundary[idx].y },
-            moved: false,
-          };
-          setDragIndex(idx);
-          return true; // consume — prevents pan/tap
+          const hit = findVertexAt(x, y);
+          if (!hit) return false;
+          if (hit.target === "boundary") {
+            dragRef.current = {
+              target: "boundary",
+              index: hit.index,
+              original: { x: boundary[hit.index].x, y: boundary[hit.index].y },
+              moved: false,
+            };
+          } else {
+            const eid = hit.target.exclusionId;
+            const ex = exclusions.find((e) => e.id === eid)!;
+            dragRef.current = {
+              target: { exclusionId: eid },
+              index: hit.index,
+              original: { x: ex.polygon[hit.index].x, y: ex.polygon[hit.index].y },
+              moved: false,
+            };
+          }
+          force((n) => n + 1);
+          return true;
         }}
         onImagePointerMove={(x, y) => {
           const drag = dragRef.current;
           if (!drag) return;
           drag.moved = true;
-          const next = boundary.slice();
-          next[drag.index] = { x, y };
-          onChange({ ...floor, boundary: next });
+          if (drag.target === "boundary") {
+            const next = boundary.slice();
+            next[drag.index] = { x, y };
+            onChange({ ...floor, boundary: next });
+          } else {
+            const eid = drag.target.exclusionId;
+            onChange({
+              ...floor,
+              exclusions: exclusions.map((e) => {
+                if (e.id !== eid) return e;
+                const poly = e.polygon.slice();
+                poly[drag.index] = { x, y };
+                return { ...e, polygon: poly };
+              }),
+            });
+          }
         }}
         onImagePointerUp={() => {
           dragRef.current = null;
-          setDragIndex(null);
+          force((n) => n + 1);
         }}
         onImagePointerCancel={() => {
-          // Pinch preempted — revert to original position so nothing gets nudged accidentally.
           const drag = dragRef.current;
           if (drag && drag.moved) {
-            const next = boundary.slice();
-            next[drag.index] = drag.original;
-            onChange({ ...floor, boundary: next });
+            if (drag.target === "boundary") {
+              const next = boundary.slice();
+              next[drag.index] = drag.original;
+              onChange({ ...floor, boundary: next });
+            } else {
+              const eid = drag.target.exclusionId;
+              onChange({
+                ...floor,
+                exclusions: exclusions.map((e) => {
+                  if (e.id !== eid) return e;
+                  const poly = e.polygon.slice();
+                  poly[drag.index] = drag.original;
+                  return { ...e, polygon: poly };
+                }),
+              });
+            }
           }
           dragRef.current = null;
-          setDragIndex(null);
+          force((n) => n + 1);
         }}
         drawOverlay={(ctx) => {
-          if (boundary.length === 0) return;
-          ctx.beginPath();
-          boundary.forEach((p, i) => {
-            if (i === 0) ctx.moveTo(p.x, p.y);
-            else ctx.lineTo(p.x, p.y);
-          });
-          if (boundary.length > 2) ctx.closePath();
-          ctx.fillStyle = "rgba(59,130,246,0.15)";
-          ctx.fill();
-          ctx.strokeStyle = "#2563eb";
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          boundary.forEach((p, i) => {
-            const active = i === dragIndex;
+          // Boundary
+          if (boundary.length > 0) {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, active ? 9 : 6, 0, Math.PI * 2);
-            ctx.fillStyle = active ? "#f59e0b" : "#2563eb";
-            ctx.fill();
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 2;
+            boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+            if (boundary.length > 2) ctx.closePath();
+            ctx.fillStyle = "rgba(59,130,246,0.15)";
+            if (boundary.length > 2) ctx.fill();
+            ctx.strokeStyle = "#2563eb";
+            ctx.lineWidth = 3;
             ctx.stroke();
-          });
+            const dragging =
+              dragRef.current && dragRef.current.target === "boundary"
+                ? dragRef.current.index
+                : -1;
+            boundary.forEach((p, i) => {
+              const active = i === dragging;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, active ? 9 : 6, 0, Math.PI * 2);
+              ctx.fillStyle = active ? "#f59e0b" : "#2563eb";
+              ctx.fill();
+              ctx.strokeStyle = "#ffffff";
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            });
+          }
+
+          // Saved exclusions
+          for (const ex of exclusions) {
+            drawExclusionShape(ctx, ex.polygon, {
+              closed: true,
+              muted: tool !== "exclusion",
+            });
+            if (tool === "exclusion") {
+              const dragging =
+                dragRef.current &&
+                typeof dragRef.current.target === "object" &&
+                dragRef.current.target.exclusionId === ex.id
+                  ? dragRef.current.index
+                  : -1;
+              ex.polygon.forEach((p, i) => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, i === dragging ? 8 : 5, 0, Math.PI * 2);
+                ctx.fillStyle = i === dragging ? "#f59e0b" : "#4b5563";
+                ctx.fill();
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+              });
+              if (ex.polygon.length > 0 && ex.label) {
+                const cx = ex.polygon.reduce((s, p) => s + p.x, 0) / ex.polygon.length;
+                const cy = ex.polygon.reduce((s, p) => s + p.y, 0) / ex.polygon.length;
+                ctx.font = "bold 12px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                const tw = ctx.measureText(ex.label).width;
+                ctx.fillStyle = "rgba(255,255,255,0.9)";
+                ctx.fillRect(cx - tw / 2 - 4, cy - 9, tw + 8, 18);
+                ctx.fillStyle = "#374151";
+                ctx.fillText(ex.label, cx, cy);
+              }
+            }
+          }
+
+          // Draft exclusion
+          if (drafting && draft) {
+            drawExclusionShape(ctx, draft, { closed: draft.length >= 3, muted: false });
+            draft.forEach((p, i) => {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+              ctx.fillStyle = "#4b5563";
+              ctx.fill();
+              ctx.strokeStyle = "#fff";
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+              ctx.fillStyle = "#111827";
+              ctx.font = "bold 10px sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(String(i + 1), p.x, p.y - 12);
+            });
+          }
         }}
       />
     </div>
