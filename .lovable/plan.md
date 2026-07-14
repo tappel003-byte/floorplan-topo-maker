@@ -1,14 +1,17 @@
-Misread the last request. You want:
+## Goal
+Make the floating High / Low / Δ pill (StatsChip) scale sensibly across phone, tablet, and desktop instead of a fixed 24px tall / 10px-text chip.
 
-1. **Revert the stats chip** back to just `↑10.20  ↓8.20  Δ2.00` — remove the A−, A+, and ⋯ buttons entirely.
-2. **Make the "High" / "Low" pin labels on the plan resizable** — the red/blue pills that mark the high and low points on the canvas (image 1). Right now they're a fixed size and don't scale with the plan.
+## Approach
+Add a responsive size system to `src/components/chrome/StatsChip.tsx`:
 
-**For the pin label resizing**, my proposal:
-- Reuse the existing "Shared label font size" slider (the one that already scales point value labels and topo labels). The High/Low pin pills read the same size setting, so all on-plan text scales together.
-- No new UI. One slider, everything on the plan scales in unison.
+1. **Auto-scale by viewport width** (three tiers, picked on mount + resize):
+   - Phone (<768px): current size (h-6, text-[10px], icons 2.5)
+   - Tablet (768–1279px): h-8, text-xs, icons 3
+   - Desktop (≥1280px): h-10, text-sm, icons 3.5
+2. **User override**: small `−` / `+` buttons or a 0.75×–1.75× multiplier stored in localStorage (`stats-chip-scale`), so the user can nudge it on any device.
+3. Recompute chip width/height clamp on resize so the persisted position stays on-screen after the size changes.
 
-Files touched:
-- `src/components/chrome/StatsChip.tsx` — remove the A−/A+/⋯ additions.
-- Wherever the High/Low pin markers render on the canvas (likely `PlanCanvas.tsx` or `FieldTab.tsx` — will confirm on the build) — wire pill font/padding to the shared label size.
+Nothing else changes — position, drag, tap-to-highlight, and persistence all stay as-is.
 
-Sound right?
+## Open question
+Do you want the size to be **fully automatic** by screen size (simplest, no controls), or **automatic with a small +/− nudge** the user can override? I'd default to fully automatic unless you want the manual nudge.

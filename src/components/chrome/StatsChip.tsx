@@ -10,12 +10,11 @@ const SIZE_STYLES: Record<
   md: { height: "h-8", text: "text-xs", icon: "w-3 h-3", pad: "px-2" },
   lg: { height: "h-10", text: "text-sm", icon: "w-3.5 h-3.5", pad: "px-2.5" },
 };
-function pickBaseTier(w: number): SizeTier {
+function pickTier(w: number): SizeTier {
   if (w >= 1280) return "lg";
   if (w >= 768) return "md";
   return "sm";
 }
-
 import type { SurveyPoint } from "@/lib/types";
 
 interface Props {
@@ -64,11 +63,11 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     return null;
   });
 
-  const [base, setBase] = useState<SizeTier>(() =>
-    typeof window === "undefined" ? "sm" : pickBaseTier(window.innerWidth),
+  const [tier, setTier] = useState<SizeTier>(() =>
+    typeof window === "undefined" ? "sm" : pickTier(window.innerWidth),
   );
   useEffect(() => {
-    const onResize = () => setBase(pickBaseTier(window.innerWidth));
+    const onResize = () => setTier(pickTier(window.innerWidth));
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     return () => {
@@ -76,8 +75,7 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       window.removeEventListener("orientationchange", onResize);
     };
   }, []);
-  const sz = SIZE_STYLES[base];
-
+  const sz = SIZE_STYLES[tier];
 
   // Default: bottom center, above the bottom pill row. Persisted position wins.
   useEffect(() => {
@@ -133,7 +131,6 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       moved: false,
     };
   };
-
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || d.pointerId !== e.pointerId) return;
@@ -141,8 +138,6 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     const dy = e.clientY - d.startY;
     if (!d.moved && Math.hypot(dx, dy) < 5) return;
     d.moved = true;
-
-
     const w = ref.current?.offsetWidth ?? 0;
     const h = ref.current?.offsetHeight ?? 0;
     const top = topChromeHeight();
@@ -154,8 +149,6 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     const d = drag.current;
     if (!d || d.pointerId !== e.pointerId) return;
     drag.current = null;
-
-
     if (d.moved) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(pos));
@@ -205,7 +198,6 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       <div className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-500`}>
         <span className="font-mono">Δ{stats.delta.toFixed(2)}</span>
       </div>
-
     </div>
   );
 }

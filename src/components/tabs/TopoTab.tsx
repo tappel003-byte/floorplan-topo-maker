@@ -37,24 +37,10 @@ const DEFAULT_LABEL_DY = 6;
 const LONG_PRESS_MS = 350;
 
 // Pin geometry — matches drawPin(). Pin box is centered horizontally on the
-// point, sitting above it. Sizes scale with the shared label font size so
-// the High/Low pills grow/shrink alongside on-plan value labels.
-const PIN_BASE_FONT = 11;
-const PIN_BASE_H = 20;
-const PIN_BASE_TOP_OFFSET = -28;
-const PIN_BASE_MIN_W = 40;
-
-function pinMetrics(fontPx: number) {
-  const scale = fontPx / PIN_BASE_FONT;
-  return {
-    fontPx,
-    h: PIN_BASE_H * scale,
-    topOffset: PIN_BASE_TOP_OFFSET * scale,
-    minW: PIN_BASE_MIN_W * scale,
-    padX: 7 * scale,
-    radius: 10 * scale,
-  };
-}
+// point, sitting above it. These constants keep hit-testing and rendering aligned.
+const PIN_H = 20;
+const PIN_TOP_OFFSET = -28; // top of pin relative to point y
+const PIN_MIN_W = 40; // widened for "High"/"Low" text
 
 // Offscreen ctx for text width measurement in event handlers
 let measureCtx: CanvasRenderingContext2D | null = null;
@@ -68,12 +54,10 @@ function measureLabel(text: string, fontPx: number, weight: string) {
   return { w: measureCtx.measureText(text).width, h: fontPx };
 }
 
-function pinWidth(text: string, fontPx: number) {
-  const m = pinMetrics(fontPx);
-  const { w } = measureLabel(text, fontPx, "bold");
-  return Math.max(m.minW, w + m.padX * 2);
+function pinWidth(text: string) {
+  const { w } = measureLabel(text, 11, "bold");
+  return Math.max(PIN_MIN_W, w + 14);
 }
-
 
 // Where the label sits (top-left corner) for a given point in image coords.
 function labelAnchor(p: SurveyPoint) {
@@ -226,12 +210,11 @@ export function TopoTab({
   function hitDraggable(x: number, y: number): Hit | null {
     // Pins first — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
-      const pm = pinMetrics(resolved.pointLabelFontSize);
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
-        const w = pinWidth(kind === "pin-high" ? "High" : "Low", resolved.pointLabelFontSize);
+        const w = pinWidth(kind === "pin-high" ? "High" : "Low");
         const cx = pt.x + dx;
-        const top = pt.y + pm.topOffset + dy;
-        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + pm.h;
+        const top = pt.y + PIN_TOP_OFFSET + dy;
+        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + PIN_H;
       };
       const hDx = floor.highPinDx ?? 0;
       const hDy = floor.highPinDy ?? 0;
@@ -1185,8 +1168,8 @@ function renderTopoTop(
       const hDy = livePinHigh ? livePinHigh.dy : (floor.highPinDy ?? 0);
       const lDx = livePinLow ? livePinLow.dx : (floor.lowPinDx ?? 0);
       const lDy = livePinLow ? livePinLow.dy : (floor.lowPinDy ?? 0);
-      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", fontPx, highlightPin === "pin-high");
-      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", fontPx, highlightPin === "pin-low");
+      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", highlightPin === "pin-high");
+      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", highlightPin === "pin-low");
     }
   }
 }
@@ -1197,14 +1180,12 @@ function drawPin(
   y: number,
   letter: string,
   color: string,
-  fontPx: number,
   highlighted = false,
 ) {
-  const pm = pinMetrics(fontPx);
-  ctx.font = `bold ${fontPx}px sans-serif`;
-  const w = Math.max(pm.minW, ctx.measureText(letter).width + pm.padX * 2);
+  ctx.font = "bold 11px sans-serif";
+  const w = Math.max(PIN_MIN_W, ctx.measureText(letter).width + 14);
   ctx.beginPath();
-  roundRectPath(ctx, x - w / 2, y + pm.topOffset, w, pm.h, pm.radius);
+  roundRectPath(ctx, x - w / 2, y + PIN_TOP_OFFSET, w, PIN_H, 10);
   ctx.fillStyle = color;
   ctx.fill();
   ctx.strokeStyle = highlighted ? "#17130e" : "#fff";
@@ -1213,9 +1194,8 @@ function drawPin(
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(letter, x, y + pm.topOffset + pm.h / 2);
+  ctx.fillText(letter, x, y + PIN_TOP_OFFSET + PIN_H / 2);
 }
-
 
 export function resolveSettings(settings: RenderSettings): RenderSettings {
   const contourStep =
