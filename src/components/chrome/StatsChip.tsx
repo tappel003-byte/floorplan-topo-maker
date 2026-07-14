@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
+
+type SizeTier = "sm" | "md" | "lg";
+const SIZE_STYLES: Record<
+  SizeTier,
+  { height: string; text: string; icon: string; pad: string }
+> = {
+  sm: { height: "h-6", text: "text-[10px]", icon: "w-2.5 h-2.5", pad: "px-1.5" },
+  md: { height: "h-8", text: "text-xs", icon: "w-3 h-3", pad: "px-2" },
+  lg: { height: "h-10", text: "text-sm", icon: "w-3.5 h-3.5", pad: "px-2.5" },
+};
+function pickTier(w: number): SizeTier {
+  if (w >= 1280) return "lg";
+  if (w >= 768) return "md";
+  return "sm";
+}
 import type { SurveyPoint } from "@/lib/types";
 
 interface Props {
