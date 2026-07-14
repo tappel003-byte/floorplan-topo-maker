@@ -94,6 +94,9 @@ function ProjectWorkspace() {
       const fs = await listFloors(id);
       setFloors(fs);
       if (fs[0]) setActiveFloorId(fs[0].id);
+      // New projects (no plan uploaded on any floor) land on Setup so the
+      // user is guided through Details → Plan → Boundary before Field.
+      if (!fs.some((f) => !!f.planDataUrl)) setMode("setup");
       setLoading(false);
     })();
   }, [id]);
