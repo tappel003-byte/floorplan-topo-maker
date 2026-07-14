@@ -226,11 +226,12 @@ export function TopoTab({
   function hitDraggable(x: number, y: number): Hit | null {
     // Pins first — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
+      const pm = pinMetrics(resolved.pointLabelFontSize);
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
-        const w = pinWidth(kind === "pin-high" ? "High" : "Low");
+        const w = pinWidth(kind === "pin-high" ? "High" : "Low", resolved.pointLabelFontSize);
         const cx = pt.x + dx;
-        const top = pt.y + PIN_TOP_OFFSET + dy;
-        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + PIN_H;
+        const top = pt.y + pm.topOffset + dy;
+        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + pm.h;
       };
       const hDx = floor.highPinDx ?? 0;
       const hDy = floor.highPinDy ?? 0;
