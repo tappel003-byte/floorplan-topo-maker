@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2, Upload, Undo2 } from "lucide-react";
+import { Plus, Trash2, Upload, Undo2, ArrowRight } from "lucide-react";
 import { PlanCanvas } from "../PlanCanvas";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import type { Floor, ProjectMeta } from "@/lib/types";
@@ -16,6 +16,8 @@ interface Props {
   onProjectChange: (p: ProjectMeta) => void;
   onFloorsChange: (floors: Floor[]) => void;
   onActiveFloorChange: (id: string) => void;
+  onStartSurveying?: () => void;
+
 }
 
 export function SetupTab({
@@ -25,8 +27,11 @@ export function SetupTab({
   onProjectChange,
   onFloorsChange,
   onActiveFloorChange,
+  onStartSurveying,
 }: Props) {
   const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
+  const canStart = !!activeFloor?.planDataUrl;
+
 
   return (
     <div className="flex flex-col h-full">
@@ -74,9 +79,21 @@ export function SetupTab({
           />
         )}
       </div>
+      {onStartSurveying && (
+        <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center justify-end gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+          {!canStart && (
+            <span className="text-xs text-muted-foreground">Upload a plan first</span>
+          )}
+          <Button onClick={onStartSurveying} disabled={!canStart}>
+            Start surveying
+            <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function DetailsPanel({
   project,

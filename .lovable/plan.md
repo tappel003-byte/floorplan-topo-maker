@@ -1,33 +1,22 @@
-## Shared label font size
+## Change
 
-Add a single `labelFontSize` setting that controls the elevation label text on both the plan (Field/Data view) and the Topo view. A stepper appears in both the Data panel and the Topo controls — change it from either screen and the other follows.
+Keep the existing Setup tabs (Details / Plan & floors / Boundary). Add a persistent **"Start surveying →"** button so the user doesn't have to back out of Setup and re-tap the project to begin.
 
-### What gets added
+## Placement
 
-1. **New shared setting: `labelFontSize`**
-   - Stored in localStorage alongside the existing `pointSize` / `dotSize` settings.
-   - Range: `8px – 24px`, default `11px` (matches current label size).
-   - `–` / `+` steppers in 1px increments, matching the existing "Dot size" row.
+A single button pinned to the bottom-right of the Setup panel (sticky footer inside the Setup tab container, above the floating bottom nav). Visible on all three sub-tabs so it's reachable whenever the user decides they're done configuring — not gated behind reaching the last tab.
 
-2. **Data panel control**
-   - New row directly under Dot size: `TEXT   [ – ]  11px  [ + ]`
-   - Same visual treatment as the current px stepper.
+- Label: **Start surveying →**
+- Style: primary button
+- Disabled state: only if the active floor has no plan image uploaded (with a small helper text "Upload a plan first"). Boundary is optional.
 
-3. **Topo panel control**
-   - Same `TEXT [ – ] 11px [ + ]` stepper in the Topo controls, near the existing point/legend size controls.
+## Behavior
 
-4. **Rendering**
-   - Plan labels (Field/Data canvas): elevation text uses `labelFontSize`.
-   - Topo labels: elevation text uses `labelFontSize`.
-   - Dot size and legend size are unchanged — this only touches label text.
+Tapping it switches the app's active tab from `setup` to `field` (the same tab state used by the bottom nav in `src/routes/projects.$id.tsx`). No navigation, no reload — just a tab change, so scroll/zoom state on the plan is preserved.
 
-### Not in scope
+## Files
 
-- No desktop-mode work — parked per your note.
-- No change to dot rendering, note pins, diamonds, legend sizing, or PIN badges.
+- `src/components/tabs/SetupTab.tsx` — add sticky footer with the button; accept an `onStartSurveying` callback prop.
+- `src/routes/projects.$id.tsx` — pass `onStartSurveying={() => setTab("field")}` (or whatever the local state setter is named) into `<SetupTab />`.
 
-### Technical notes
-
-- Add `labelFontSize` to the same context/store that already holds `pointSize`, same persistence pattern.
-- Files likely touched: `DataPointsPanel.tsx`, `TopoTab.tsx`, `PlanCanvas.tsx` (label draw call), and the settings/context module.
-- Both steppers bind to the same state so edits from either screen propagate immediately.
+No changes to the tab structure itself, the top bar, or any other screen.
