@@ -52,7 +52,7 @@ function loadState(projectId: string): PanelState {
     const raw = localStorage.getItem(`dpp:${projectId}`);
     if (raw)
       return {
-        collapsed: false,
+        collapsed: true,
         hidden: false,
         x: 8,
         y: 52,
@@ -62,7 +62,7 @@ function loadState(projectId: string): PanelState {
   } catch {
     /* ignore */
   }
-  return { x: 8, y: 52, collapsed: false, hidden: false, sortMode: "index" };
+  return { x: 8, y: 52, collapsed: true, hidden: false, sortMode: "index" };
 }
 
 export function DataPointsPanel({
