@@ -260,6 +260,18 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
           </button>
         </>
       )}
+      <button
+        type="button"
+        className={`${sz.pad} flex items-center justify-center border-l border-gray-200 text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:bg-gray-200`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); setShowNudge((s) => !s); }}
+        aria-label={showNudge ? "Hide size controls" : "Show size controls"}
+        title="Resize"
+      >
+        <span className="font-bold leading-none">⋯</span>
+      </button>
+
     </div>
   );
 }
