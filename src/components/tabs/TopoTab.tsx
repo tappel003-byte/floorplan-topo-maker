@@ -1042,9 +1042,9 @@ function renderTopoBase(
     ctx.restore();
   }
 
-  // Excluded areas — draw hatched shapes on top of the contour fill so viewers
-  // see WHY there's a gap. Rendered inside renderTopoBase so they sit under
-  // the wall plan (plan draws on top when planOnTop is set).
+  // Excluded areas — draw white holes on top of the contour fill so the
+  // garage/sunken areas read as blank space. Rendered inside renderTopoBase so
+  // they sit under the wall plan (plan draws on top when planOnTop is set).
   for (const ex of floor.exclusions ?? []) {
     drawExclusionShape(ctx, ex.polygon, { closed: true, muted: false });
   }

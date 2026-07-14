@@ -897,7 +897,8 @@ export function FieldTab({
           commitSnap(nextPts);
         }}
         drawOverlay={(ctx) => {
-          // Excluded areas — hatched fill under everything else so pins remain legible.
+          // Excluded areas — white holes with an outline so they read as
+          // blank space while keeping the boundary visible.
           for (const ex of floor.exclusions ?? []) {
             drawExclusionShape(ctx, ex.polygon, { closed: true, muted: true });
           }
