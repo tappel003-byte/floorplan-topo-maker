@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -23,6 +23,7 @@ import {
   listPoints,
   saveFloor,
 } from "@/lib/db";
+import { exportProjectToFile, importProjectFromFile } from "@/lib/projectIO";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
