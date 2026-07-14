@@ -157,6 +157,15 @@ export function ProjectList() {
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={() => handleExport(p.id)}
+                aria-label="Export project"
+                title="Export project as JSON"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => handleDelete(p.id)}
                 aria-label="Delete project"
               >
