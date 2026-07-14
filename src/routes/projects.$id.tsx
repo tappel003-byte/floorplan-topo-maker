@@ -307,8 +307,8 @@ function ProjectWorkspace() {
           <StatsChip
             points={
               mode === "topo" && topoExcludedIds.size
-                ? correctedPoints.filter((p) => !topoExcludedIds.has(p.id))
-                : correctedPoints
+                ? nonExcludedPoints.filter((p) => !topoExcludedIds.has(p.id))
+                : nonExcludedPoints
             }
             onHighlight={(p) => {
               if (mode === "field") {
