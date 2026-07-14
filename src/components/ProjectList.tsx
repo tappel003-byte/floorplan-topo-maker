@@ -68,7 +68,7 @@ export function ProjectList() {
       updatedAt: now,
     });
     setOpen(false);
-    refresh();
+    navigate({ to: "/projects/$id", params: { id } });
   }
 
   async function handleDelete(id: string) {
