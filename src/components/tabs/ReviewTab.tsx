@@ -8,6 +8,7 @@ interface Props {
   floor: Floor;
   points: SurveyPoint[];
   correctedById?: Map<string, number>;
+  zoneLabelById?: Map<string, string>;
   onPointsChange: (points: SurveyPoint[]) => void;
   selectedIds: Set<string>;
   setSelectedIds: (ids: Set<string>) => void;
@@ -20,6 +21,7 @@ export function ReviewTab({
   floor,
   points,
   correctedById,
+  zoneLabelById,
   onPointsChange,
   selectedIds,
   setSelectedIds,
@@ -30,18 +32,23 @@ export function ReviewTab({
   const [sortMode, setSortMode] = useState<"index" | "high" | "low">("index");
 
   const displayValue = (p: SurveyPoint) => correctedById?.get(p.id) ?? p.value;
+  const zoneLabel = (p: SurveyPoint) => zoneLabelById?.get(p.id) ?? "";
+  const isExcluded = (p: SurveyPoint) => !!zoneLabelById && zoneLabelById.has(p.id);
 
+  // Stats exclude points inside an exclusion zone. Range/min/max reflect the
+  // topo-visible surface, not readings that were intentionally dropped.
   const stats = useMemo(() => {
-    if (points.length === 0) return null;
-    const vals = points.map(displayValue);
+    const active = points.filter((p) => !isExcluded(p));
+    if (active.length === 0) return null;
+    const vals = active.map(displayValue);
     const min = Math.min(...vals);
     const max = Math.max(...vals);
     const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
     const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length;
     const std = Math.sqrt(variance);
-    return { min, max, mean, std, range: max - min };
+    return { min, max, mean, std, range: max - min, count: active.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, correctedById]);
+  }, [points, correctedById, zoneLabelById]);
 
   const outliers = useMemo(() => {
     if (!stats || points.length < 4) return new Set<string>();
