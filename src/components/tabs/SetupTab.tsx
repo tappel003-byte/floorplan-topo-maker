@@ -79,9 +79,21 @@ export function SetupTab({
           />
         )}
       </div>
+      {onStartSurveying && (
+        <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center justify-end gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+          {!canStart && (
+            <span className="text-xs text-muted-foreground">Upload a plan first</span>
+          )}
+          <Button onClick={onStartSurveying} disabled={!canStart}>
+            Start surveying
+            <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function DetailsPanel({
   project,
