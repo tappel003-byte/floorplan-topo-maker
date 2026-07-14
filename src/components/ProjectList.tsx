@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, Download, Upload, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -11,9 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import {
   listProjects,
   saveProject,
@@ -23,6 +30,7 @@ import {
   listPoints,
   saveFloor,
 } from "@/lib/db";
+import { exportProject, bundleFilename, downloadBundle, importProject } from "@/lib/bundle";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -34,6 +42,7 @@ export function ProjectList() {
   const [projects, setProjects] = useState<Row[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
 
   async function refresh() {
@@ -57,7 +66,6 @@ export function ProjectList() {
     const id = uid();
     const now = Date.now();
     await saveProject({ ...data, id, createdAt: now, updatedAt: now });
-    // seed a first floor
     await saveFloor({
       id: uid(),
       projectId: id,
@@ -77,23 +85,60 @@ export function ProjectList() {
     refresh();
   }
 
+  async function handleExport(p: Row) {
+    try {
+      const blob = await exportProject(p.id);
+      downloadBundle(blob, bundleFilename(p.name));
+      toast.success("Project exported");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    }
+  }
+
+  async function handleImportFile(file: File) {
+    try {
+      const newId = await importProject(file);
+      toast.success("Project imported");
+      await refresh();
+      navigate({ to: "/projects/$id", params: { id: newId } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Import failed");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <header className="mb-8 flex items-center justify-between">
+      <header className="mb-8 flex items-center justify-between gap-2">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Floor Survey</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Topographical mapping for foundation inspection
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg">
-              <Plus className="mr-2 h-4 w-4" /> New project
-            </Button>
-          </DialogTrigger>
-          <NewProjectDialog onCreate={handleCreate} />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImportFile(f);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="outline" size="lg" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" /> Import
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg">
+                <Plus className="mr-2 h-4 w-4" /> New project
+              </Button>
+            </DialogTrigger>
+            <NewProjectDialog onCreate={handleCreate} />
+          </Dialog>
+        </div>
       </header>
 
       {loading ? (
@@ -103,7 +148,7 @@ export function ProjectList() {
           <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
           <h2 className="mt-4 text-lg font-medium">No projects yet</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create a project to start capturing floor elevations.
+            Create a project or import a bundle from another device.
           </p>
         </Card>
       ) : (
@@ -119,14 +164,24 @@ export function ProjectList() {
                   {p.inspectionDate || "no date"}
                 </div>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(p.id)}
-                aria-label="Delete project"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Project actions">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport(p)}>
+                    <Download className="mr-2 h-4 w-4" /> Export
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleDelete(p.id)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </Card>
           ))}
         </div>
