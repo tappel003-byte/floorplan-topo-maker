@@ -59,7 +59,26 @@ function getDB() {
 export async function listProjects(): Promise<ProjectMeta[]> {
   const db = await getDB();
   const all = await db.getAll("projects");
-  return all.sort((a, b) => b.updatedAt - a.updatedAt);
+  return all.filter((p) => !p.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+export async function listTrashedProjects(): Promise<ProjectMeta[]> {
+  const db = await getDB();
+  const all = await db.getAll("projects");
+  return all.filter((p) => !!p.deletedAt).sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
+}
+export async function trashProject(id: string) {
+  const db = await getDB();
+  const p = await db.get("projects", id);
+  if (!p) return;
+  await db.put("projects", { ...p, deletedAt: Date.now(), updatedAt: Date.now() });
+}
+export async function restoreProject(id: string) {
+  const db = await getDB();
+  const p = await db.get("projects", id);
+  if (!p) return;
+  const { deletedAt: _d, ...rest } = p;
+  void _d;
+  await db.put("projects", { ...rest, updatedAt: Date.now() });
 }
 export async function getProject(id: string) {
   const db = await getDB();

@@ -1,54 +1,45 @@
-# Project Bundle Export / Import
+## Goal
 
-Goal: move a whole project between devices as a single file. No cloud, no accounts, no sync logic. Export on one device, AirDrop/email/Drive the file, import on another.
+Match the Distress Survey pattern: deleting a project from the home screen moves it to a Trash bin instead of erasing it. A separate "empty trash" step is what actually deletes. So a stray tap can't lose a project.
 
-## What gets exported
+## Behavior
 
-A single `.floorsurvey.json` file containing:
-- Project metadata (name, address, inspector, date)
-- All floors (name, boundary, plan image as base64 data URL, transitions, group averages)
-- All points for every floor (coords, values, labels, notes, base-point flags, chain links)
-- Render settings (palette, contour step, label font size, etc.)
-- `bundleVersion` for forward compatibility
-- `exportedAt` timestamp (informational)
+**Project row overflow menu**
+- "Delete" is replaced with **"Move to trash"** (still one confirm, but low-stakes wording: "Move to trash? You can restore it later.").
+- Export stays as-is.
 
-Filename: `ProjectName_YYYY-MM-DD.floorsurvey.json`
+**Home screen (project list)**
+- A **Trash** button appears in the header next to Import, with a small count badge when non-empty. Hidden or disabled when trash is empty.
+- Trashed projects do not appear in the main list.
 
-## Where the buttons live
+**Trash screen** (opens as a dialog / sheet from the header button)
+- Lists trashed projects with name, address, date trashed.
+- Each row: **Restore** and **Delete forever** (Delete forever asks a hard confirm: "Permanently delete 'Smith House'? This cannot be undone.").
+- Footer button: **Empty trash** — hard confirm ("Permanently delete all N projects in trash?"), then wipes them all.
+- No auto-purge timer — items stay until the user empties trash. (Distress Survey uses 30 days; skipping that keeps this simple, and it's what you actually asked for. Say the word if you want auto-purge.)
 
-- **Project list screen only** (`ProjectList.tsx`) — there is no open project during import, so the workspace toolbar isn't the right place.
-- Header: **Import project** button opens a file picker for `.floorsurvey.json`.
-- Per-project row: **Export** action (overflow menu) writes the bundle via the browser download flow.
+**Restore behavior**
+- Restore puts the project back in the main list untouched (same id, same data). No V2 renaming — this isn't an import.
 
-## Import behavior — auto-versioning
+## Data model
 
-Every import creates a **new, fully independent project**. Original is never touched.
+`ProjectMeta` gains an optional `deletedAt?: number` field.
+- `listProjects()` filters out rows with `deletedAt` set.
+- New `listTrashedProjects()` returns only rows with `deletedAt` set, newest-first.
+- New `trashProject(id)` sets `deletedAt = Date.now()` and saves.
+- New `restoreProject(id)` clears `deletedAt` and saves.
+- Existing `deleteProject(id)` (hard delete + cascades floors/points) is what "Delete forever" and "Empty trash" call.
 
-- Fresh project ID, fresh floor IDs, fresh point IDs. All internal references (point→floor, transition anchors→points, chain parentIds) are rewritten to the new IDs in one pass before any DB writes.
-- Name gets an auto-incrementing version suffix based on what's already on the device:
-  - No existing project with that base name → import keeps the original name.
-  - "Smith House" exists → import becomes "Smith House V2".
-  - "Smith House" and "Smith House V2" exist → import becomes "Smith House V3". And so on.
-  - Base name is detected by stripping a trailing ` V<number>` before comparing, so re-importing a file already named "Smith House V2" from another device still lands as the next free V-number here.
+No IndexedDB schema bump needed — `deletedAt` is just an optional property on existing project records.
 
-Result: nothing is ever silently overwritten, and the device keeps a clean history you can compare or prune manually.
+## Files touched
 
-## Error handling
+- `src/lib/types.ts` — add `deletedAt?: number` to `ProjectMeta`.
+- `src/lib/db.ts` — filter `listProjects`, add `listTrashedProjects`, `trashProject`, `restoreProject`.
+- `src/components/ProjectList.tsx` — rename menu item, add Trash header button + badge, add Trash dialog with Restore / Delete forever / Empty trash.
 
-- Wrong file type or malformed JSON → toast: "That doesn't look like a Floor Survey bundle."
-- `bundleVersion` newer than the app supports → toast: "This bundle was made with a newer version. Update the app to import it."
-- Empty/partial bundle → refuse, no partial writes.
+Nothing else changes. Export/import, setup flow, and everything inside a project are untouched.
 
-## Not in scope for this step
+## Open question
 
-- Desktop-only "report polish / presentation" screen — noted, comes next once bundles work.
-- Merging edits across devices, conflict resolution, auto-sync — explicitly out.
-- Google Drive / iCloud integration — out.
-- Multi-project bundle (one file, many projects) — out; one project per file.
-
-## Technical notes
-
-- New `src/lib/bundle.ts` with `exportProject(projectId): Promise<Blob>` and `importProject(file: File): Promise<string>` (returns new project ID). ID rewriting and name-versioning happen here before touching IndexedDB.
-- Reuse existing `src/lib/db.ts` read/write functions; no schema changes.
-- Plan image travels as the existing `planDataUrl` base64 already stored in IndexedDB, so bundles are self-contained. A typical bundle is a few MB — fine for AirDrop/email/Drive.
-- Two small UI additions in `ProjectList.tsx`: header "Import" button and a per-row overflow menu with "Export".
+One thing I want to confirm before building: **should the Trash button be visible when empty (disabled/greyed) or hidden entirely until something is in it?** Distress Survey shows a dimmed FAB always. Your call — I'll default to "hidden until non-empty" unless you say otherwise.

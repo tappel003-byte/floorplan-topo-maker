@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Plus, Trash2, FileText, Download, Upload, MoreVertical } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  FileText,
+  Download,
+  Upload,
+  MoreVertical,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -23,8 +31,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   listProjects,
+  listTrashedProjects,
   saveProject,
   deleteProject,
+  trashProject,
+  restoreProject,
   uid,
   listFloors,
   listPoints,
@@ -40,7 +51,9 @@ interface Row extends ProjectMeta {
 
 export function ProjectList() {
   const [projects, setProjects] = useState<Row[]>([]);
+  const [trashed, setTrashed] = useState<ProjectMeta[]>([]);
   const [open, setOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
@@ -55,6 +68,7 @@ export function ProjectList() {
       enriched.push({ ...p, floorCount: floors.length, pointCount: pts });
     }
     setProjects(enriched);
+    setTrashed(await listTrashedProjects());
     setLoading(false);
   }
 
@@ -79,10 +93,37 @@ export function ProjectList() {
     navigate({ to: "/projects/$id", params: { id } });
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this project and all its data?")) return;
-    await deleteProject(id);
-    refresh();
+  async function handleTrash(p: Row) {
+    if (!confirm(`Move "${p.name}" to trash? You can restore it later.`)) return;
+    await trashProject(p.id);
+    await refresh();
+    toast.success("Moved to trash");
+  }
+
+  async function handleRestore(p: ProjectMeta) {
+    await restoreProject(p.id);
+    await refresh();
+    toast.success("Restored");
+  }
+
+  async function handleDeleteForever(p: ProjectMeta) {
+    if (!confirm(`Permanently delete "${p.name}"? This cannot be undone.`)) return;
+    await deleteProject(p.id);
+    await refresh();
+    toast.success("Deleted");
+  }
+
+  async function handleEmptyTrash() {
+    if (trashed.length === 0) return;
+    if (
+      !confirm(
+        `Permanently delete all ${trashed.length} project${trashed.length === 1 ? "" : "s"} in trash? This cannot be undone.`,
+      )
+    )
+      return;
+    for (const p of trashed) await deleteProject(p.id);
+    await refresh();
+    toast.success("Trash emptied");
   }
 
   async function handleExport(p: Row) {
@@ -127,6 +168,20 @@ export function ProjectList() {
               e.target.value = "";
             }}
           />
+          {trashed.length > 0 && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setTrashOpen(true)}
+              className="relative"
+              aria-label="Trash"
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Trash
+              <span className="ml-2 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-semibold">
+                {trashed.length}
+              </span>
+            </Button>
+          )}
           <Button variant="outline" size="lg" onClick={() => fileInputRef.current?.click()}>
             <Upload className="mr-2 h-4 w-4" /> Import
           </Button>
@@ -175,10 +230,10 @@ export function ProjectList() {
                     <Download className="mr-2 h-4 w-4" /> Export
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleDelete(p.id)}
+                    onClick={() => handleTrash(p)}
                     className="text-destructive focus:text-destructive"
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    <Trash2 className="mr-2 h-4 w-4" /> Move to trash
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -186,6 +241,56 @@ export function ProjectList() {
           ))}
         </div>
       )}
+
+      <Dialog open={trashOpen} onOpenChange={setTrashOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Trash</DialogTitle>
+          </DialogHeader>
+          {trashed.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Trash is empty.</p>
+          ) : (
+            <div className="grid gap-2 max-h-[60vh] overflow-y-auto">
+              {trashed.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 rounded-md border p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {p.address || "No address"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Trashed {p.deletedAt ? new Date(p.deletedAt).toLocaleDateString() : ""}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => handleRestore(p)}>
+                      <RotateCcw className="mr-1 h-3.5 w-3.5" /> Restore
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteForever(p)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {trashed.length > 0 && (
+            <DialogFooter>
+              <Button variant="destructive" onClick={handleEmptyTrash}>
+                <Trash2 className="mr-2 h-4 w-4" /> Empty trash ({trashed.length})
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
