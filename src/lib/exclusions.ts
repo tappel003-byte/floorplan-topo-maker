@@ -59,7 +59,10 @@ export function pointsOutsideExclusions(
   return points.filter((p) => !zoneOfXY(p.x, p.y, exclusions));
 }
 
-/** Draw hatched fill + solid outline for an exclusion polygon. */
+/** Draw an exclusion polygon as a clean white hole with a visible outline.
+ *  The white fill masks underlying topo contours so excluded areas read as
+ *  blank space, while the outline keeps the boundary legible.
+ */
 export function drawExclusionShape(
   ctx: CanvasRenderingContext2D,
   polygon: Array<{ x: number; y: number }>,
@@ -74,46 +77,17 @@ export function drawExclusionShape(
   polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
   if (closed && polygon.length > 2) ctx.closePath();
 
-  // Base tint
-  ctx.fillStyle = muted ? "rgba(107,114,128,0.10)" : "rgba(107,114,128,0.18)";
+  // White fill — erases the interpolated topo surface underneath.
+  ctx.fillStyle = "#ffffff";
   if (closed && polygon.length > 2) ctx.fill();
 
-  // Diagonal hatch pattern via a temporary offscreen tile
-  if (closed && polygon.length > 2) {
-    const tile = document.createElement("canvas");
-    tile.width = 10;
-    tile.height = 10;
-    const tctx = tile.getContext("2d");
-    if (tctx) {
-      tctx.strokeStyle = muted ? "rgba(75,85,99,0.35)" : "rgba(75,85,99,0.55)";
-      tctx.lineWidth = 1;
-      tctx.beginPath();
-      tctx.moveTo(-2, 12);
-      tctx.lineTo(12, -2);
-      tctx.moveTo(-2, 22);
-      tctx.lineTo(22, -2);
-      tctx.stroke();
-      const pattern = ctx.createPattern(tile, "repeat");
-      if (pattern) {
-        ctx.save();
-        ctx.clip();
-        ctx.fillStyle = pattern;
-        const xs = polygon.map((p) => p.x);
-        const ys = polygon.map((p) => p.y);
-        const x0 = Math.min(...xs) - 4;
-        const y0 = Math.min(...ys) - 4;
-        const x1 = Math.max(...xs) + 4;
-        const y1 = Math.max(...ys) + 4;
-        ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-        ctx.restore();
-      }
-    }
-  }
-
-  ctx.strokeStyle = muted ? "rgba(75,85,99,0.55)" : "#4b5563";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  ctx.stroke();
+  // Clean outline border. Slightly thinner when muted so it doesn't fight
+  // other editing chrome, but still solid for clarity.
+  ctx.strokeStyle = muted ? "#9ca3af" : "#4b5563";
+  ctx.lineWidth = muted ? 1.5 : 2;
   ctx.setLineDash([]);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.stroke();
   ctx.restore();
 }
