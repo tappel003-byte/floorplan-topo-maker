@@ -17,6 +17,7 @@ import {
   contourThresholds,
   type Grid,
 } from "@/lib/topo";
+import { drawExclusionShape } from "@/lib/exclusions";
 import { savePoint, saveFloor } from "@/lib/db";
 
 interface Props {
@@ -171,7 +172,8 @@ export function TopoTab({
 
   const gridAndContours = useMemo(() => {
     if (!canRender) return null;
-    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS);
+    const exPolys = (floor.exclusions ?? []).map((e) => e.polygon);
+    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS, exPolys);
     if (!grid) return null;
     const cs = computeContours(grid, contourOptions(grid, resolved));
     return { grid, contours: cs };
@@ -179,6 +181,7 @@ export function TopoTab({
     canRender,
     visiblePoints,
     floor.boundary,
+    floor.exclusions,
     resolved.firstContour,
     resolved.contourStep,
     resolved.contourCount,
