@@ -139,11 +139,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       pointerId: e.pointerId,
       moved: false,
     };
-    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-    longPressTimer.current = window.setTimeout(() => {
-      if (drag.current && !drag.current.moved) setShowNudge((s) => !s);
-    }, 500);
   };
+
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || d.pointerId !== e.pointerId) return;
