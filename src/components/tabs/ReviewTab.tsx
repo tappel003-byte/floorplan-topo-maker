@@ -102,7 +102,14 @@ export function ReviewTab({
       </div>
       {stats && (
         <div className="border-b p-3 grid grid-cols-4 gap-2 text-center text-xs">
-          <Stat label="Points" value={points.length.toString()} />
+          <Stat
+            label="Points"
+            value={
+              points.length === stats.count
+                ? points.length.toString()
+                : `${stats.count} / ${points.length}`
+            }
+          />
           <Stat label="Range" value={stats.range.toFixed(2) + '"'} />
           <Stat label="Min" value={stats.min.toFixed(2) + '"'} />
           <Stat label="Max" value={stats.max.toFixed(2) + '"'} />
@@ -119,6 +126,7 @@ export function ReviewTab({
               <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
                 <th className="text-left font-medium px-3 py-2 w-10">Pin</th>
                 <th className="text-right font-medium px-2 py-2">Elev</th>
+                <th className="text-left font-medium px-2 py-2">Zone</th>
                 <th className="text-right font-medium px-2 py-2">X</th>
                 <th className="text-right font-medium px-3 py-2">Y</th>
               </tr>
@@ -127,6 +135,7 @@ export function ReviewTab({
               {sortedPoints.map((p) => {
                 const selected = selectedIds.has(p.id);
                 const isOutlier = outliers.has(p.id);
+                const excluded = isExcluded(p);
                 return (
                   <tr
                     key={p.id}
@@ -171,6 +180,15 @@ export function ReviewTab({
                         <p className="text-[11px] font-sans font-normal text-muted-foreground mt-0.5 whitespace-pre-wrap break-words text-left">
                           {p.notes}
                         </p>
+                      )}
+                    </td>
+                    <td className="px-2 py-2 text-left text-xs text-muted-foreground align-top">
+                      {excluded ? (
+                        <span className="inline-flex items-center rounded bg-amber-100 text-amber-900 px-1.5 py-0.5 text-[10px] font-medium">
+                          {zoneLabel(p) || "Excluded"}
+                        </span>
+                      ) : (
+                        <span className="opacity-50">—</span>
                       )}
                     </td>
                     <td className="px-2 py-2 text-right font-mono text-xs text-muted-foreground tabular-nums align-top">
