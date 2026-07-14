@@ -1,17 +1,65 @@
 ## Goal
-Make the floating High / Low / Δ pill (StatsChip) scale sensibly across phone, tablet, and desktop instead of a fixed 24px tall / 10px-text chip.
 
-## Approach
-Add a responsive size system to `src/components/chrome/StatsChip.tsx`:
+Move a project between devices (phone → laptop or vice versa) by exporting a single `.json` file and importing it on the other device. No account, no cloud, no sync. Same app on both ends.
 
-1. **Auto-scale by viewport width** (three tiers, picked on mount + resize):
-   - Phone (<768px): current size (h-6, text-[10px], icons 2.5)
-   - Tablet (768–1279px): h-8, text-xs, icons 3
-   - Desktop (≥1280px): h-10, text-sm, icons 3.5
-2. **User override**: small `−` / `+` buttons or a 0.75×–1.75× multiplier stored in localStorage (`stats-chip-scale`), so the user can nudge it on any device.
-3. Recompute chip width/height clamp on resize so the persisted position stays on-screen after the size changes.
+## Scope (this pass)
 
-Nothing else changes — position, drag, tap-to-highlight, and persistence all stay as-is.
+- Export **one project** as a `.json` file containing everything needed to reopen it: project meta, all floors (including plan image), all points, all transitions/notes stored on those records.
+- Import a `.json` file on any device — always creates a **new project** with fresh IDs. No overwriting, no dialog.
+- Reuse the existing UI on desktop. No new edit surface, no layout changes.
 
-## Open question
-Do you want the size to be **fully automatic** by screen size (simplest, no controls), or **automatic with a small +/− nudge** the user can override? I'd default to fully automatic unless you want the manual nudge.
+## UX
+
+**Project list (`ProjectList.tsx`) — header:**
+- Add an `Import` button next to `New project`. Opens a hidden `<input type="file" accept="application/json">`. On file pick: parse, validate, write, refresh list, navigate into the new project.
+
+**Project list — each row:**
+- Add a small `Download` icon button (next to the existing trash icon). Tapping it exports that project as `{sanitized-name}-{yyyy-mm-dd}.json`.
+
+That's it. No changes to Setup/Field/Data/Topo/Review.
+
+## File format
+
+Single JSON, versioned so we can evolve it:
+
+```json
+{
+  "app": "floor-survey",
+  "version": 1,
+  "exportedAt": 1720000000000,
+  "project": { /* ProjectMeta, id preserved for reference only */ },
+  "floors": [ /* Floor[] — includes boundary and plan image (already base64/dataURL in DB) */ ],
+  "points": [ /* SurveyPoint[] across all floors */ ]
+}
+```
+
+Plan images already live inside the `Floor` record (dataURL), so no separate binary handling is needed — they ride along in the JSON.
+
+## Import behavior
+
+- Validate `app === "floor-survey"` and `version === 1`. Reject anything else with a clean error toast.
+- Mint a **new** `projectId` and new `floorId`s / `pointId`s. Rewrite all foreign keys (`point.floorId`, `floor.projectId`, and any `transitionId` / `parentId` / `anchorId` references inside points) using an old→new ID map so chained transitions survive.
+- Append `" (imported)"` to the project name so duplicates are obvious in the list.
+- Set `createdAt = updatedAt = Date.now()` on the new project.
+- Navigate into the new project on success.
+
+## Technical notes
+
+- New file `src/lib/projectIO.ts` with `exportProject(projectId): Promise<Blob>` and `importProjectFromFile(file): Promise<string /* newProjectId */>`. Uses existing `db.ts` helpers.
+- Trigger download with an anchor + `URL.createObjectURL` — no extra deps.
+- Import button uses a hidden file input triggered by a ref; no drag-drop for now.
+- Keep validation lenient on unknown fields (forward-compat) but strict on required shapes.
+
+## Out of scope (explicitly)
+
+- No cloud sync, no Google Drive, no accounts.
+- No collision detection / merge — every import is a new project.
+- No bulk export of multiple projects at once.
+- No CSV/PDF changes — those exports already exist elsewhere and stay as-is.
+- No desktop-only UI. Same responsive app.
+
+## Follow-ups we can add later if you want
+
+- "Replace existing" option when IDs collide (round-trip use case).
+- Drag-and-drop a `.json` onto the project list.
+- Zip bundle if plan images ever get too big for JSON.
