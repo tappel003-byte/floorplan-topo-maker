@@ -226,7 +226,9 @@ function ProjectWorkspace() {
               if (!fs.find((f) => f.id === activeFloorId)) setActiveFloorId(fs[0]?.id ?? null);
             }}
             onActiveFloorChange={setActiveFloorId}
+            onStartSurveying={() => setMode("field")}
           />
+
         )}
         {mode === "field" && (
           <FieldTab
