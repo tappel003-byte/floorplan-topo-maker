@@ -201,7 +201,7 @@ export function ReviewTab({
                 );
               })}
               <tr>
-                <td colSpan={4} className="h-24" />
+                <td colSpan={5} className="h-24" />
               </tr>
             </tbody>
           </table>
