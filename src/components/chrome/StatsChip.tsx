@@ -148,10 +148,8 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     const dy = e.clientY - d.startY;
     if (!d.moved && Math.hypot(dx, dy) < 5) return;
     d.moved = true;
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
+
+
     const w = ref.current?.offsetWidth ?? 0;
     const h = ref.current?.offsetHeight ?? 0;
     const top = topChromeHeight();
