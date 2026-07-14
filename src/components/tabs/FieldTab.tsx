@@ -897,12 +897,8 @@ export function FieldTab({
           commitSnap(nextPts);
         }}
         drawOverlay={(ctx) => {
-          // Excluded areas — white holes with an outline so they read as
-          // blank space while keeping the boundary visible.
-          for (const ex of floor.exclusions ?? []) {
-            drawExclusionShape(ctx, ex.polygon, { closed: true, muted: true });
-          }
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
+
           // Highlighted ids = full chain of the viewed transition, plus the
           // active chain when its popover is open (so tapping the pill lights
           // up every point tied to any link in the chain).
