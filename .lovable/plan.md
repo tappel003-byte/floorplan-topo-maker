@@ -1,37 +1,23 @@
 ## Problem
 
-Creating a project drops you straight into the Field view because `projects.$id.tsx` initializes `mode` to `"field"`. The Setup tabs (Details / Plan & floors / Boundary) are only reachable if you tap the Setup shortcut in the top bar, so a new project appears to skip setup entirely.
+Right now the New project flow is: tap **New project** → fill dialog → tap **Create** → dialog closes and you're dumped back on the project list → you have to find and tap the new project → *then* the 1-2-3 Setup appears.
+
+That middle hop (back to the list) is pointless. The user just made the project; they want to start setting it up.
 
 ## Fix
 
-Two small changes, both in existing files. No new components.
+One change, in `src/components/ProjectList.tsx`:
 
-### 1. Land new projects on Setup
+- After `saveProject` + `saveFloor` succeed in `handleCreate`, navigate straight to `/projects/$id` for the new project instead of just closing the dialog and refreshing the list.
+- Use TanStack Router's `useNavigate()` — same pattern already used elsewhere in the app.
+- Since the new project has no plan yet, `projects.$id.tsx` already lands on Setup (Details → Plan → Boundary). So the user sees: New project dialog → Create → Setup step 1.
 
-In `src/routes/projects.$id.tsx`:
-
-- When the loaded project has no plan on any floor (i.e. it's brand new), open in `mode = "setup"` instead of `"field"`.
-- Existing projects with a plan continue to open on Field.
-
-Rule: after `listFloors`, if no floor has a `planDataUrl`, set `mode` to `"setup"`.
-
-### 2. Guide the user through Setup in order
-
-In `src/components/tabs/SetupTab.tsx`, keep the three tabs but make the flow feel like steps 1 → 2 → 3 without removing the ability to jump around:
-
-- Rename tab labels to numbered steps: **1. Details**, **2. Plan**, **3. Boundary**.
-- Replace the single sticky **Start surveying →** button with a context-aware sticky footer:
-  - On **Details**: **Next: Plan →** (always enabled).
-  - On **Plan**: **Next: Boundary →** (enabled once a plan is uploaded; helper text "Upload a plan first" when disabled). A secondary **Back** link on the left.
-  - On **Boundary**: **Start surveying →** (enabled once a plan is uploaded; boundary remains optional). **Back** on the left.
-- Tapping Next just changes the internal `tab` state — no navigation.
-- Tab bar remains clickable for jumping directly to any step.
+If they realize they don't have what they need (no plan file, etc.), the back arrow in the top bar returns them to the job list — the project stays saved and shows up in the list to resume later. That matches what you described ("exit and get what you need").
 
 ## Files touched
 
-- `src/routes/projects.$id.tsx` — initial `mode` depends on whether any floor has a plan.
-- `src/components/tabs/SetupTab.tsx` — relabel tabs, replace footer with Back / Next → / Start surveying → depending on step.
+- `src/components/ProjectList.tsx` — add `useNavigate`, call it at the end of `handleCreate` with the newly-created project's id.
 
 ## Not changing
 
-Setup tab internals, top-bar Setup shortcut, home screen, Field / Topo / Review / Export.
+New project dialog contents, Setup 1-2-3 flow, top bar back behavior, project list itself.
