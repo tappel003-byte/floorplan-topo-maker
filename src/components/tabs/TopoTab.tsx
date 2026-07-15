@@ -910,6 +910,7 @@ function StepInput({ value, onCommit }: { value: number; onCommit: (v: number) =
     <Input
       type="text"
       inputMode="decimal"
+      enterKeyHint="done"
       value={text}
       onChange={(e) => {
         const raw = e.target.value;
@@ -926,7 +927,7 @@ function StepInput({ value, onCommit }: { value: number; onCommit: (v: number) =
           setText(String(n));
         }
       }}
-      className="w-20 h-10"
+      className="w-20 h-10 text-base sm:text-xs"
     />
   );
 }
