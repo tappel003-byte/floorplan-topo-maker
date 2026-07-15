@@ -622,6 +622,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             drawExclusionShape(ctx, ex.polygon, {
               closed: true,
               muted: tool !== "exclusion",
+              hatched: true,
             });
             if (tool === "exclusion") {
               const dragging =
