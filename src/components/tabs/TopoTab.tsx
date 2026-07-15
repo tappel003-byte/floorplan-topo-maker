@@ -17,7 +17,6 @@ import {
   contourThresholds,
   type Grid,
 } from "@/lib/topo";
-import { drawExclusionShape } from "@/lib/exclusions";
 import { savePoint, saveFloor } from "@/lib/db";
 
 interface Props {
@@ -947,17 +946,51 @@ function renderTopoBase(
     contours: ReturnType<typeof computeContours>;
   } | null,
 ) {
+  const w = Math.max(1, Math.ceil(floor.planWidth ?? 1000));
+  const h = Math.max(1, Math.ceil(floor.planHeight ?? 750));
+  const layer = document.createElement("canvas");
+  layer.width = w;
+  layer.height = h;
+  const layerCtx = layer.getContext("2d");
+  if (!layerCtx) return;
+  renderTopoBaseLayer(layerCtx, floor, settings, gridAndContours);
+  ctx.drawImage(layer, 0, 0, w, h);
+}
+
+function renderTopoBaseLayer(
+  ctx: CanvasRenderingContext2D,
+  floor: Floor,
+  settings: RenderSettings,
+  gridAndContours: {
+    grid: Grid;
+    contours: ReturnType<typeof computeContours>;
+  } | null,
+) {
   const resolved = resolveSettings(settings);
   const g = gridAndContours?.grid ?? null;
   const paletteMin = resolved.minClamp ?? g?.minValue ?? 0;
   const paletteMax = resolved.maxClamp ?? g?.maxValue ?? 1;
+  const traceExclusionCutouts = () => {
+    for (const ex of floor.exclusions ?? []) {
+      if (ex.polygon.length < 3) continue;
+      ctx.beginPath();
+      ex.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fill();
+    }
+  };
 
   if (floor.boundary.length >= 3) {
     ctx.save();
     ctx.beginPath();
     floor.boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
     ctx.closePath();
-    ctx.clip();
+    for (const ex of floor.exclusions ?? []) {
+      if (ex.polygon.length < 3) continue;
+      ex.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+    }
+    ctx.clip("evenodd");
 
     if (g && resolved.showContours && resolved.mode === "contour-cells") {
       // Paint cells opaque to an offscreen canvas first, then blit with opacity.
@@ -1042,11 +1075,13 @@ function renderTopoBase(
     ctx.restore();
   }
 
-  // Excluded areas — draw white holes on top of the contour fill so the
-  // garage/sunken areas read as blank space. Rendered inside renderTopoBase so
-  // they sit under the wall plan (plan draws on top when planOnTop is set).
-  for (const ex of floor.exclusions ?? []) {
-    drawExclusionShape(ctx, ex.polygon, { closed: true, muted: false, outlined: false });
+  // True cutout: remove topo pixels inside exclusions. This does not paint
+  // white and does not draw an outline, so the wall plan shows through cleanly.
+  if ((floor.exclusions ?? []).some((ex) => ex.polygon.length >= 3)) {
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
+    traceExclusionCutouts();
+    ctx.restore();
   }
 }
 

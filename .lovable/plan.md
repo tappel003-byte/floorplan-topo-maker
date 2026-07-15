@@ -1,6 +1,12 @@
-Remove the outline stroke from exclusion zones on the Topo tab so the white mask blends cleanly with the plan, avoiding a visible offset line.
+Fix Topo exclusions so they behave as an invisible cutout through the topo layer only.
 
-Changes:
-- `src/lib/exclusions.ts`: add an `outlined` option (default true) to `drawExclusionShape`. When `false`, skip the final outline stroke — only the white fill is drawn.
-- Topo tab call site: pass `outlined: false` so excluded areas render as pure white with no border.
-- Setup tab (hatched) and Field/Data (if applicable) keep their current outline behavior unchanged.
+What will change:
+- Remove the Topo-side white fill behavior entirely.
+- Remove the Topo-side outline/border around the excluded area entirely.
+- Keep the underlying plan visible inside the excluded area — walls, doors, labels, and plan lines should still show.
+- Keep the exclusion affecting the topo calculation/rendering only, so topo colors/contours/cells do not appear inside the excluded polygon.
+
+Technical approach:
+- Update the topo rendering/compositing path so exclusion polygons punch out the topo overlay itself, instead of drawing a white polygon on the main canvas.
+- Stop using `drawExclusionShape` as a Topo mask pass.
+- Leave Boundary setup hatching alone: setup still shows the transparent hatch so you can see what you are excluding.
