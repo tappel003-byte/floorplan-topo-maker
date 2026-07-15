@@ -50,9 +50,8 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
       {!expanded ? (
         <button
           type="button"
-          onClick={() => {
-            if (!moved.current) setExpanded(true);
-          }}
+          onClick={() => setExpanded(true)}
+
           className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-amber-400/70 bg-amber-100/95 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 text-[11px] font-medium shadow-sm hover:bg-amber-200/90"
           aria-label="Averaged corrections used"
         >
