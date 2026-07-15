@@ -788,9 +788,10 @@ export function TopoTab({
                       className="h-9 w-12 rounded-md border bg-background p-1 cursor-pointer"
                     />
                     <Input
+                      enterKeyHint="done"
                       value={resolved.pointLabelColor}
                       onChange={(e) => update({ pointLabelColor: e.target.value })}
-                      className="h-9 flex-1 font-mono text-xs"
+                      className="h-9 flex-1 font-mono text-base sm:text-xs"
                     />
                   </div>
                 </div>
