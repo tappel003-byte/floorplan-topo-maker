@@ -229,10 +229,11 @@ export function TopoTab({
     // Pins first — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
-        const w = pinWidth(kind === "pin-high" ? "High" : "Low");
+        const fontPx = resolved.highLowPinSize;
+        const w = pinWidth(kind === "pin-high" ? "High" : "Low", fontPx);
         const cx = pt.x + dx;
-        const top = pt.y + PIN_TOP_OFFSET + dy;
-        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + PIN_H;
+        const top = pt.y + pinTopOffset(fontPx) + dy;
+        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + pinHeight(fontPx);
       };
       const hDx = floor.highPinDx ?? 0;
       const hDy = floor.highPinDy ?? 0;
@@ -1256,21 +1257,26 @@ function drawPin(
   y: number,
   letter: string,
   color: string,
+  fontPx: number,
   highlighted = false,
 ) {
-  ctx.font = "bold 11px sans-serif";
-  const w = Math.max(PIN_MIN_W, ctx.measureText(letter).width + 14);
+  const pinH = pinHeight(fontPx);
+  const topOffset = pinTopOffset(fontPx);
+  const pad = pinPadding(fontPx);
+  const radius = pinCornerRadius(fontPx);
+  ctx.font = `bold ${fontPx}px sans-serif`;
+  const w = Math.max(pinMinWidth(fontPx), ctx.measureText(letter).width + pad * 2);
   ctx.beginPath();
-  roundRectPath(ctx, x - w / 2, y + PIN_TOP_OFFSET, w, PIN_H, 10);
+  roundRectPath(ctx, x - w / 2, y + topOffset, w, pinH, radius);
   ctx.fillStyle = color;
   ctx.fill();
   ctx.strokeStyle = highlighted ? "#17130e" : "#fff";
-  ctx.lineWidth = highlighted ? 2.5 : 2;
+  ctx.lineWidth = pinStrokeWidth(fontPx, highlighted);
   ctx.stroke();
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(letter, x, y + PIN_TOP_OFFSET + PIN_H / 2);
+  ctx.fillText(letter, x, y + topOffset + pinH / 2);
 }
 
 export function resolveSettings(settings: RenderSettings): RenderSettings {
