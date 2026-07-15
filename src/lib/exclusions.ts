@@ -122,7 +122,11 @@ export function drawExclusionShape(
   }
 
 
-  // Clean outline border.
+  // Clean outline border. Re-issue the polygon path since the hatched block
+  // may have replaced the current path via beginPath().
+  ctx.beginPath();
+  polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+  if (closed && polygon.length > 2) ctx.closePath();
   ctx.strokeStyle = muted ? "#9ca3af" : "#4b5563";
   ctx.lineWidth = muted ? 1.5 : 2;
   ctx.setLineDash([]);
@@ -131,4 +135,5 @@ export function drawExclusionShape(
   ctx.stroke();
   ctx.restore();
 }
+
 
