@@ -42,6 +42,8 @@ interface Props {
   planOnTop?: boolean;
   /** When nonce changes, pan (and gently zoom in if too far out) so (x,y) is centered. */
   focusRequest?: { x: number; y: number; nonce: number };
+  /** Keep the current pan/zoom when the wrapper changes size, e.g. mobile keyboard. */
+  refitOnResize?: boolean;
 }
 
 const IMPLIED_W = 1000;
@@ -65,6 +67,7 @@ export function PlanCanvas({
   hidePlan = false,
   planOnTop = false,
   focusRequest,
+  refitOnResize = true,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -129,12 +132,12 @@ export function PlanCanvas({
       if (Math.abs(w - lastW) > 20 || Math.abs(h - lastH) > 20) {
         lastW = w;
         lastH = h;
-        fit();
+        if (refitOnResize) fit();
       }
     });
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [fit]);
+  }, [fit, refitOnResize]);
 
   // Programmatic focus: pan (and gently zoom in if too zoomed out) to center (x,y).
   const focusNonceRef = useRef<number | undefined>(undefined);

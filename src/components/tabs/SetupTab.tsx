@@ -47,7 +47,7 @@ export function SetupTab({
   const startDisabled = !hasPlan;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="shrink-0 border-b flex overflow-x-auto">
         {steps.map(({ key, label }) => (
           <button
@@ -396,7 +396,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
   const drafting = tool === "exclusion" && !!draft;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Tool switcher */}
       <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-1 overflow-hidden">
         <Button
@@ -481,17 +481,22 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
 
       {/* Exclusion list (only when in exclusion mode with some existing) */}
       {tool === "exclusion" && exclusions.length > 0 && (
-        <div className="shrink-0 border-b px-2 py-1.5 flex flex-wrap gap-1.5 bg-muted/30">
+        <div className="shrink-0 border-b px-2 py-1.5 flex flex-nowrap gap-1.5 overflow-x-auto bg-muted/30 overscroll-x-contain">
           {exclusions.map((ex) => (
             <div
               key={ex.id}
-              className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs"
             >
               <input
                 value={ex.label ?? ""}
                 onChange={(e) => updateExclusion(ex.id, { label: e.target.value })}
-                className="w-24 bg-transparent outline-none border-b border-transparent focus:border-primary"
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerMove={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="w-28 bg-transparent text-base outline-none border-b border-transparent focus:border-primary sm:w-24 sm:text-xs"
                 placeholder="Label"
+                enterKeyHint="done"
               />
               <button
                 type="button"
@@ -674,6 +679,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             });
           }
         }}
+        refitOnResize={false}
       />
     </div>
   );
