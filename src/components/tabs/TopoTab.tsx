@@ -613,6 +613,7 @@ export function TopoTab({
                 <Input
                   type="text"
                   inputMode="numeric"
+                  enterKeyHint="done"
                   value={resolved.contourCount ?? ""}
                   placeholder="auto"
                   onChange={(e) => {
@@ -624,7 +625,7 @@ export function TopoTab({
                       update({ contourCount: isFinite(n) ? Math.max(2, n) : null });
                     }
                   }}
-                  className="mt-1 h-9 text-xs"
+                  className="mt-1 h-9 text-base sm:text-xs"
                 />
               </div>
             </div>
