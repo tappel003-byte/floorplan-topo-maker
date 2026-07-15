@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
+import type { SurveyPoint } from "@/lib/types";
 
 type SizeTier = "sm" | "md" | "lg";
 const SIZE_STYLES: Record<
@@ -15,7 +16,6 @@ function pickTier(w: number): SizeTier {
   if (w >= 768) return "md";
   return "sm";
 }
-import type { SurveyPoint } from "@/lib/types";
 
 interface Props {
   points: SurveyPoint[];
@@ -23,24 +23,12 @@ interface Props {
   storageKey?: string;
 }
 
-/** Height in px of the top chrome (header + optional floor selector) plus a gap. */
-function topChromeHeight() {
-  const header = document.querySelector("header");
-  const selector = document.querySelector("[data-floor-selector]");
-  const h =
-    (header?.getBoundingClientRect().height ?? 0) + (selector?.getBoundingClientRect().height ?? 0);
-  return h + 4; // 4px gap below chrome
-}
-
 /**
  * Floating pill: High / Low / Delta.
- * - Drag anywhere on the chip to move it (5px threshold).
- * - Quick tap on High/Low = highlight that point.
- * - Position persists per storageKey and clamps to viewport on resize/rotate.
- *   Top edge is clamped below the live header/floor selector so the pill can never
- *   hide under the chrome in portrait or landscape.
+ * Locked to bottom-center of the viewport, above the Data/Topo pill row.
+ * Tap High or Low to highlight that point.
  */
-export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }: Props) {
+export function StatsChip({ points, onHighlight }: Props) {
   const stats = useMemo(() => {
     if (points.length === 0) return null;
     let hi = points[0];
@@ -51,17 +39,6 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     }
     return { hi, lo, delta: hi.value - lo.value };
   }, [points]);
-
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) return JSON.parse(raw);
-    } catch {
-      /* ignore */
-    }
-    return null;
-  });
 
   const [tier, setTier] = useState<SizeTier>(() =>
     typeof window === "undefined" ? "sm" : pickTier(window.innerWidth),
@@ -77,124 +54,29 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
   }, []);
   const sz = SIZE_STYLES[tier];
 
-  // Default: bottom center, above the bottom pill row. Persisted position wins.
-  useEffect(() => {
-    if (pos) return;
-    const w = ref.current?.offsetWidth ?? 180;
-    const h = ref.current?.offsetHeight ?? 24;
-    const top = topChromeHeight();
-    setPos({
-      x: Math.max(8, window.innerWidth / 2 - w / 2),
-      y: Math.max(top, window.innerHeight - h - 80),
-    });
-  }, [pos]);
-
-  // Clamp on resize / rotation.
-  useEffect(() => {
-    const clamp = () => {
-      setPos((p) => {
-        if (!p || !ref.current) return p;
-        const w = ref.current.offsetWidth;
-        const h = ref.current.offsetHeight;
-        const top = topChromeHeight();
-        const x = Math.min(Math.max(4, p.x), window.innerWidth - w - 4);
-        const y = Math.min(Math.max(top, p.y), window.innerHeight - h - 60);
-        return x === p.x && y === p.y ? p : { x, y };
-      });
-    };
-    window.addEventListener("resize", clamp);
-    window.addEventListener("orientationchange", clamp);
-    return () => {
-      window.removeEventListener("resize", clamp);
-      window.removeEventListener("orientationchange", clamp);
-    };
-  }, []);
-
-  const drag = useRef<{
-    startX: number;
-    startY: number;
-    originX: number;
-    originY: number;
-    pointerId: number;
-    moved: boolean;
-  } | null>(null);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (!pos) return;
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
-    drag.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      originX: pos.x,
-      originY: pos.y,
-      pointerId: e.pointerId,
-      moved: false,
-    };
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d || d.pointerId !== e.pointerId) return;
-    const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
-    if (!d.moved && Math.hypot(dx, dy) < 5) return;
-    d.moved = true;
-    const w = ref.current?.offsetWidth ?? 0;
-    const h = ref.current?.offsetHeight ?? 0;
-    const top = topChromeHeight();
-    const x = Math.min(Math.max(4, d.originX + dx), window.innerWidth - w - 4);
-    const y = Math.min(Math.max(top, d.originY + dy), window.innerHeight - h - 4);
-    setPos({ x, y });
-  };
-  const endDrag = (e: React.PointerEvent, target?: "hi" | "lo") => {
-    const d = drag.current;
-    if (!d || d.pointerId !== e.pointerId) return;
-    drag.current = null;
-    if (d.moved) {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(pos));
-      } catch {
-        /* ignore */
-      }
-      return;
-    }
-    if (target && stats) onHighlight?.(target === "hi" ? stats.hi : stats.lo);
-  };
-
-  if (!stats || !pos) {
-    return (
-      <div
-        ref={ref}
-        className="fixed pointer-events-none opacity-0"
-        style={{ left: -9999, top: -9999 }}
-      />
-    );
-  }
+  if (!stats) return null;
 
   return (
     <div
-      ref={ref}
-      className={`fixed z-40 ${sz.height} ${sz.text} flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing`}
-      style={{ left: pos.x, top: pos.y }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={(e) => endDrag(e)}
-      onPointerCancel={(e) => endDrag(e)}
-      aria-label="Elevation stats — drag to move"
+      className={`fixed z-40 left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] ${sz.height} ${sz.text} flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden font-medium tabular-nums select-none`}
+      aria-label="Elevation stats"
     >
-      <div
-        className={`${sz.pad} flex items-center gap-0.5 text-gray-700`}
-        onPointerUp={(e) => endDrag(e, "hi")}
+      <button
+        type="button"
+        className={`${sz.pad} flex items-center gap-0.5 text-gray-700 hover:bg-gray-50`}
+        onClick={() => onHighlight?.(stats.hi)}
       >
         <ArrowUp className={`${sz.icon} text-emerald-600`} />
         <span className="font-mono">{stats.hi.value.toFixed(2)}</span>
-      </div>
-      <div
-        className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-700`}
-        onPointerUp={(e) => endDrag(e, "lo")}
+      </button>
+      <button
+        type="button"
+        className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-700 hover:bg-gray-50`}
+        onClick={() => onHighlight?.(stats.lo)}
       >
         <ArrowDown className={`${sz.icon} text-sky-600`} />
         <span className="font-mono">{stats.lo.value.toFixed(2)}</span>
-      </div>
+      </button>
       <div className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-500`}>
         <span className="font-mono">Δ{stats.delta.toFixed(2)}</span>
       </div>
