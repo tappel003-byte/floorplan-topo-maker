@@ -950,6 +950,15 @@ function renderTopoBase(
   const g = gridAndContours?.grid ?? null;
   const paletteMin = resolved.minClamp ?? g?.minValue ?? 0;
   const paletteMax = resolved.maxClamp ?? g?.maxValue ?? 1;
+  const traceExclusionCutouts = () => {
+    for (const ex of floor.exclusions ?? []) {
+      if (ex.polygon.length < 3) continue;
+      ctx.beginPath();
+      ex.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fill();
+    }
+  };
 
   if (floor.boundary.length >= 3) {
     ctx.save();
@@ -1043,6 +1052,15 @@ function renderTopoBase(
       ctx.globalAlpha = 1;
     }
 
+    ctx.restore();
+  }
+
+  // True cutout: remove topo pixels inside exclusions. This does not paint
+  // white and does not draw an outline, so the wall plan shows through cleanly.
+  if ((floor.exclusions ?? []).some((ex) => ex.polygon.length >= 3)) {
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
+    traceExclusionCutouts();
     ctx.restore();
   }
 }
