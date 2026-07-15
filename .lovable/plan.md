@@ -1,12 +1,12 @@
-Fix Topo exclusions so they behave as an invisible cutout through the topo layer only.
+Align the Database icon button's baseline with the Note pill.
 
-What will change:
-- Remove the Topo-side white fill behavior entirely.
-- Remove the Topo-side outline/border around the excluded area entirely.
-- Keep the underlying plan visible inside the excluded area — walls, doors, labels, and plan lines should still show.
-- Keep the exclusion affecting the topo calculation/rendering only, so topo colors/contours/cells do not appear inside the excluded polygon.
+**File**: `src/components/DataPointsPanel.tsx`, hidden-state button (line ~175) and matching open panel offset for `landscape-short` if needed.
 
-Technical approach:
-- Update the topo rendering/compositing path so exclusion polygons punch out the topo overlay itself, instead of drawing a white polygon on the main canvas.
-- Stop using `drawExclusionShape` as a Topo mask pass.
-- Leave Boundary setup hatching alone: setup still shows the transparent hatch so you can see what you are excluding.
+**Change**: add `1.75rem` (h-7 floor-selector height) to the `top` offset when a floor selector row is present, so the Database chip sits on the same baseline as the Note pill inside FieldTab.
+
+- Add prop `hasFloorSelector?: boolean` to `DataPointsPanel`.
+- In `src/routes/projects.$id.tsx`, pass `hasFloorSelector={floors.length > 1}` where the panel is rendered.
+- In the panel's hidden-button `className`, replace `top-[calc(env(safe-area-inset-top)+2.75rem)]` with:
+  `top-[calc(env(safe-area-inset-top)+2.75rem+var(--fs-offset,0rem))]` and set `style={{ ["--fs-offset" as any]: hasFloorSelector ? "1.75rem" : "0rem" }}`.
+- Height stays `h-9` (already matches Note pill).
+- No other layout changes.
