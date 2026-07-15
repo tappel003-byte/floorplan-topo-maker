@@ -591,6 +591,7 @@ export function TopoTab({
                 <Input
                   type="number"
                   step="0.05"
+                  enterKeyHint="done"
                   value={resolved.firstContour ?? ""}
                   placeholder="auto"
                   onChange={(e) =>
@@ -598,7 +599,7 @@ export function TopoTab({
                       firstContour: e.target.value === "" ? null : parseFloat(e.target.value),
                     })
                   }
-                  className="mt-1 h-9 text-xs"
+                  className="mt-1 h-9 text-base sm:text-xs"
                 />
               </div>
               <div>
