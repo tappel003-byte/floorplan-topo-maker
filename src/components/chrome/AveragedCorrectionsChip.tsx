@@ -99,10 +99,8 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
           <div className="border-t border-amber-300/60 px-2.5 py-1.5 flex justify-end">
             <button
               type="button"
-              onClick={() => {
-                if (moved.current) return;
-                onManage();
-              }}
+              onClick={onManage}
+
               className="text-[11px] font-medium text-amber-900 dark:text-amber-100 hover:underline"
             >
               Manage
