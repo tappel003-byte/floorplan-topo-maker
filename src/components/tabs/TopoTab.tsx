@@ -945,6 +945,24 @@ function NumberControl({
   step?: number;
   onChange: (v: number | null) => void;
 }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft ?? (value === null || value === undefined ? "" : String(value));
+  const commit = (raw: string) => {
+    setDraft(null);
+    if (raw === "") {
+      onChange(null);
+      return;
+    }
+    const n = parseFloat(raw);
+    if (Number.isNaN(n)) {
+      onChange(null);
+      return;
+    }
+    let clamped = n;
+    if (min !== undefined) clamped = Math.max(min, clamped);
+    if (max !== undefined) clamped = Math.min(max, clamped);
+    onChange(clamped);
+  };
   return (
     <div>
       <Label className="text-xs">{label}</Label>
@@ -953,9 +971,13 @@ function NumberControl({
         min={min}
         max={max}
         step={step}
-        value={value ?? ""}
+        value={display}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value === "" ? null : parseFloat(e.target.value))}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
         className="mt-1 h-9"
       />
     </div>
