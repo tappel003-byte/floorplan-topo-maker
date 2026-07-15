@@ -17,7 +17,6 @@ import {
   contourThresholds,
   type Grid,
 } from "@/lib/topo";
-import { drawExclusionShape } from "@/lib/exclusions";
 import { savePoint, saveFloor } from "@/lib/db";
 
 interface Props {
@@ -957,7 +956,12 @@ function renderTopoBase(
     ctx.beginPath();
     floor.boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
     ctx.closePath();
-    ctx.clip();
+    for (const ex of floor.exclusions ?? []) {
+      if (ex.polygon.length < 3) continue;
+      ex.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+    }
+    ctx.clip("evenodd");
 
     if (g && resolved.showContours && resolved.mode === "contour-cells") {
       // Paint cells opaque to an offscreen canvas first, then blit with opacity.
@@ -1040,13 +1044,6 @@ function renderTopoBase(
     }
 
     ctx.restore();
-  }
-
-  // Excluded areas — draw white holes on top of the contour fill so the
-  // garage/sunken areas read as blank space. Rendered inside renderTopoBase so
-  // they sit under the wall plan (plan draws on top when planOnTop is set).
-  for (const ex of floor.exclusions ?? []) {
-    drawExclusionShape(ctx, ex.polygon, { closed: true, muted: false, outlined: false });
   }
 }
 
