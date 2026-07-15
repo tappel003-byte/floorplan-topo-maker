@@ -1004,17 +1004,7 @@ function StepperControl({
   step?: number;
   onChange: (v: number) => void;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const display = draft ?? `${value}px`;
-  const commit = (raw: string) => {
-    setDraft(null);
-    const n = parseFloat(raw);
-    if (Number.isNaN(n)) return;
-    let clamped = n;
-    clamped = Math.max(min, clamped);
-    clamped = Math.min(max, clamped);
-    onChange(clamped);
-  };
+  const display = `${value}px`;
   return (
     <div>
       <Label className="text-xs">{label}</Label>
@@ -1028,18 +1018,12 @@ function StepperControl({
         >
           <Minus className="h-3 w-3" />
         </button>
-        <Input
-          type="text"
-          inputMode="numeric"
-          enterKeyHint="done"
-          value={display}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={(e) => commit(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          }}
-          className="h-6 flex-1 min-w-0 px-1 text-center text-base sm:text-[10px] font-mono tabular-nums leading-none"
-        />
+        <output
+          aria-label={`${label}: ${display}`}
+          className="flex h-6 flex-1 min-w-0 select-none items-center justify-center rounded-md border border-input bg-background px-1 text-center font-mono text-[10px] leading-none tabular-nums text-foreground"
+        >
+          {display}
+        </output>
         <button
           type="button"
           onClick={() => onChange(Math.min(max, value + step))}
