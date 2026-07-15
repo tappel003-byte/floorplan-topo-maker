@@ -657,7 +657,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
 
           // Draft exclusion
           if (drafting && draft) {
-            drawExclusionShape(ctx, draft, { closed: draft.length >= 3, muted: false });
+            drawExclusionShape(ctx, draft, { closed: draft.length >= 3, muted: false, hatched: true });
             draft.forEach((p, i) => {
               ctx.beginPath();
               ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
