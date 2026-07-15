@@ -1270,6 +1270,7 @@ const PALETTE_LABELS: Record<RenderSettings["palette"], string> = {
   brown: "Earth Tone",
   rainbow: "Rainbow",
   "blue-red": "Blue → Red",
+  "red-yellow-green": "Red → Green",
   gray: "Grayscale",
   ocean: "Ocean",
   sunset: "Sunset",
@@ -1280,7 +1281,13 @@ const PALETTE_LABELS: Record<RenderSettings["palette"], string> = {
   "nm-sunset": "New Mexico Sunset",
   mountain: "Mountain Top",
 };
-const PRIMARY_PALETTES: RenderSettings["palette"][] = ["brown", "rainbow", "blue-red", "gray"];
+const PRIMARY_PALETTES: RenderSettings["palette"][] = [
+  "brown",
+  "rainbow",
+  "blue-red",
+  "red-yellow-green",
+  "gray",
+];
 const EXTRA_PALETTES: RenderSettings["palette"][] = [
   "ocean",
   "sunset",
