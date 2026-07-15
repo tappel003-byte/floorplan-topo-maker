@@ -328,6 +328,7 @@ function ProjectWorkspace() {
       )}
       {mode === "field" && (
         <DataPointsPanel
+          hasFloorSelector={floors.length > 1}
           projectId={project.id}
           points={points}
           correctedById={new Map(correctedPoints.map((p) => [p.id, p.value]))}
