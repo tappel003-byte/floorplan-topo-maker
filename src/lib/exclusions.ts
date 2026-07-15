@@ -74,10 +74,14 @@ export function drawExclusionShape(
   const muted = opts.muted ?? false;
   const hatched = opts.hatched ?? false;
 
+  const tracePolygon = () => {
+    ctx.beginPath();
+    polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    if (closed && polygon.length > 2) ctx.closePath();
+  };
+
   ctx.save();
-  ctx.beginPath();
-  polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-  if (closed && polygon.length > 2) ctx.closePath();
+  tracePolygon();
 
   // White fill — erases the interpolated topo surface underneath. Hatched
   // setup overlays intentionally stay transparent over the plan image.
@@ -90,10 +94,7 @@ export function drawExclusionShape(
   // clearly while it's being defined).
   if (hatched && closed && polygon.length > 2) {
     ctx.save();
-    // Reuse the current path for clipping.
-    ctx.beginPath();
-    polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-    ctx.closePath();
+    tracePolygon();
     ctx.clip();
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -107,7 +108,7 @@ export function drawExclusionShape(
     ctx.strokeStyle = "rgba(17,24,39,0.32)";
     ctx.lineWidth = 1.25;
     ctx.setLineDash([]);
-    // True diagonal crosshatch: two angled line sets clipped to the polygon.
+    // Transparent diagonal hatch: one line direction only, clipped to the polygon.
     const w = maxX - minX;
     const h = maxY - minY;
     for (let d = -h; d <= w + h; d += spacing) {
@@ -115,15 +116,12 @@ export function drawExclusionShape(
       ctx.moveTo(minX + d, minY);
       ctx.lineTo(minX + d + h, maxY);
       ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(minX + d, maxY);
-      ctx.lineTo(minX + d + h, minY);
-      ctx.stroke();
     }
     ctx.restore();
   }
 
   // Clean outline border.
+  tracePolygon();
   ctx.strokeStyle = muted ? "#9ca3af" : "#4b5563";
   ctx.lineWidth = muted ? 1.5 : 2;
   ctx.setLineDash([]);

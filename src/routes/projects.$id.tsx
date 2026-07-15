@@ -197,7 +197,7 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] relative bg-background">
+    <div className="relative flex h-[100svh] min-h-[100svh] flex-col overflow-hidden bg-background">
       <AppTopBar
         projectName={project.name}
         floorName={activeFloor.name}
