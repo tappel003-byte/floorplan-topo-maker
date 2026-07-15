@@ -66,11 +66,12 @@ export function pointsOutsideExclusions(
 export function drawExclusionShape(
   ctx: CanvasRenderingContext2D,
   polygon: Array<{ x: number; y: number }>,
-  opts: { closed?: boolean; muted?: boolean } = {},
+  opts: { closed?: boolean; muted?: boolean; hatched?: boolean } = {},
 ) {
   if (polygon.length === 0) return;
   const closed = opts.closed ?? true;
   const muted = opts.muted ?? false;
+  const hatched = opts.hatched ?? false;
 
   ctx.save();
   ctx.beginPath();
@@ -81,8 +82,44 @@ export function drawExclusionShape(
   ctx.fillStyle = "#ffffff";
   if (closed && polygon.length > 2) ctx.fill();
 
-  // Clean outline border. Slightly thinner when muted so it doesn't fight
-  // other editing chrome, but still solid for clarity.
+  // Optional diagonal cross-hatch (Setup tab, so the excluded area reads
+  // clearly while it's being defined).
+  if (hatched && closed && polygon.length > 2) {
+    ctx.save();
+    // Reuse the current path for clipping.
+    ctx.beginPath();
+    polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    ctx.closePath();
+    ctx.clip();
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const p of polygon) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const spacing = 10;
+    ctx.strokeStyle = "rgba(75,85,99,0.45)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    // Diagonals in both directions for a cross-hatch.
+    const w = maxX - minX;
+    const h = maxY - minY;
+    for (let d = -h; d <= w + h; d += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(minX + d, minY);
+      ctx.lineTo(minX + d + h, maxY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(minX + d, maxY);
+      ctx.lineTo(minX + d + h, minY);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Clean outline border.
   ctx.strokeStyle = muted ? "#9ca3af" : "#4b5563";
   ctx.lineWidth = muted ? 1.5 : 2;
   ctx.setLineDash([]);
@@ -91,3 +128,4 @@ export function drawExclusionShape(
   ctx.stroke();
   ctx.restore();
 }
+
