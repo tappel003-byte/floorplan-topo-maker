@@ -48,7 +48,7 @@ export function SetupTab({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b flex overflow-x-auto">
+      <div className="shrink-0 border-b flex overflow-x-auto">
         {steps.map(({ key, label }) => (
           <button
             key={key}
@@ -65,7 +65,7 @@ export function SetupTab({
         ))}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className={tab === "boundary" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
         {tab === "details" && <DetailsPanel project={project} onChange={onProjectChange} />}
         {tab === "plan" && (
           <PlanPanel
@@ -87,7 +87,7 @@ export function SetupTab({
         )}
       </div>
 
-      <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+      <div className="shrink-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
         {prevStep ? (
           <Button variant="ghost" size="sm" onClick={() => setTab(prevStep.key)}>
             <ArrowLeft className="h-4 w-4 mr-1" />
@@ -398,7 +398,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
   return (
     <div className="flex flex-col h-full">
       {/* Tool switcher */}
-      <div className="border-b bg-background/70 px-2 py-1.5 flex items-center gap-1">
+      <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-1 overflow-hidden">
         <Button
           size="sm"
           variant={tool === "boundary" ? "default" : "ghost"}
@@ -421,7 +421,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
           <Ban className="h-3.5 w-3.5 mr-1" />
           Excluded areas
         </Button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {tool === "boundary" && (
             <>
               <span className="text-xs text-muted-foreground hidden sm:inline">
@@ -481,7 +481,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
 
       {/* Exclusion list (only when in exclusion mode with some existing) */}
       {tool === "exclusion" && exclusions.length > 0 && (
-        <div className="border-b px-2 py-1.5 flex flex-wrap gap-1.5 bg-muted/30">
+        <div className="shrink-0 border-b px-2 py-1.5 flex flex-wrap gap-1.5 bg-muted/30">
           {exclusions.map((ex) => (
             <div
               key={ex.id}

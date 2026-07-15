@@ -61,7 +61,8 @@ export function pointsOutsideExclusions(
 
 /** Draw an exclusion polygon as a clean white hole with a visible outline.
  *  The white fill masks underlying topo contours so excluded areas read as
- *  blank space, while the outline keeps the boundary legible.
+ *  blank space, while the outline keeps the boundary legible. When hatched,
+ *  the fill stays transparent so the setup plan remains visible underneath.
  */
 export function drawExclusionShape(
   ctx: CanvasRenderingContext2D,
@@ -78,9 +79,12 @@ export function drawExclusionShape(
   polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
   if (closed && polygon.length > 2) ctx.closePath();
 
-  // White fill — erases the interpolated topo surface underneath.
-  ctx.fillStyle = "#ffffff";
-  if (closed && polygon.length > 2) ctx.fill();
+  // White fill — erases the interpolated topo surface underneath. Hatched
+  // setup overlays intentionally stay transparent over the plan image.
+  if (!hatched && closed && polygon.length > 2) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+  }
 
   // Optional diagonal cross-hatch (Setup tab, so the excluded area reads
   // clearly while it's being defined).
@@ -99,11 +103,11 @@ export function drawExclusionShape(
       if (p.x > maxX) maxX = p.x;
       if (p.y > maxY) maxY = p.y;
     }
-    const spacing = 10;
-    ctx.strokeStyle = "rgba(75,85,99,0.45)";
-    ctx.lineWidth = 1;
+    const spacing = 14;
+    ctx.strokeStyle = "rgba(17,24,39,0.32)";
+    ctx.lineWidth = 1.25;
     ctx.setLineDash([]);
-    // Diagonals in both directions for a cross-hatch.
+    // True diagonal crosshatch: two angled line sets clipped to the polygon.
     const w = maxX - minX;
     const h = maxY - minY;
     for (let d = -h; d <= w + h; d += spacing) {
