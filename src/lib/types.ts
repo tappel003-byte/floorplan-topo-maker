@@ -157,6 +157,7 @@ export interface RenderSettings {
   pointLabelFontSize: number;
   pointLabelColor: string;
   pointLabelWeight: "normal" | "bold";
+  highLowPinSize: number;
   showLegend: boolean;
   legendX: number;
   legendY: number;
@@ -188,6 +189,7 @@ export const defaultRenderSettings: RenderSettings = {
   pointLabelFontSize: 11,
   pointLabelColor: "#17130e",
   pointLabelWeight: "bold",
+  highLowPinSize: 11,
   showLegend: true,
   legendX: 24,
   legendY: 24,

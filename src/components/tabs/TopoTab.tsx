@@ -37,10 +37,26 @@ const DEFAULT_LABEL_DY = 6;
 const LONG_PRESS_MS = 350;
 
 // Pin geometry — matches drawPin(). Pin box is centered horizontally on the
-// point, sitting above it. These constants keep hit-testing and rendering aligned.
-const PIN_H = 20;
-const PIN_TOP_OFFSET = -28; // top of pin relative to point y
-const PIN_MIN_W = 40; // widened for "High"/"Low" text
+// point, sitting above it. These functions keep hit-testing and rendering aligned
+// as the user changes the High/Low pin size.
+function pinHeight(fontPx: number) {
+  return Math.round(fontPx * 1.82);
+}
+function pinTopOffset(fontPx: number) {
+  return -Math.round(pinHeight(fontPx) * 1.4);
+}
+function pinMinWidth(fontPx: number) {
+  return Math.round(fontPx * 3.64);
+}
+function pinPadding(fontPx: number) {
+  return Math.round(fontPx * 1.27);
+}
+function pinCornerRadius(fontPx: number) {
+  return Math.round(fontPx * 0.91);
+}
+function pinStrokeWidth(fontPx: number, highlighted: boolean) {
+  return highlighted ? Math.max(1.5, fontPx * 0.23) : Math.max(1, fontPx * 0.18);
+}
 
 // Offscreen ctx for text width measurement in event handlers
 let measureCtx: CanvasRenderingContext2D | null = null;
@@ -54,9 +70,9 @@ function measureLabel(text: string, fontPx: number, weight: string) {
   return { w: measureCtx.measureText(text).width, h: fontPx };
 }
 
-function pinWidth(text: string) {
-  const { w } = measureLabel(text, 11, "bold");
-  return Math.max(PIN_MIN_W, w + 14);
+function pinWidth(text: string, fontPx: number) {
+  const { w } = measureLabel(text, fontPx, "bold");
+  return Math.max(pinMinWidth(fontPx), w + pinPadding(fontPx) * 2);
 }
 
 // Where the label sits (top-left corner) for a given point in image coords.
@@ -213,10 +229,11 @@ export function TopoTab({
     // Pins first — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
-        const w = pinWidth(kind === "pin-high" ? "High" : "Low");
+        const fontPx = resolved.highLowPinSize;
+        const w = pinWidth(kind === "pin-high" ? "High" : "Low", fontPx);
         const cx = pt.x + dx;
-        const top = pt.y + PIN_TOP_OFFSET + dy;
-        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + PIN_H;
+        const top = pt.y + pinTopOffset(fontPx) + dy;
+        return x >= cx - w / 2 && x <= cx + w / 2 && y >= top && y <= top + pinHeight(fontPx);
       };
       const hDx = floor.highPinDx ?? 0;
       const hDy = floor.highPinDy ?? 0;
@@ -726,13 +743,23 @@ export function TopoTab({
               </summary>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <NumberControl
-                  label="Font size"
+                  label="Point label size"
                   value={resolved.pointLabelFontSize}
                   min={7}
                   max={28}
                   step={1}
                   onChange={(v) =>
                     update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })
+                  }
+                />
+                <NumberControl
+                  label="High / low size"
+                  value={resolved.highLowPinSize}
+                  min={7}
+                  max={28}
+                  step={1}
+                  onChange={(v) =>
+                    update({ highLowPinSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })
                   }
                 />
                 <div>
@@ -1228,8 +1255,8 @@ function renderTopoTop(
       const hDy = livePinHigh ? livePinHigh.dy : (floor.highPinDy ?? 0);
       const lDx = livePinLow ? livePinLow.dx : (floor.lowPinDx ?? 0);
       const lDy = livePinLow ? livePinLow.dy : (floor.lowPinDy ?? 0);
-      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", highlightPin === "pin-high");
-      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", highlightPin === "pin-low");
+      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", resolved.highLowPinSize, highlightPin === "pin-high");
+      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", resolved.highLowPinSize, highlightPin === "pin-low");
     }
   }
 }
@@ -1240,21 +1267,26 @@ function drawPin(
   y: number,
   letter: string,
   color: string,
+  fontPx: number,
   highlighted = false,
 ) {
-  ctx.font = "bold 11px sans-serif";
-  const w = Math.max(PIN_MIN_W, ctx.measureText(letter).width + 14);
+  const pinH = pinHeight(fontPx);
+  const topOffset = pinTopOffset(fontPx);
+  const pad = pinPadding(fontPx);
+  const radius = pinCornerRadius(fontPx);
+  ctx.font = `bold ${fontPx}px sans-serif`;
+  const w = Math.max(pinMinWidth(fontPx), ctx.measureText(letter).width + pad * 2);
   ctx.beginPath();
-  roundRectPath(ctx, x - w / 2, y + PIN_TOP_OFFSET, w, PIN_H, 10);
+  roundRectPath(ctx, x - w / 2, y + topOffset, w, pinH, radius);
   ctx.fillStyle = color;
   ctx.fill();
   ctx.strokeStyle = highlighted ? "#17130e" : "#fff";
-  ctx.lineWidth = highlighted ? 2.5 : 2;
+  ctx.lineWidth = pinStrokeWidth(fontPx, highlighted);
   ctx.stroke();
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(letter, x, y + PIN_TOP_OFFSET + PIN_H / 2);
+  ctx.fillText(letter, x, y + topOffset + pinH / 2);
 }
 
 export function resolveSettings(settings: RenderSettings): RenderSettings {

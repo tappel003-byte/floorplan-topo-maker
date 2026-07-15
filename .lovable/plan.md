@@ -1,26 +1,22 @@
-Add a third point-label option in the Topo tab: plain elevation numbers drawn directly on the colored fill — no white pill, no outlined box, just the text (matching the reference screenshot). Today's two options stay: white pill or fully off.
+Add a dedicated High/Low pin size control in the Topo tab so the red "High" and blue "Low" badges can be resized independently from the point elevation labels.
 
-**Where it lives**
-
-The Labels & layers popover in Topo currently has a "Label bg" switch (white pill on/off). We'll replace that switch with a 3-way selector.
-
-**Changes**
+Changes
 
 1. `src/lib/types.ts`
-   - Widen `pointLabelBackground` from `"white" | "transparent"` to `"white" | "transparent" | "plain"`.
-   - `"plain"` = draw the number text only, no pill fill and no border stroke.
+   - Add `highLowPinSize: number` to `RenderSettings`.
+   - Set default `highLowPinSize: 11` in `defaultRenderSettings` so current rendering stays unchanged by default.
 
 2. `src/components/tabs/TopoTab.tsx`
-   - In the point-label draw block inside `renderTopoTop` (currently draws either a white pill + border + text, or a border + text), add the `"plain"` branch: skip both the fill rect and the border stroke, draw only the text.
-   - Replace the "Label bg" `SwitchRow` in the Labels & layers popover with a 3-segment picker: **Box** (white), **Border** (transparent — current "off"), **Plain** (no box, no border).
+   - Replace the hard-coded pin constants with functions driven by `resolved.highLowPinSize`:
+     - Pin height scales with the font size (e.g. `fontPx * 1.82`).
+     - Pin font uses `resolved.highLowPinSize` px.
+     - Pin vertical offset keeps the badge centered above the point.
+     - Minimum pin width stays at least `text width + padding`, scaled.
+   - Update `drawPin()` to accept a `fontPx` argument and compute `pinH`, `topOffset`, and width from it.
+   - Update the long-press hit-test in `renderTopoTop` so the touch target matches the scaled badge.
+   - Add a "High/Low size" `NumberControl` slider in the Labels & layers popover, range 7–28 px, step 1, placed near the existing "High / low" switch or the label-style section.
 
-**Naming check before build**
-The current "transparent" mode still draws a border outline around the number. Confirm the label:
-- Box = white pill + border
-- Border = no fill, just border (today's "off")
-- Plain = text only
-
-If you'd rather collapse Border into Plain (i.e. today's "off" becomes text-only, no border, no pill) and skip adding a third state, say so and I'll do that instead — it's simpler.
-
-**Verification**
-Open Topo → Labels & layers, switch between the three, and confirm Plain matches the reference: bare numbers directly over the colored fill.
+3. Verification
+   - Open Topo → Labels & layers.
+   - Toggle High/Low on and adjust the new size slider.
+   - Confirm the High and Low badges resize, stay legible, and remain draggable/long-pressable.
