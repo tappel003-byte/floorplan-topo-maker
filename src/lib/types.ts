@@ -153,7 +153,7 @@ export interface RenderSettings {
   showLabels: boolean;
   showPoints: boolean;
   pointsOpacity: number;
-  pointLabelBackground: "white" | "transparent";
+  pointLabelBackground: "white" | "transparent" | "plain";
   pointLabelFontSize: number;
   pointLabelColor: string;
   pointLabelWeight: "normal" | "bold";
