@@ -1384,6 +1384,13 @@ function paletteColor(input: number, palette: RenderSettings["palette"], reverse
       [206, 115, 73],
       [142, 45, 35],
     ],
+    "red-yellow-green": [
+      [220, 40, 40],
+      [230, 100, 40],
+      [255, 235, 60],
+      [150, 210, 60],
+      [34, 160, 50],
+    ],
     gray: [
       [42, 42, 42],
       [92, 92, 92],

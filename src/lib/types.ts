@@ -134,6 +134,7 @@ export interface RenderSettings {
     | "brown"
     | "rainbow"
     | "blue-red"
+    | "red-yellow-green"
     | "gray"
     | "ocean"
     | "sunset"
