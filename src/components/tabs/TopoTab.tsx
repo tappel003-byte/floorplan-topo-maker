@@ -1031,13 +1031,14 @@ function StepperControl({
         <Input
           type="text"
           inputMode="numeric"
+          enterKeyHint="done"
           value={display}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => commit(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
-          className="h-6 flex-1 min-w-0 px-1 text-center text-[10px] font-mono tabular-nums"
+          className="h-6 flex-1 min-w-0 px-1 text-center text-base sm:text-[10px] font-mono tabular-nums leading-none"
         />
         <button
           type="button"
