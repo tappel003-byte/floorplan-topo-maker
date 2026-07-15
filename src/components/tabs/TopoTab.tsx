@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal } from "lucide-react";
+import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal, Minus, Plus } from "lucide-react";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { TopoDiagnosticPanel } from "../TopoDiagnosticPanel";
@@ -742,24 +742,24 @@ export function TopoTab({
                 Label style
               </summary>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                <NumberControl
+                <StepperControl
                   label="Point label size"
                   value={resolved.pointLabelFontSize}
                   min={7}
                   max={28}
                   step={1}
                   onChange={(v) =>
-                    update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })
+                    update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v))) })
                   }
                 />
-                <NumberControl
+                <StepperControl
                   label="High / low size"
                   value={resolved.highLowPinSize}
                   min={7}
                   max={28}
                   step={1}
                   onChange={(v) =>
-                    update({ highLowPinSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })
+                    update({ highLowPinSize: Math.max(7, Math.min(28, Math.round(v))) })
                   }
                 />
                 <div>
@@ -980,6 +980,72 @@ function NumberControl({
         }}
         className="mt-1 h-9"
       />
+    </div>
+  );
+}
+
+function StepperControl({
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (v: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft ?? String(value);
+  const commit = (raw: string) => {
+    setDraft(null);
+    const n = parseFloat(raw);
+    if (Number.isNaN(n)) return;
+    let clamped = n;
+    clamped = Math.max(min, clamped);
+    clamped = Math.min(max, clamped);
+    onChange(clamped);
+  };
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <div className="mt-1 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - step))}
+          disabled={value <= min}
+          aria-label={`Decrease ${label}`}
+          className="h-9 w-9 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40 shrink-0"
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <Input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={display}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={(e) => commit(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+          className="h-9 flex-1 min-w-0 text-center text-xs font-mono tabular-nums"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + step))}
+          disabled={value >= max}
+          aria-label={`Increase ${label}`}
+          className="h-9 w-9 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40 shrink-0"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }

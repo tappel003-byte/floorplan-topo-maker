@@ -1,22 +1,19 @@
-Add a dedicated High/Low pin size control in the Topo tab so the red "High" and blue "Low" badges can be resized independently from the point elevation labels.
+Add +/− stepper buttons to the two label-size inputs in the Topo tab so they match the existing pattern in the Data Points panel.
 
 Changes
 
-1. `src/lib/types.ts`
-   - Add `highLowPinSize: number` to `RenderSettings`.
-   - Set default `highLowPinSize: 11` in `defaultRenderSettings` so current rendering stays unchanged by default.
+1. `src/components/tabs/TopoTab.tsx`
+   - Replace the bare `NumberControl` inputs for **Point label size** and **High / low size** with a stepper control that shows a `-` button, the number, and a `+` button in a single row.
+   - The stepper should live inside the existing `NumberControl` component so the decimals control above can keep using the same component, or create a local `StepperControl` variant.
+   - Each tap of `-` or `+` changes the value by 1 px (respecting the 7–28 min/max range).
+   - Keep the number editable as a plain input so the user can still type a value directly (as already fixed for multi-digit typing).
+   - Use the same styling as the Data Points panel: compact buttons, 10px monospace centered value, minimal borders.
 
-2. `src/components/tabs/TopoTab.tsx`
-   - Replace the hard-coded pin constants with functions driven by `resolved.highLowPinSize`:
-     - Pin height scales with the font size (e.g. `fontPx * 1.82`).
-     - Pin font uses `resolved.highLowPinSize` px.
-     - Pin vertical offset keeps the badge centered above the point.
-     - Minimum pin width stays at least `text width + padding`, scaled.
-   - Update `drawPin()` to accept a `fontPx` argument and compute `pinH`, `topOffset`, and width from it.
-   - Update the long-press hit-test in `renderTopoTop` so the touch target matches the scaled badge.
-   - Add a "High/Low size" `NumberControl` slider in the Labels & layers popover, range 7–28 px, step 1, placed near the existing "High / low" switch or the label-style section.
+2. `src/components/DataPointsPanel.tsx` (reference only — no changes required)
+   - The existing point-size and label-font-size steppers in the collapsed panel are the pattern to match.
 
 3. Verification
-   - Open Topo → Labels & layers.
-   - Toggle High/Low on and adjust the new size slider.
-   - Confirm the High and Low badges resize, stay legible, and remain draggable/long-pressable.
+   - Open Topo → Labels & layers → Label style.
+   - Tap `-` and `+` on both Point label size and High / low size; confirm the value changes by 1 px and clamps at the min/max.
+   - Confirm the canvas labels/pins update immediately.
+   - Confirm typing a value directly still works.
