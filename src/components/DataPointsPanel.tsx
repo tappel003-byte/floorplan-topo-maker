@@ -26,7 +26,9 @@ interface Props {
   labelFontSize: number;
   onLabelFontSizeChange: (n: number) => void;
   onCommit?: (points: SurveyPoint[]) => void;
+  hasFloorSelector?: boolean;
 }
+
 
 
 const COLOR_PRESETS = ["#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#2563eb", "#7c3aed", "#111827"];
@@ -80,6 +82,7 @@ export function DataPointsPanel({
   labelFontSize,
   onLabelFontSizeChange,
   onCommit,
+  hasFloorSelector,
 }: Props) {
   const [state, setState] = useState<PanelState>(() => loadState(projectId));
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -174,7 +177,8 @@ export function DataPointsPanel({
     return (
       <button
         onClick={() => setState((s) => ({ ...s, hidden: false }))}
-        className="fixed top-[calc(env(safe-area-inset-top)+2.75rem)] left-[calc(env(safe-area-inset-left)+0.5rem)] landscape-short:top-auto landscape-short:left-1/2 landscape-short:-translate-x-1/2 landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md h-9 px-3 flex items-center gap-1 text-[11px] font-medium"
+        className="fixed top-[calc(env(safe-area-inset-top)+2.75rem+var(--fs-offset,0rem))] left-[calc(env(safe-area-inset-left)+0.5rem)] landscape-short:top-auto landscape-short:left-1/2 landscape-short:-translate-x-1/2 landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md h-9 px-3 flex items-center gap-1 text-[11px] font-medium"
+        style={{ ["--fs-offset" as any]: hasFloorSelector ? "1.75rem" : "0rem" }}
         aria-label="Show data points"
       >
         <Database className="h-4 w-4" />
