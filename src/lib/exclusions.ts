@@ -78,17 +78,15 @@ export function drawExclusionShape(
   polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
   if (closed && polygon.length > 2) ctx.closePath();
 
-  // Solid white fill masks the topo surface underneath — but only when we're
-  // NOT drawing the hatched Setup preview. Hatched mode stays transparent so
-  // the plan reads through.
-  if (!hatched && closed && polygon.length > 2) {
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-  }
+  // White fill — erases the interpolated topo surface underneath.
+  ctx.fillStyle = "#ffffff";
+  if (closed && polygon.length > 2) ctx.fill();
 
-  // Transparent diagonal cross-hatch for the Setup tab preview.
+  // Optional diagonal cross-hatch (Setup tab, so the excluded area reads
+  // clearly while it's being defined).
   if (hatched && closed && polygon.length > 2) {
     ctx.save();
+    // Reuse the current path for clipping.
     ctx.beginPath();
     polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
     ctx.closePath();
@@ -101,13 +99,13 @@ export function drawExclusionShape(
       if (p.x > maxX) maxX = p.x;
       if (p.y > maxY) maxY = p.y;
     }
-    const spacing = 16;
-    ctx.strokeStyle = "rgba(75,85,99,0.55)";
+    const spacing = 10;
+    ctx.strokeStyle = "rgba(75,85,99,0.45)";
     ctx.lineWidth = 1;
     ctx.setLineDash([]);
+    // Diagonals in both directions for a cross-hatch.
     const w = maxX - minX;
     const h = maxY - minY;
-    // Two crossing sets of diagonals.
     for (let d = -h; d <= w + h; d += spacing) {
       ctx.beginPath();
       ctx.moveTo(minX + d, minY);
@@ -121,12 +119,7 @@ export function drawExclusionShape(
     ctx.restore();
   }
 
-
-  // Clean outline border. Re-issue the polygon path since the hatched block
-  // may have replaced the current path via beginPath().
-  ctx.beginPath();
-  polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-  if (closed && polygon.length > 2) ctx.closePath();
+  // Clean outline border.
   ctx.strokeStyle = muted ? "#9ca3af" : "#4b5563";
   ctx.lineWidth = muted ? 1.5 : 2;
   ctx.setLineDash([]);
@@ -135,5 +128,4 @@ export function drawExclusionShape(
   ctx.stroke();
   ctx.restore();
 }
-
 

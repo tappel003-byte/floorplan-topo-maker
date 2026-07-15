@@ -183,31 +183,37 @@ export function DataPointsPanel({
   }
 
   const width = 150;
-  // Locked positions: landscape-short anchors bottom-right above the pill row;
-  // portrait/desktop anchors top-left below the app top bar. The panel no
-  // longer drags — only the canvas moves.
-  const containerClass =
-    "fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col " +
-    (isLandscapeShort
-      ? "bottom-[calc(env(safe-area-inset-bottom)+3.5rem)] right-[calc(env(safe-area-inset-right)+0.5rem)]"
-      : "top-[calc(env(safe-area-inset-top)+2.75rem)] left-[calc(env(safe-area-inset-left)+0.5rem)]");
-  const posStyle = {
-    maxHeight: isLandscapeShort
-      ? state.collapsed
-        ? undefined
-        : "calc(100dvh - max(env(safe-area-inset-top), 1.5rem) - env(safe-area-inset-bottom) - 6rem)"
-      : state.collapsed
-        ? undefined
-        : "38dvh",
-  };
+  // In landscape-short, anchor to bottom-right so the panel opens directly
+  // above the Database chip and never hides behind the top chrome.
+  // In portrait, use the user's stored drag position.
+  const posStyle = isLandscapeShort
+    ? {
+        maxHeight: state.collapsed
+          ? undefined
+          : "calc(100dvh - max(env(safe-area-inset-top), 1.5rem) - env(safe-area-inset-bottom) - 6rem)",
+      }
+    : { left: state.x, top: state.y, maxHeight: state.collapsed ? undefined : "38dvh" };
 
   return (
     <>
-      <div className={containerClass} style={{ width, ...posStyle }}>
-        <div className="flex items-center gap-1 border-b px-2 py-1 select-none">
-          <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-40" />
+      <div
+        className={
+          "fixed z-40 bg-background border rounded-lg shadow-xl flex flex-col " +
+          (isLandscapeShort
+            ? "bottom-[calc(env(safe-area-inset-bottom)+3.5rem)] right-[calc(env(safe-area-inset-right)+0.5rem)]"
+            : "")
+        }
+        style={{ width, ...posStyle }}
+      >
+        <div
+          className="flex items-center gap-1 border-b px-2 py-1 cursor-move select-none touch-none"
+          onPointerDown={onHeaderDown}
+          onPointerMove={onHeaderMove}
+          onPointerUp={onHeaderUp}
+          onPointerCancel={onHeaderUp}
+        >
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-[11px] font-semibold flex-1">Data</span>
-
           <button
             className="p-0.5 hover:bg-muted rounded text-[10px] font-mono w-5"
             onPointerDown={(e) => e.stopPropagation()}

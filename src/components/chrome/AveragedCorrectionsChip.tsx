@@ -1,16 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Flag } from "lucide-react";
 import type { Floor } from "@/lib/types";
 import { formatDelta, transitionGroupKey } from "@/lib/transitions";
 
 interface Props {
   floor: Floor;
-  storageKey: string; // per-tab expanded persistence
+  storageKey: string; // per-tab position/collapsed persistence
   onManage: () => void;
 }
 
+interface Pos {
+  x: number;
+  y: number;
+}
+
 /**
- * Locked status chip (bottom-right) surfacing that averaged flooring
+ * Small draggable status chip that surfaces the fact that averaged flooring
  * corrections are currently applied. Hidden when no group averages exist.
  * Collapsed = pill; tap to expand in place into a compact table.
  */
@@ -25,6 +30,15 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
       return false;
     }
   });
+  const [pos, setPos] = useState<Pos>(() => {
+    try {
+      const raw = localStorage.getItem(`${storageKey}:pos`);
+      if (raw) return JSON.parse(raw);
+    } catch {
+      /* ignore */
+    }
+    return { x: 12, y: 96 };
+  });
 
   useEffect(() => {
     try {
@@ -33,6 +47,34 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
       /* ignore */
     }
   }, [expanded, storageKey]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${storageKey}:pos`, JSON.stringify(pos));
+    } catch {
+      /* ignore */
+    }
+  }, [pos, storageKey]);
+
+  const drag = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
+  const moved = useRef(false);
+
+  function onPointerDown(e: React.PointerEvent) {
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    drag.current = { startX: e.clientX, startY: e.clientY, ox: pos.x, oy: pos.y };
+    moved.current = false;
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    if (!drag.current) return;
+    const dx = e.clientX - drag.current.startX;
+    const dy = e.clientY - drag.current.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) moved.current = true;
+    const nx = Math.max(4, Math.min(window.innerWidth - 40, drag.current.ox + dx));
+    const ny = Math.max(4, Math.min(window.innerHeight - 40, drag.current.oy + dy));
+    setPos({ x: nx, y: ny });
+  }
+  function onPointerUp() {
+    drag.current = null;
+  }
 
   if (entries.length === 0) return null;
 
@@ -44,14 +86,19 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
 
   return (
     <div
-      className="fixed z-40 select-none bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-[calc(env(safe-area-inset-right)+0.75rem)]"
+      style={{ left: pos.x, top: pos.y }}
+      className="fixed z-40 select-none"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
-
       {!expanded ? (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
-
+          onClick={() => {
+            if (!moved.current) setExpanded(true);
+          }}
           className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-amber-400/70 bg-amber-100/95 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 text-[11px] font-medium shadow-sm hover:bg-amber-200/90"
           aria-label="Averaged corrections used"
         >
@@ -73,8 +120,9 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
             </div>
             <button
               type="button"
-              onClick={() => setExpanded(false)}
-
+              onClick={() => {
+                if (!moved.current) setExpanded(false);
+              }}
               className="text-[10px] text-amber-900/70 dark:text-amber-100/70 hover:text-amber-900 dark:hover:text-amber-100"
               aria-label="Collapse"
             >
@@ -99,8 +147,10 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
           <div className="border-t border-amber-300/60 px-2.5 py-1.5 flex justify-end">
             <button
               type="button"
-              onClick={onManage}
-
+              onClick={() => {
+                if (moved.current) return;
+                onManage();
+              }}
               className="text-[11px] font-medium text-amber-900 dark:text-amber-100 hover:underline"
             >
               Manage
