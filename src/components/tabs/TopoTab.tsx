@@ -1000,7 +1000,7 @@ function StepperControl({
   onChange: (v: number) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const display = draft ?? String(value);
+  const display = draft ?? `${value}px`;
   const commit = (raw: string) => {
     setDraft(null);
     const n = parseFloat(raw);
@@ -1019,31 +1019,29 @@ function StepperControl({
           onClick={() => onChange(Math.max(min, value - step))}
           disabled={value <= min}
           aria-label={`Decrease ${label}`}
-          className="h-9 w-9 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40 shrink-0"
+          className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40 shrink-0"
         >
-          <Minus className="h-3.5 w-3.5" />
+          <Minus className="h-3 w-3" />
         </button>
         <Input
-          type="number"
-          min={min}
-          max={max}
-          step={step}
+          type="text"
+          inputMode="numeric"
           value={display}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => commit(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
-          className="h-9 flex-1 min-w-0 text-center text-xs font-mono tabular-nums"
+          className="h-6 flex-1 min-w-0 px-1 text-center text-[10px] font-mono tabular-nums"
         />
         <button
           type="button"
           onClick={() => onChange(Math.min(max, value + step))}
           disabled={value >= max}
           aria-label={`Increase ${label}`}
-          className="h-9 w-9 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40 shrink-0"
+          className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40 shrink-0"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-3 w-3" />
         </button>
       </div>
     </div>
