@@ -946,6 +946,26 @@ function renderTopoBase(
     contours: ReturnType<typeof computeContours>;
   } | null,
 ) {
+  const w = Math.max(1, Math.ceil(floor.planWidth ?? 1000));
+  const h = Math.max(1, Math.ceil(floor.planHeight ?? 750));
+  const layer = document.createElement("canvas");
+  layer.width = w;
+  layer.height = h;
+  const layerCtx = layer.getContext("2d");
+  if (!layerCtx) return;
+  renderTopoBaseLayer(layerCtx, floor, settings, gridAndContours);
+  ctx.drawImage(layer, 0, 0, w, h);
+}
+
+function renderTopoBaseLayer(
+  ctx: CanvasRenderingContext2D,
+  floor: Floor,
+  settings: RenderSettings,
+  gridAndContours: {
+    grid: Grid;
+    contours: ReturnType<typeof computeContours>;
+  } | null,
+) {
   const resolved = resolveSettings(settings);
   const g = gridAndContours?.grid ?? null;
   const paletteMin = resolved.minClamp ?? g?.minValue ?? 0;
