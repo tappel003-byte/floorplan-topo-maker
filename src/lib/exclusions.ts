@@ -67,12 +67,13 @@ export function pointsOutsideExclusions(
 export function drawExclusionShape(
   ctx: CanvasRenderingContext2D,
   polygon: Array<{ x: number; y: number }>,
-  opts: { closed?: boolean; muted?: boolean; hatched?: boolean } = {},
+  opts: { closed?: boolean; muted?: boolean; hatched?: boolean; outlined?: boolean } = {},
 ) {
   if (polygon.length === 0) return;
   const closed = opts.closed ?? true;
   const muted = opts.muted ?? false;
   const hatched = opts.hatched ?? false;
+  const outlined = opts.outlined ?? true;
 
   const tracePolygon = () => {
     ctx.beginPath();
