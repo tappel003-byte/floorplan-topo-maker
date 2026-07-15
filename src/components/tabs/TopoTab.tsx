@@ -1270,6 +1270,7 @@ const PALETTE_LABELS: Record<RenderSettings["palette"], string> = {
   brown: "Earth Tone",
   rainbow: "Rainbow",
   "blue-red": "Blue → Red",
+  "red-yellow-green": "Red → Green",
   gray: "Grayscale",
   ocean: "Ocean",
   sunset: "Sunset",
@@ -1280,7 +1281,13 @@ const PALETTE_LABELS: Record<RenderSettings["palette"], string> = {
   "nm-sunset": "New Mexico Sunset",
   mountain: "Mountain Top",
 };
-const PRIMARY_PALETTES: RenderSettings["palette"][] = ["brown", "rainbow", "blue-red", "gray"];
+const PRIMARY_PALETTES: RenderSettings["palette"][] = [
+  "brown",
+  "rainbow",
+  "blue-red",
+  "red-yellow-green",
+  "gray",
+];
 const EXTRA_PALETTES: RenderSettings["palette"][] = [
   "ocean",
   "sunset",
@@ -1383,6 +1390,13 @@ function paletteColor(input: number, palette: RenderSettings["palette"], reverse
       [238, 222, 172],
       [206, 115, 73],
       [142, 45, 35],
+    ],
+    "red-yellow-green": [
+      [220, 40, 40],
+      [230, 100, 40],
+      [255, 235, 60],
+      [150, 210, 60],
+      [34, 160, 50],
     ],
     gray: [
       [42, 42, 42],

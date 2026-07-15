@@ -1,12 +1,23 @@
-Align the Database icon button's baseline with the Note pill.
+Add a red-yellow-green topo palette with red = low and green = high.
 
-**File**: `src/components/DataPointsPanel.tsx`, hidden-state button (line ~175) and matching open panel offset for `landscape-short` if needed.
+**What we're changing:**
+- Add a new palette option called "red-yellow-green" (label: "Red-Green") to the topo palette picker.
+- Low elevation (t=0) renders red, middle renders yellow, high elevation (t=1) renders green.
+- The existing "Reverse palette" toggle still works if you ever want to flip it.
 
-**Change**: add `1.75rem` (h-7 floor-selector height) to the `top` offset when a floor selector row is present, so the Database chip sits on the same baseline as the Note pill inside FieldTab.
+**Files:**
+- `src/lib/types.ts` — add `"red-yellow-green"` to the `RenderSettings.palette` union.
+- `src/components/tabs/TopoTab.tsx` — add the label, add it to the primary palette list, and implement the 5-stop RGB interpolation in `paletteColor()`.
 
-- Add prop `hasFloorSelector?: boolean` to `DataPointsPanel`.
-- In `src/routes/projects.$id.tsx`, pass `hasFloorSelector={floors.length > 1}` where the panel is rendered.
-- In the panel's hidden-button `className`, replace `top-[calc(env(safe-area-inset-top)+2.75rem)]` with:
-  `top-[calc(env(safe-area-inset-top)+2.75rem+var(--fs-offset,0rem))]` and set `style={{ ["--fs-offset" as any]: hasFloorSelector ? "1.75rem" : "0rem" }}`.
-- Height stays `h-9` (already matches Note pill).
-- No other layout changes.
+**Color stops (low → high):**
+```text
+red    [220, 40, 40]
+orange [230, 100, 40]
+yellow [255, 235, 60]
+lime   [150, 210, 60]
+green  [34, 160, 50]
+```
+
+**Open question:** Do you want this to become the default palette for new/fresh projects, or stay as one option in the picker?
+
+**Verification:** After implementing, switch to the new palette in the Topo tab and confirm the lowest areas show red, middle areas yellow, and highest areas green.
