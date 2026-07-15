@@ -1046,7 +1046,7 @@ function renderTopoBase(
   // garage/sunken areas read as blank space. Rendered inside renderTopoBase so
   // they sit under the wall plan (plan draws on top when planOnTop is set).
   for (const ex of floor.exclusions ?? []) {
-    drawExclusionShape(ctx, ex.polygon, { closed: true, muted: false });
+    drawExclusionShape(ctx, ex.polygon, { closed: true, muted: false, outlined: false });
   }
 }
 

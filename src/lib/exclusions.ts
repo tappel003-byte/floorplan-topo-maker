@@ -67,12 +67,13 @@ export function pointsOutsideExclusions(
 export function drawExclusionShape(
   ctx: CanvasRenderingContext2D,
   polygon: Array<{ x: number; y: number }>,
-  opts: { closed?: boolean; muted?: boolean; hatched?: boolean } = {},
+  opts: { closed?: boolean; muted?: boolean; hatched?: boolean; outlined?: boolean } = {},
 ) {
   if (polygon.length === 0) return;
   const closed = opts.closed ?? true;
   const muted = opts.muted ?? false;
   const hatched = opts.hatched ?? false;
+  const outlined = opts.outlined ?? true;
 
   const tracePolygon = () => {
     ctx.beginPath();
@@ -120,14 +121,17 @@ export function drawExclusionShape(
     ctx.restore();
   }
 
-  // Clean outline border.
-  tracePolygon();
-  ctx.strokeStyle = muted ? "#9ca3af" : "#4b5563";
-  ctx.lineWidth = muted ? 1.5 : 2;
-  ctx.setLineDash([]);
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.stroke();
+  // Clean outline border (optional — Topo skips this so the white mask
+  // blends into the plan without a visible offset line).
+  if (outlined) {
+    tracePolygon();
+    ctx.strokeStyle = muted ? "#9ca3af" : "#4b5563";
+    ctx.lineWidth = muted ? 1.5 : 2;
+    ctx.setLineDash([]);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
