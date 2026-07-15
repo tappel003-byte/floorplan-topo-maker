@@ -462,6 +462,7 @@ export function TopoTab({
           planHeight={floor.planHeight}
           hidePlan={!resolved.showPlan}
           planOnTop
+          refitOnResize={false}
           onImagePointerDown={(x, y) => {
             // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
