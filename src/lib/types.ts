@@ -92,6 +92,11 @@ export interface Transition {
   // returns this value instead of (readingA − readingB). Editing either
   // reading in the detail dialog clears the override.
   manualDeltaOverride?: number;
+  // Opt-in flag: when true, transitionDelta() uses the surface-pair group
+  // average (floor.transitionGroupAverages[key]) instead of this doorway's
+  // own measured (readingA − readingB). Default (undefined/false) = use this
+  // doorway's own measurement.
+  useGroupAverage?: boolean;
 }
 
 

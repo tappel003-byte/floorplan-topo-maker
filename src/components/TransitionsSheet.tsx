@@ -29,8 +29,15 @@ export function TransitionsSheet({ open, floor, points, onClose, onFloorChange }
     const next = { ...(floor.transitionGroupAverages ?? {}) };
     if (value === null) delete next[g.key];
     else next[g.key] = value;
+    const useFlag = value !== null;
+    const nextTransitions = (floor.transitions ?? []).map((t) =>
+      t.surfaceA === g.surfaceA && t.surfaceB === g.surfaceB
+        ? { ...t, useGroupAverage: useFlag }
+        : t,
+    );
     const nextFloor: Floor = {
       ...floor,
+      transitions: nextTransitions,
       transitionGroupAverages: Object.keys(next).length ? next : undefined,
       updatedAt: Date.now(),
     };

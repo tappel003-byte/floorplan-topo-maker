@@ -93,8 +93,31 @@ function ProjectWorkspace() {
       }
       setProject(p);
       const fs = await listFloors(id);
-      setFloors(fs);
-      if (fs[0]) setActiveFloorId(fs[0].id);
+      // Legacy migration: transitionDelta() precedence changed so a doorway
+      // uses its own measured delta unless it explicitly opts into the group
+      // average via `useGroupAverage`. Projects saved before this change had
+      // group averages applied globally — preserve their prior behavior by
+      // stamping the flag on every transition whose surface pair has an
+      // applied average in the stored floor.
+      const migrated = fs.map((f) => {
+        const avgs = f.transitionGroupAverages;
+        if (!avgs || !f.transitions?.length) return f;
+        let changed = false;
+        const nextT = f.transitions.map((t) => {
+          const hasAvg = avgs[`${t.surfaceA}→${t.surfaceB}`] !== undefined;
+          if (hasAvg && t.useGroupAverage === undefined) {
+            changed = true;
+            return { ...t, useGroupAverage: true };
+          }
+          return t;
+        });
+        if (!changed) return f;
+        const nf = { ...f, transitions: nextT };
+        void saveFloor(nf);
+        return nf;
+      });
+      setFloors(migrated);
+      if (migrated[0]) setActiveFloorId(migrated[0].id);
       // New projects (no plan uploaded on any floor) land on Setup so the
       // user is guided through Details → Plan → Boundary before Field.
       if (!fs.some((f) => !!f.planDataUrl)) setMode("setup");
