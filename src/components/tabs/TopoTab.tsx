@@ -700,11 +700,25 @@ export function TopoTab({
                 checked={resolved.showHighLow}
                 onChange={(v) => update({ showHighLow: v })}
               />
-              <SwitchRow
-                label="Label bg"
-                checked={resolved.pointLabelBackground === "white"}
-                onChange={(v) => update({ pointLabelBackground: v ? "white" : "transparent" })}
-              />
+              <div className="col-span-2 flex items-center justify-between gap-2">
+                <Label className="text-xs">Label bg</Label>
+                <div className="inline-flex rounded-md border overflow-hidden">
+                  {(["white", "transparent", "plain"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      className={`px-2 py-1 text-xs ${
+                        resolved.pointLabelBackground === opt
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background"
+                      }`}
+                      onClick={() => update({ pointLabelBackground: opt })}
+                    >
+                      {opt === "white" ? "Box" : opt === "transparent" ? "Border" : "Plain"}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <details className="border-t pt-2">
               <summary className="text-xs text-muted-foreground cursor-pointer select-none">
