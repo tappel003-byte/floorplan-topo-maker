@@ -462,6 +462,7 @@ export function TopoTab({
           planHeight={floor.planHeight}
           hidePlan={!resolved.showPlan}
           planOnTop
+          refitOnResize={false}
           onImagePointerDown={(x, y) => {
             // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
@@ -590,6 +591,7 @@ export function TopoTab({
                 <Input
                   type="number"
                   step="0.05"
+                  enterKeyHint="done"
                   value={resolved.firstContour ?? ""}
                   placeholder="auto"
                   onChange={(e) =>
@@ -597,7 +599,7 @@ export function TopoTab({
                       firstContour: e.target.value === "" ? null : parseFloat(e.target.value),
                     })
                   }
-                  className="mt-1 h-9 text-xs"
+                  className="mt-1 h-9 text-base sm:text-xs"
                 />
               </div>
               <div>
@@ -612,6 +614,7 @@ export function TopoTab({
                 <Input
                   type="text"
                   inputMode="numeric"
+                  enterKeyHint="done"
                   value={resolved.contourCount ?? ""}
                   placeholder="auto"
                   onChange={(e) => {
@@ -623,7 +626,7 @@ export function TopoTab({
                       update({ contourCount: isFinite(n) ? Math.max(2, n) : null });
                     }
                   }}
-                  className="mt-1 h-9 text-xs"
+                  className="mt-1 h-9 text-base sm:text-xs"
                 />
               </div>
             </div>
@@ -785,9 +788,10 @@ export function TopoTab({
                       className="h-9 w-12 rounded-md border bg-background p-1 cursor-pointer"
                     />
                     <Input
+                      enterKeyHint="done"
                       value={resolved.pointLabelColor}
                       onChange={(e) => update({ pointLabelColor: e.target.value })}
-                      className="h-9 flex-1 font-mono text-xs"
+                      className="h-9 flex-1 font-mono text-base sm:text-xs"
                     />
                   </div>
                 </div>
@@ -907,6 +911,7 @@ function StepInput({ value, onCommit }: { value: number; onCommit: (v: number) =
     <Input
       type="text"
       inputMode="decimal"
+      enterKeyHint="done"
       value={text}
       onChange={(e) => {
         const raw = e.target.value;
@@ -923,7 +928,7 @@ function StepInput({ value, onCommit }: { value: number; onCommit: (v: number) =
           setText(String(n));
         }
       }}
-      className="w-20 h-10"
+      className="w-20 h-10 text-base sm:text-xs"
     />
   );
 }
@@ -1026,13 +1031,14 @@ function StepperControl({
         <Input
           type="text"
           inputMode="numeric"
+          enterKeyHint="done"
           value={display}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => commit(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
-          className="h-6 flex-1 min-w-0 px-1 text-center text-[10px] font-mono tabular-nums"
+          className="h-6 flex-1 min-w-0 px-1 text-center text-base sm:text-[10px] font-mono tabular-nums leading-none"
         />
         <button
           type="button"
