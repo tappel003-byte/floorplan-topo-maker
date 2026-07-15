@@ -1,18 +1,15 @@
-Add diagonal cross-hatch fill to exclusion zones on the Setup/Boundary tab only, and confirm saved exclusion vertices are drag-editable just like boundary vertices.
+I’ll make two focused fixes:
 
-## Changes
+1. **Transparent crosshatch on Boundary setup only**
+   - Change the exclusion drawing helper so `hatched` mode does **not** paint a white/opaque fill.
+   - Draw light diagonal lines clipped inside the exclusion polygon, with the plan still visible underneath.
+   - Use a true diagonal crosshatch look, not a filled/checkered pattern.
+   - Keep Topo behavior unchanged: excluded areas remain masked out on the topo side.
+   - Keep Data behavior unchanged: no exclusion overlay on the data side.
 
-1. `src/lib/exclusions.ts` — add optional `hatched?: boolean` to `drawExclusionShape`. When true, after the white fill and before the outline stroke, clip to the polygon and draw diagonal cross-hatch lines so the excluded region reads clearly. Default `false` keeps Topo (white + outline) and Data (no draw) untouched.
+2. **Lock the setup chrome/pills in place**
+   - Restructure the Boundary setup screen so the top tool row, exclusion chips/list, and bottom Back/Start Surveying row stay fixed.
+   - Only the `PlanCanvas` area will be the moving/panning/zooming surface.
+   - Prevent the setup panel itself from scrolling while dragging/pinching the plan, so the chrome doesn’t slide around with the canvas.
 
-2. `src/components/tabs/SetupTab.tsx` — pass `hatched: true` to both `drawExclusionShape` calls (saved exclusions at line 622, live draft at line 659). Vertex handles are already drawn on top of the fill and remain visible.
-
-## Vertex editing (already wired, verified)
-
-In Setup with the "Excluded areas" tool selected, saved exclusion vertices behave exactly like boundary vertices:
-- Each corner shows a gray dot handle.
-- Press and drag a handle to move that vertex; it turns amber while active.
-- Release commits the new position through `onChange`.
-
-No new drag logic needed — the existing `onImagePointerDown/Move/Up` handlers in `SetupTab.tsx` (lines 522–592) already cover exclusions. The hatched fill sits under the handles so grabbing them is unaffected.
-
-Topo tab and Data tab are unchanged.
+I’ll keep this limited to the Boundary setup screen and the exclusion drawing helper.
