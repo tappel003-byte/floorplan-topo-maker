@@ -23,16 +23,19 @@ export function transitionGroupKey(t: Pick<Transition, "surfaceA" | "surfaceB">)
 /**
  * delta priority:
  *   1. manual per-doorway override, if set
- *   2. per-surface-pair applied average, if set
- *   3. measured readingA − readingB
+ *   2. per-surface-pair applied average — ONLY if this doorway opts in
+ *      (t.useGroupAverage === true) and an average exists for its group
+ *   3. this doorway's measured readingA − readingB (default)
  */
 export function transitionDelta(
   t: Transition,
   groupAverages?: Record<string, number>,
 ): number {
   if (t.manualDeltaOverride !== undefined) return t.manualDeltaOverride;
-  const avg = groupAverages?.[transitionGroupKey(t)];
-  if (avg !== undefined) return avg;
+  if (t.useGroupAverage) {
+    const avg = groupAverages?.[transitionGroupKey(t)];
+    if (avg !== undefined) return avg;
+  }
   return t.readingA - t.readingB;
 }
 
@@ -45,7 +48,8 @@ export function correctedValue(
   if (!p.transitionId || p.isTransitionAnchor) return p.value;
   const t = transitions?.find((x) => x.id === p.transitionId);
   if (!t) return p.value;
-  return p.value + transitionDelta(t, groupAverages);
+  // Round to 2 decimals to hide floating-point artifacts like 9.3000000000000002.
+  return Math.round((p.value + transitionDelta(t, groupAverages)) * 100) / 100;
 }
 
 /** Returns a new array of points with `value` replaced by the corrected value. */
