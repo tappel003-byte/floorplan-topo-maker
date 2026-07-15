@@ -73,9 +73,8 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (!moved.current) setExpanded(false);
-              }}
+              onClick={() => setExpanded(false)}
+
               className="text-[10px] text-amber-900/70 dark:text-amber-100/70 hover:text-amber-900 dark:hover:text-amber-100"
               aria-label="Collapse"
             >
