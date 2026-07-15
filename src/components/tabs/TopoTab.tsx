@@ -742,24 +742,24 @@ export function TopoTab({
                 Label style
               </summary>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                <NumberControl
+                <StepperControl
                   label="Point label size"
                   value={resolved.pointLabelFontSize}
                   min={7}
                   max={28}
                   step={1}
                   onChange={(v) =>
-                    update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })
+                    update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v))) })
                   }
                 />
-                <NumberControl
+                <StepperControl
                   label="High / low size"
                   value={resolved.highLowPinSize}
                   min={7}
                   max={28}
                   step={1}
                   onChange={(v) =>
-                    update({ highLowPinSize: Math.max(7, Math.min(28, Math.round(v ?? 11))) })
+                    update({ highLowPinSize: Math.max(7, Math.min(28, Math.round(v))) })
                   }
                 />
                 <div>
