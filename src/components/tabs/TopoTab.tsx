@@ -1285,10 +1285,10 @@ const PRIMARY_PALETTES: RenderSettings["palette"][] = [
   "brown",
   "rainbow",
   "blue-red",
-  "red-yellow-green",
   "gray",
 ];
 const EXTRA_PALETTES: RenderSettings["palette"][] = [
+  "red-yellow-green",
   "ocean",
   "sunset",
   "forest",
