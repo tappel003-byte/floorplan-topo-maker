@@ -71,7 +71,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "2.7.3",
+    "@lovable.dev/vite-tanstack-config": "2.7.4",
     "@types/d3-contour": "^3.0.6",
     "@types/d3-scale-chromatic": "^3.1.0",
     "@types/node": "^22.16.5",
