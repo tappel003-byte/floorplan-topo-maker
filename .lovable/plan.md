@@ -1,23 +1,12 @@
-Add a red-yellow-green topo palette with red = low and green = high.
+Move the "Red → Green" palette entry from the primary palette list to the "More palettes" list in the Topo tab picker.
 
 **What we're changing:**
-- Add a new palette option called "red-yellow-green" (label: "Red-Green") to the topo palette picker.
-- Low elevation (t=0) renders red, middle renders yellow, high elevation (t=1) renders green.
-- The existing "Reverse palette" toggle still works if you ever want to flip it.
+- In `src/components/tabs/TopoTab.tsx`, remove `"red-yellow-green"` from `PRIMARY_PALETTES`.
+- Add `"red-yellow-green"` to `EXTRA_PALETTES`.
 
-**Files:**
-- `src/lib/types.ts` — add `"red-yellow-green"` to the `RenderSettings.palette` union.
-- `src/components/tabs/TopoTab.tsx` — add the label, add it to the primary palette list, and implement the 5-stop RGB interpolation in `paletteColor()`.
+**Result:**
+- Primary list shows: Earth Tone, Rainbow, Blue → Red, Grayscale.
+- "More palettes" expands to show: Red → Green, Ocean, Sunset, Forest, Viridis, Topographic, Gray + Amber, New Mexico Sunset, Mountain Top.
 
-**Color stops (low → high):**
-```text
-red    [220, 40, 40]
-orange [230, 100, 40]
-yellow [255, 235, 60]
-lime   [150, 210, 60]
-green  [34, 160, 50]
-```
-
-**Open question:** Do you want this to become the default palette for new/fresh projects, or stay as one option in the picker?
-
-**Verification:** After implementing, switch to the new palette in the Topo tab and confirm the lowest areas show red, middle areas yellow, and highest areas green.
+**Verification:**
+- Open the Topo tab palette picker, confirm Red → Green is no longer visible by default and appears after tapping "More palettes".
