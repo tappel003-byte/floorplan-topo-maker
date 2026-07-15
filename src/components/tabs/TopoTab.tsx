@@ -1171,10 +1171,12 @@ function renderTopoTop(
           roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
           ctx.fill();
         }
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = color;
-        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
-        ctx.stroke();
+        if (resolved.pointLabelBackground !== "plain") {
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = color;
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+          ctx.stroke();
+        }
         ctx.fillStyle = color;
         ctx.fillText(text, cx, cy);
       }
