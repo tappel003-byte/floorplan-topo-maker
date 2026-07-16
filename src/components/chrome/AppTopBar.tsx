@@ -126,6 +126,15 @@ export function AppTopBar({
                   }}
                 />
               )}
+              {onOpenCleanup && (
+                <MenuItem
+                  label="Cleanup"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenCleanup();
+                  }}
+                />
+              )}
               <MenuItem
                 label="Export"
                 onClick={() => {
@@ -133,6 +142,7 @@ export function AppTopBar({
                   onOpenExport();
                 }}
               />
+
 
             </div>
           )}
