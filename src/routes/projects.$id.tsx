@@ -416,20 +416,29 @@ function ProjectWorkspace() {
         onClose={() => setTransitionsSheetOpen(false)}
         onFloorChange={handleFloorAveragesChange}
       />
-      {alignOpen && (
+      {cleanupOpen && (
         <AlignPlanMode
           floor={activeFloor}
           points={points}
           pointColor={pointColor}
           pointSize={pointSize}
+          onOpenTransitions={() => {
+            setCleanupOpen(false);
+            setTransitionsSheetOpen(true);
+          }}
+          onOpenReview={() => {
+            setCleanupOpen(false);
+            setMode("review");
+          }}
           onDone={(nextFloor, updatedPoints) => {
             setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
             setPoints(updatedPoints);
-            setAlignOpen(false);
+            setCleanupOpen(false);
           }}
-          onCancel={() => setAlignOpen(false)}
+          onCancel={() => setCleanupOpen(false)}
         />
       )}
+
     </div>
   );
 }
