@@ -149,6 +149,19 @@ export async function importProject(file: File): Promise<string> {
 }
 
 /**
+ * Duplicate an existing project in place: creates a fully independent copy
+ * with fresh IDs, the plan image and all floors/points/notes/transitions
+ * cloned, and a versioned name ("<name> V2", V3, …). Returns the new ID.
+ */
+export async function duplicateProject(projectId: string): Promise<string> {
+  const blob = await exportProject(projectId);
+  const file = new File([blob], "duplicate.floorsurvey.json", {
+    type: "application/json",
+  });
+  return importProject(file);
+}
+
+/**
  * Strip a trailing " V<number>" from a name to get its base, then find the
  * next free "Base V<n>" among existing projects. If nothing collides, keep
  * the original name.
