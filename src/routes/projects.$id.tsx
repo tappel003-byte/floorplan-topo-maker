@@ -416,8 +416,9 @@ function ProjectWorkspace() {
           points={points}
           pointColor={pointColor}
           pointSize={pointSize}
-          onDone={(nextFloor) => {
+          onDone={(nextFloor, updatedPoints) => {
             setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
+            setPoints(updatedPoints);
             setAlignOpen(false);
           }}
           onCancel={() => setAlignOpen(false)}
