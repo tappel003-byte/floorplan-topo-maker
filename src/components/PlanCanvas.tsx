@@ -70,6 +70,7 @@ export function PlanCanvas({
   planOnTop = false,
   focusRequest,
   refitOnResize = true,
+  planTransform,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
