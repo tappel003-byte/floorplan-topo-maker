@@ -247,9 +247,11 @@ function ProjectWorkspace() {
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
         onOpenTransitions={() => setTransitionsSheetOpen(true)}
+        onOpenCleanup={() => setCleanupOpen(true)}
         undoEnabled={undoActive && history.canUndo}
         redoEnabled={undoActive && history.canRedo}
       />
+
 
       {floors.length > 1 && (
         <div
