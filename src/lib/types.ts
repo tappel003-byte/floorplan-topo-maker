@@ -13,6 +13,17 @@ export interface ProjectMeta {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
+  // Set when this project was created via duplicateProject(). Presence of
+  // this field unlocks destructive "swap plan image" tools that we never
+  // want on original surveys.
+  parentProjectId?: string;
+}
+
+export interface PlanTransform {
+  tx: number;       // translate in image-coord pixels
+  ty: number;
+  scale: number;    // uniform, around image center
+  rotation: number; // radians, around image center
 }
 
 export interface Floor {
