@@ -837,6 +837,17 @@ export function FieldTab({
 
         }}
         onImagePointerCancel={() => {
+          // Restore group-drag origins so an aborted pinch doesn't leave points shifted.
+          const cur = dragRef.current;
+          if (cur?.originsById && cur.moved) {
+            const origins = cur.originsById;
+            onPointsChange(
+              points.map((p) => {
+                const o = origins.get(p.id);
+                return o ? { ...p, x: o.x, y: o.y } : p;
+              }),
+            );
+          }
           dragRef.current = null;
           setDragging(null);
           if (longPressTimerRef.current) {
@@ -852,6 +863,7 @@ export function FieldTab({
           noteDragRef.current = null;
           setNoteDragTick((t) => t + 1);
         }}
+
         onImagePointerUp={async (x, y, _event) => {
           const nd = noteDragRef.current;
           if (nd) {
