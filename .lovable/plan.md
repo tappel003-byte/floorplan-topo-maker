@@ -1,48 +1,18 @@
-## What's actually happening
+## Match topo point markers to data screen
 
-Two separate bugs, both visible in that screenshot:
+**Problem:** On the data (field) screen, points are drawn as solid colored dots (red by default) using the project's `pointColor`. On the topo screen, the same points render as a dark/green fill with a white outline — an inverted, unrelated style.
 
-### 1. The ~1" wrong reading (real data issue)
+**Change:** One block in `src/components/tabs/TopoTab.tsx`, inside `renderTopoTop` (~lines 1236–1247, the `if (resolved.showPoints)` dot loop).
 
-`transitionDelta()` in `src/lib/transitions.ts` gives **group averages priority over the doorway's own measurement**:
+- Replace the current fill (`p.isBasePoint ? "#16834a" : "#17130e"`) with the same color the field tab uses: the project `pointColor` (red default), with the existing base-point green kept for base points only.
+- Remove the white stroke on the dot so it renders as a solid colored dot, matching the data screen.
+- Keep everything else (size via `pointSize`, selection halo, labels, base-point green) untouched.
 
-```
-1. manualDeltaOverride  (per-doorway)
-2. groupAverages[pair]  (one number for ALL doorways of that surface pair)  ← the culprit
-3. readingA − readingB  (this doorway's actual measurement)
-```
+**Wiring:** `pointColor` isn't passed into the topo overlay today. Add it to the overlay options object next to `pointSize` (in the `drawOverlayTop` call at ~line 554 and the overlay type at ~line 1215), sourced from the same project setting the field tab reads.
 
-If a floor has three Carpet→Tile doorways that each measured a slightly different delta, and an "applied average" exists for that pair, every downstream point uses the average instead of its own doorway's delta. On a house with three real transitions that can easily land ~1" off from what you'd expect.
+**Not touching:**
+- Field tab rendering
+- Point size, label style, palettes, selection ring color
+- Base-point color (stays green so base points remain distinguishable on topo)
 
-Your raw readings never changed — only the applied delta did. That matches what you saw: raw values are intact; only the *corrected* value on topo/data was wrong.
-
-**Fix:** flip the precedence so the doorway's own measured delta wins by default. Group averages become opt-in per doorway (a "use group average" toggle on the transition), not an automatic override.
-
-```
-1. manualDeltaOverride
-2. readingA − readingB           ← default
-3. groupAverages[pair]           ← only if the doorway opts in
-```
-
-### 2. The `9.3000000000000002` on the keypad (display bug)
-
-Floating-point artifact from `raw + delta`. Fix by rounding to 2 decimals at the render sites only (keypad preview, plan labels, topo labels, review table). Stored raw values stay untouched.
-
-## Scope
-
-- `src/lib/transitions.ts` — reorder precedence in `transitionDelta`; add a `useGroupAverage?: boolean` flag on Transition; round `correctedValue` result to 2 decimals.
-- `src/lib/types.ts` — add the optional flag.
-- `src/components/TransitionsSheet.tsx` — the "apply average" control now sets the flag on each doorway in that group instead of writing a global map; existing `transitionGroupAverages` stays supported for read (back-compat) but is only consulted when the flag is set.
-- Migration: on load, if a floor has `transitionGroupAverages[key]` set, mark every existing transition in that group with `useGroupAverage: true` so current projects behave the same as before this change. New doorways default to their own measurement.
-
-## Not in scope
-
-- No UI redesign of the Transitions sheet beyond the toggle.
-- No change to raw reading storage.
-- No touch to anchors, chains, or notes.
-
-## Verify
-
-- Open the affected house: downstream points should snap back to `raw + this doorway's delta`.
-- Keypad preview shows `9.30`, not `9.3000000000000002`.
-- Toggling "use group average" on a doorway reproduces the old behavior for that doorway only.
+Result: a red point on the data screen is a red point on topo, same size, same color.
