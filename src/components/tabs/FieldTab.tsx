@@ -714,6 +714,18 @@ export function FieldTab({
           if (!hit) return false;
           const { point: hp } = hit;
           setSelectedIds(new Set([hp.id]));
+          // Group drag: if the pressed point is part of an existing multi-selection,
+          // capture origins for every selected point so drag translates them together.
+          const wasGroupSelected = selectedIds.has(hp.id) && selectedIds.size > 1;
+          let originsById: Map<string, { x: number; y: number }> | undefined;
+          if (wasGroupSelected) {
+            originsById = new Map();
+            for (const p of points) {
+              if (selectedIds.has(p.id)) originsById.set(p.id, { x: p.x, y: p.y });
+            }
+            // Preserve the multi-selection for the drag (setSelectedIds above collapsed it).
+            setSelectedIds(new Set(selectedIds));
+          }
           const drag: DragState = {
             id: hp.id,
             moved: false,
@@ -726,9 +738,11 @@ export function FieldTab({
             origY: hp.y,
             lastX: hp.x,
             lastY: hp.y,
+            originsById,
           };
           dragRef.current = drag;
           setDragging(drag);
+
           // Long-press to arm point dragging. Without this, a pinch that starts
           // near a point drags it before the second finger registers.
           if (longPressTimerRef.current) {
