@@ -821,7 +821,20 @@ export function FieldTab({
           const nextDrag = { ...drag, moved: true, lastX: nx, lastY: ny };
           dragRef.current = nextDrag;
           setDragging(nextDrag);
-          onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x: nx, y: ny } : p)));
+          if (drag.originsById) {
+            const dx = nx - drag.origX;
+            const dy = ny - drag.origY;
+            const origins = drag.originsById;
+            onPointsChange(
+              points.map((p) => {
+                const o = origins.get(p.id);
+                return o ? { ...p, x: o.x + dx, y: o.y + dy } : p;
+              }),
+            );
+          } else {
+            onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x: nx, y: ny } : p)));
+          }
+
         }}
         onImagePointerCancel={() => {
           dragRef.current = null;
