@@ -124,6 +124,16 @@ export function ProjectList() {
     }
   }
 
+  async function handleDuplicate(p: Row) {
+    try {
+      await duplicateProject(p.id);
+      await refresh();
+      toast.success("Project duplicated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Duplicate failed");
+    }
+  }
+
   async function handleImportFile(file: File) {
     try {
       const newId = await importProject(file);
