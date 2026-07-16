@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { X, Check, Upload, RotateCcw, Move, Image as ImageIcon, MousePointer2, MousePointerClick } from "lucide-react";
+import { X, Check, Upload, RotateCcw, Move, Image as ImageIcon, MousePointer2, MousePointerClick, ArrowLeftRight, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { PlanCanvas } from "@/components/PlanCanvas";
@@ -8,12 +8,12 @@ import type { Floor, PlanTransform, SurveyPoint } from "@/lib/types";
 import { toast } from "sonner";
 
 /**
- * Align mode — swap the plan image on a duplicated project and re-fit it
- * (translate / scale / rotate) so its walls line up with existing points.
- * Two sub-modes:
- *   - "image": drag/scale/rotate the raster; points are locked.
+ * Cleanup screen — the "sit down at a desk" surface for manipulating (not
+ * entering, not presenting) the survey data. Two sub-modes:
+ *   - "image": drag/scale/rotate the raster + replace plan image; points locked.
  *   - "points": drag individual points, or multi-select and drag as a group.
- * All changes are session-local until "Done" saves them.
+ * Also surfaces quick access to Transitions and Review, which are the other
+ * data-manipulation tools. All changes are session-local until "Done" saves.
  */
 interface Props {
   floor: Floor;
@@ -22,7 +22,13 @@ interface Props {
   onCancel: () => void;
   pointColor: string;
   pointSize: number;
+  /** Optional shortcuts surfaced in the Cleanup header. */
+  onOpenTransitions?: () => void;
+  onOpenReview?: () => void;
+  /** Title shown in the header. Defaults to "Cleanup". */
+  title?: string;
 }
+
 
 const IDENTITY: PlanTransform = { tx: 0, ty: 0, scale: 1, rotation: 0 };
 type SubMode = "image" | "points";
