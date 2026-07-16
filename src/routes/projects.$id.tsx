@@ -202,19 +202,23 @@ function ProjectWorkspace() {
     [handleFloorChange],
   );
 
-  // Align mode: entered via #align hash from ProjectList's V2 menu.
-  // Only allowed on duplicated projects (parentProjectId set) so an
-  // original survey can never be destroyed by a plan-image swap.
-  const [alignOpen, setAlignOpen] = useState(false);
+  // Cleanup mode: entered via the ⋯ menu ("Cleanup") on any project, or via
+  // the `#cleanup` / `#align` URL hash (the latter kept for ProjectList's
+  // "Replace plan image…" action on duplicated projects). Cleanup is the
+  // desk-side surface for manipulating data — move points, replace/align
+  // the plan image, and jump to Transitions/Review.
+  const [cleanupOpen, setCleanupOpen] = useState(false);
   useEffect(() => {
     if (!project) return;
     if (typeof window === "undefined") return;
-    if (window.location.hash === "#align" && project.parentProjectId) {
-      setAlignOpen(true);
-      // Strip the hash so a refresh doesn't reopen align mode.
+    const h = window.location.hash;
+    if (h === "#cleanup" || h === "#align") {
+      setCleanupOpen(true);
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
   }, [project]);
+
+
 
 
   if (loading) {
