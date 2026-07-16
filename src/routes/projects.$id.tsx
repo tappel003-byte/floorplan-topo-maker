@@ -212,7 +212,7 @@ function ProjectWorkspace() {
     if (window.location.hash === "#align" && project.parentProjectId) {
       setAlignOpen(true);
       // Strip the hash so a refresh doesn't reopen align mode.
-      history.replaceState(null, "", window.location.pathname + window.location.search);
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
   }, [project]);
 
