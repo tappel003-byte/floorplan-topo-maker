@@ -13,6 +13,17 @@ export interface ProjectMeta {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
+  // Set when this project was created via duplicateProject(). Presence of
+  // this field unlocks destructive "swap plan image" tools that we never
+  // want on original surveys.
+  parentProjectId?: string;
+}
+
+export interface PlanTransform {
+  tx: number;       // translate in image-coord pixels
+  ty: number;
+  scale: number;    // uniform, around image center
+  rotation: number; // radians, around image center
 }
 
 export interface Floor {
@@ -55,6 +66,11 @@ export interface Floor {
   // treats as holes. Readings inside still plot and appear in Review; they
   // just don't influence the contour surface or the stats.
   exclusions?: Exclusion[];
+  // Optional visual transform applied to the plan image only. Points stay
+  // in the same coordinate space; this shifts/scales/rotates the raster
+  // beneath them so a replaced photo/screenshot can be re-aligned to
+  // existing points. Only mutated inside Align mode on a duplicated project.
+  planTransform?: PlanTransform;
 
 }
 

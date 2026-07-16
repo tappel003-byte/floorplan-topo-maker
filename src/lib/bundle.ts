@@ -158,7 +158,14 @@ export async function duplicateProject(projectId: string): Promise<string> {
   const file = new File([blob], "duplicate.floorsurvey.json", {
     type: "application/json",
   });
-  return importProject(file);
+  const newId = await importProject(file);
+  // Tag the copy so Align mode ("Replace plan image…") is only reachable
+  // on duplicates. Never on the original survey.
+  const newProject = await getProject(newId);
+  if (newProject) {
+    await saveProject({ ...newProject, parentProjectId: projectId });
+  }
+  return newId;
 }
 
 /**

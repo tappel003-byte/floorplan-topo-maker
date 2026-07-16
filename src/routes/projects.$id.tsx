@@ -17,6 +17,7 @@ import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues } from "@/lib/transitions";
 import { computeExclusionMap } from "@/lib/exclusions";
+import { AlignPlanMode } from "@/components/AlignPlanMode";
 
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
@@ -200,6 +201,20 @@ function ProjectWorkspace() {
     },
     [handleFloorChange],
   );
+
+  // Align mode: entered via #align hash from ProjectList's V2 menu.
+  // Only allowed on duplicated projects (parentProjectId set) so an
+  // original survey can never be destroyed by a plan-image swap.
+  const [alignOpen, setAlignOpen] = useState(false);
+  useEffect(() => {
+    if (!project) return;
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#align" && project.parentProjectId) {
+      setAlignOpen(true);
+      // Strip the hash so a refresh doesn't reopen align mode.
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, [project]);
 
 
   if (loading) {
@@ -395,6 +410,19 @@ function ProjectWorkspace() {
         onClose={() => setTransitionsSheetOpen(false)}
         onFloorChange={handleFloorAveragesChange}
       />
+      {alignOpen && (
+        <AlignPlanMode
+          floor={activeFloor}
+          points={points}
+          pointColor={pointColor}
+          pointSize={pointSize}
+          onDone={(nextFloor) => {
+            setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
+            setAlignOpen(false);
+          }}
+          onCancel={() => setAlignOpen(false)}
+        />
+      )}
     </div>
   );
 }

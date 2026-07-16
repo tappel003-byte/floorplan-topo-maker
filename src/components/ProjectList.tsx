@@ -9,6 +9,7 @@ import {
   Copy,
   MoreVertical,
   RotateCcw,
+  ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -213,6 +214,19 @@ export function ProjectList() {
                   <DropdownMenuItem onClick={() => handleDuplicate(p)}>
                     <Copy className="mr-2 h-4 w-4" /> Duplicate
                   </DropdownMenuItem>
+                  {p.parentProjectId && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        navigate({
+                          to: "/projects/$id",
+                          params: { id: p.id },
+                          hash: "align",
+                        })
+                      }
+                    >
+                      <ImagePlus className="mr-2 h-4 w-4" /> Replace plan image…
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => handleExport(p)}>
                     <Download className="mr-2 h-4 w-4" /> Export
                   </DropdownMenuItem>
