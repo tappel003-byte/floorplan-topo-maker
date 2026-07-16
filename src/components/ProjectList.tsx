@@ -210,6 +210,9 @@ export function ProjectList() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleDuplicate(p)}>
+                    <Copy className="mr-2 h-4 w-4" /> Duplicate
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleExport(p)}>
                     <Download className="mr-2 h-4 w-4" /> Export
                   </DropdownMenuItem>
