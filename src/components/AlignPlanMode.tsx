@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { X, Check, Upload, RotateCcw, Move, Image as ImageIcon, MousePointer2, MousePointerClick } from "lucide-react";
+import { X, Check, Upload, RotateCcw, Move, Image as ImageIcon, MousePointer2, MousePointerClick, ArrowLeftRight, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { PlanCanvas } from "@/components/PlanCanvas";
@@ -8,12 +8,12 @@ import type { Floor, PlanTransform, SurveyPoint } from "@/lib/types";
 import { toast } from "sonner";
 
 /**
- * Align mode — swap the plan image on a duplicated project and re-fit it
- * (translate / scale / rotate) so its walls line up with existing points.
- * Two sub-modes:
- *   - "image": drag/scale/rotate the raster; points are locked.
+ * Cleanup screen — the "sit down at a desk" surface for manipulating (not
+ * entering, not presenting) the survey data. Two sub-modes:
+ *   - "image": drag/scale/rotate the raster + replace plan image; points locked.
  *   - "points": drag individual points, or multi-select and drag as a group.
- * All changes are session-local until "Done" saves them.
+ * Also surfaces quick access to Transitions and Review, which are the other
+ * data-manipulation tools. All changes are session-local until "Done" saves.
  */
 interface Props {
   floor: Floor;
@@ -22,7 +22,13 @@ interface Props {
   onCancel: () => void;
   pointColor: string;
   pointSize: number;
+  /** Optional shortcuts surfaced in the Cleanup header. */
+  onOpenTransitions?: () => void;
+  onOpenReview?: () => void;
+  /** Title shown in the header. Defaults to "Cleanup". */
+  title?: string;
 }
+
 
 const IDENTITY: PlanTransform = { tx: 0, ty: 0, scale: 1, rotation: 0 };
 type SubMode = "image" | "points";
@@ -34,7 +40,11 @@ export function AlignPlanMode({
   onCancel,
   pointColor,
   pointSize,
+  onOpenTransitions,
+  onOpenReview,
+  title = "Cleanup",
 }: Props) {
+
   // Working state (session only).
   const [planDataUrl, setPlanDataUrl] = useState<string | undefined>(floor.planDataUrl);
   const [planWidth, setPlanWidth] = useState<number | undefined>(floor.planWidth);
@@ -244,16 +254,26 @@ export function AlignPlanMode({
       {/* Header */}
       <header className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background/95">
         <div className="min-w-0">
-          <div className="text-sm font-semibold truncate">Align plan image</div>
+          <div className="text-sm font-semibold truncate">{title}</div>
           <div className="text-[11px] text-muted-foreground truncate">
             {subMode === "image"
-              ? "Points are locked. Move, scale, and rotate the plan until walls line up."
+              ? "Points are locked. Replace, move, scale, and rotate the plan."
               : selectMode
                 ? "Tap points to add/remove from selection. Drag a selected point to move the group."
                 : "Drag any point to nudge it. Turn on Select to move a group."}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
+          {onOpenTransitions && (
+            <Button variant="ghost" size="sm" onClick={onOpenTransitions} title="Transitions">
+              <ArrowLeftRight className="mr-1 h-4 w-4" /> Transitions
+            </Button>
+          )}
+          {onOpenReview && (
+            <Button variant="ghost" size="sm" onClick={onOpenReview} title="Review">
+              <Table className="mr-1 h-4 w-4" /> Review
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={onCancel}>
             <X className="mr-1 h-4 w-4" /> Cancel
           </Button>
@@ -262,6 +282,7 @@ export function AlignPlanMode({
           </Button>
         </div>
       </header>
+
 
       {/* Sub-mode toggle */}
       <div className="flex items-center gap-1 px-3 py-2 border-b bg-background/95">

@@ -1,36 +1,55 @@
-# Multi-select + group-drag (Align mode only)
 
-Confirming scope: **yes, this only lives inside Align mode's "Move points" sub-mode**, which is only reachable from the ⋯ menu → "Replace plan image…" on a V2 project. The normal field screen stays single-tap, single-drag — untouched.
+# Cleanup screen
 
-## Interaction
+A new full-screen view opened from the ⋯ menu in the top bar, alongside Review / Setup / Transitions / Export. Its job is **manipulating the underlying data** — as opposed to Topo, which *presents* it, and Data, which *enters* it.
 
-Inside Align mode, after toggling into the **Move points** sub-mode:
+Available on every project (not gated to V2 duplicates).
 
-1. A **Select** pill appears in the Align toolbar.
-2. Tap **Select** → enters multi-select. Points get a subtle "selectable" look.
-3. Tap a point → toggles it in/out of the selection (selected points get a ring).
-4. Drag any selected point → the whole selected group moves together, preserving relative offsets.
-5. Tap **Select** again → exits multi-select and clears the selection.
+## Entry point
 
-Single-point drag still works whenever Select is off, same as today.
+Add "Cleanup" to the ⋯ menu in `AppTopBar.tsx`, above Export. Opens a new route/hash view over the project shell — same pattern Align mode uses today.
 
-## Scope guardrails
+## What lives inside
 
-- Not available in the normal Field screen.
-- Not available in Align mode's image-move / scale / rotate tools.
-- Not available on V1 projects at all.
-- No keyboard modifiers required — pure touch/click.
+Phase 1 — move the existing pieces in first, no new behavior:
+
+- **Move points** — the multi-select + group-drag interaction we already built for Align mode, lifted out and made the default tool of the Cleanup tab. Single-tap still drags one point.
+- **Replace plan image + Align** — the current AlignPlanMode UI (image translate / scale / rotate, upload new raster). No longer V2-gated.
+- **Transitions** — the current `TransitionsSheet` embedded as a panel here. Editing transitions is a "sit down and think" task, not a field task.
+- **Review** — the sortable table (`ReviewTab`) embedded as a panel here. Same reasoning: it's the desk view of the data.
+
+Phase 2 (later, not this build): bulk edits, rectangle marquee, keyboard nudge, snap-to-grid. Called out so we know where they land.
+
+## What stays where it is
+
+- **Data panel** on the Field screen — unchanged. Still the primary entry surface on the phone.
+- **Topo tab** — unchanged. Its dropdown toolbox keeps all presentation controls (palettes, label mode, high/low sizes, legend, contours). Cleanup does not duplicate any of them.
+- **Setup / Export** — stay in the ⋯ menu as separate items. Setup is boundary definition, Export is output — neither is data manipulation.
+
+## Menu after this change
+
+⋯ menu:
+- Review → *(now opens inside Cleanup)*
+- Setup
+- Transitions → *(now opens inside Cleanup)*
+- **Cleanup** *(new)*
+- Export
+
+Open question for the build phase: whether Review and Transitions get their own menu items *and* live inside Cleanup, or whether the menu items go away and Cleanup becomes the sole entry point. My default is to keep the shortcuts and also surface them inside Cleanup — least disruptive, and the ⋯ menu is cheap.
 
 ## Files touched
 
-- `src/components/AlignPlanMode.tsx` — add Select pill to the toolbar, track `selectMode` + `selectedIds` state local to Align mode.
-- `src/components/AlignPlanMode.tsx` point overlay — tap toggles selection when `selectMode` is on; drag on a selected point moves the group.
-- No changes to `FieldTab.tsx`, `DataPointsPanel.tsx`, or `PlanCanvas.tsx` core behavior.
+- `src/components/chrome/AppTopBar.tsx` — add "Cleanup" menu item and `onOpenCleanup` prop.
+- `src/routes/projects.$id.tsx` — wire a `#cleanup` hash view that renders the new screen, same pattern as `#align`.
+- `src/components/CleanupScreen.tsx` *(new)* — layout with sub-tabs / panels for Move points, Plan align, Transitions, Review.
+- `src/components/AlignPlanMode.tsx` — extract the image-align controls and the multi-select point tools so `CleanupScreen` can host them without duplicating logic. Existing `#align` entry point keeps working during transition.
+- No changes to `TopoTab.tsx`, `DataPointsPanel.tsx`, `FieldTab.tsx`, or `PlanCanvas.tsx` core behavior.
 
 ## Acceptance
 
-- On a V1 project: no Select pill anywhere.
-- On a V2 project's Field screen: no Select pill.
-- Inside Align → Move points → tap Select → tap 3 points → drag one → all 3 move by the same delta.
-- Tap Select again → selection clears, single-drag works normally.
-- Done commits, Cancel discards, same as the rest of Align mode.
+- ⋯ menu shows a "Cleanup" item on every project (V1 and V2).
+- Selecting it opens a full-screen view over the project with sub-panels for Move points, Plan align, Transitions, Review.
+- Move points inside Cleanup behaves exactly like today's Align → Move points: tap Select, tap points to toggle, drag any selected point to move the group.
+- Replace plan image works from Cleanup on any project, not just duplicates.
+- Field / Data / Topo screens are visibly unchanged.
+- Done commits, Cancel discards, same as Align does today.

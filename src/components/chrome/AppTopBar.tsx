@@ -9,9 +9,11 @@ type Props = {
   onOpenReview: () => void;
   onOpenExport: () => void;
   onOpenTransitions?: () => void;
+  onOpenCleanup?: () => void;
   undoEnabled?: boolean;
   redoEnabled?: boolean;
 };
+
 
 
 /**
@@ -26,9 +28,11 @@ export function AppTopBar({
   onOpenReview,
   onOpenExport,
   onOpenTransitions,
+  onOpenCleanup,
   undoEnabled = true,
   redoEnabled = true,
 }: Props) {
+
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -122,6 +126,15 @@ export function AppTopBar({
                   }}
                 />
               )}
+              {onOpenCleanup && (
+                <MenuItem
+                  label="Cleanup"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenCleanup();
+                  }}
+                />
+              )}
               <MenuItem
                 label="Export"
                 onClick={() => {
@@ -129,6 +142,7 @@ export function AppTopBar({
                   onOpenExport();
                 }}
               />
+
 
             </div>
           )}

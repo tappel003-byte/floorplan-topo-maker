@@ -202,19 +202,23 @@ function ProjectWorkspace() {
     [handleFloorChange],
   );
 
-  // Align mode: entered via #align hash from ProjectList's V2 menu.
-  // Only allowed on duplicated projects (parentProjectId set) so an
-  // original survey can never be destroyed by a plan-image swap.
-  const [alignOpen, setAlignOpen] = useState(false);
+  // Cleanup mode: entered via the ⋯ menu ("Cleanup") on any project, or via
+  // the `#cleanup` / `#align` URL hash (the latter kept for ProjectList's
+  // "Replace plan image…" action on duplicated projects). Cleanup is the
+  // desk-side surface for manipulating data — move points, replace/align
+  // the plan image, and jump to Transitions/Review.
+  const [cleanupOpen, setCleanupOpen] = useState(false);
   useEffect(() => {
     if (!project) return;
     if (typeof window === "undefined") return;
-    if (window.location.hash === "#align" && project.parentProjectId) {
-      setAlignOpen(true);
-      // Strip the hash so a refresh doesn't reopen align mode.
+    const h = window.location.hash;
+    if (h === "#cleanup" || h === "#align") {
+      setCleanupOpen(true);
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
   }, [project]);
+
+
 
 
   if (loading) {
@@ -243,9 +247,11 @@ function ProjectWorkspace() {
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
         onOpenTransitions={() => setTransitionsSheetOpen(true)}
+        onOpenCleanup={() => setCleanupOpen(true)}
         undoEnabled={undoActive && history.canUndo}
         redoEnabled={undoActive && history.canRedo}
       />
+
 
       {floors.length > 1 && (
         <div
@@ -410,20 +416,29 @@ function ProjectWorkspace() {
         onClose={() => setTransitionsSheetOpen(false)}
         onFloorChange={handleFloorAveragesChange}
       />
-      {alignOpen && (
+      {cleanupOpen && (
         <AlignPlanMode
           floor={activeFloor}
           points={points}
           pointColor={pointColor}
           pointSize={pointSize}
+          onOpenTransitions={() => {
+            setCleanupOpen(false);
+            setTransitionsSheetOpen(true);
+          }}
+          onOpenReview={() => {
+            setCleanupOpen(false);
+            setMode("review");
+          }}
           onDone={(nextFloor, updatedPoints) => {
             setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
             setPoints(updatedPoints);
-            setAlignOpen(false);
+            setCleanupOpen(false);
           }}
-          onCancel={() => setAlignOpen(false)}
+          onCancel={() => setCleanupOpen(false)}
         />
       )}
+
     </div>
   );
 }
