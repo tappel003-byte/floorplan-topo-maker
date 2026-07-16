@@ -1223,6 +1223,7 @@ function renderTopoTop(
     highlightPin?: "pin-high" | "pin-low" | null;
     legendSelected?: boolean;
     pointSize?: number;
+    pointColor?: string;
   },
 ) {
   const resolved = resolveSettings(settings);
