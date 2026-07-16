@@ -6,6 +6,7 @@ import {
   FileText,
   Download,
   Upload,
+  Copy,
   MoreVertical,
   RotateCcw,
 } from "lucide-react";
@@ -41,7 +42,7 @@ import {
   listPoints,
   saveFloor,
 } from "@/lib/db";
-import { exportProject, bundleFilename, downloadBundle, importProject } from "@/lib/bundle";
+import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -123,6 +124,16 @@ export function ProjectList() {
     }
   }
 
+  async function handleDuplicate(p: Row) {
+    try {
+      await duplicateProject(p.id);
+      await refresh();
+      toast.success("Project duplicated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Duplicate failed");
+    }
+  }
+
   async function handleImportFile(file: File) {
     try {
       const newId = await importProject(file);
@@ -199,6 +210,9 @@ export function ProjectList() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleDuplicate(p)}>
+                    <Copy className="mr-2 h-4 w-4" /> Duplicate
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleExport(p)}>
                     <Download className="mr-2 h-4 w-4" /> Export
                   </DropdownMenuItem>
