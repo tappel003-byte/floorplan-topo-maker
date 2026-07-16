@@ -28,6 +28,7 @@ interface Props {
   onSettingsChange: (s: RenderSettings) => void;
   selectedIds?: Set<string>;
   pointSize?: number;
+  pointColor?: string;
   excludedIds?: Set<string>;
   onExcludedIdsChange?: (ids: Set<string>) => void;
 }
