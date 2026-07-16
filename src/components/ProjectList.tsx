@@ -42,7 +42,7 @@ import {
   listPoints,
   saveFloor,
 } from "@/lib/db";
-import { exportProject, bundleFilename, downloadBundle, importProject } from "@/lib/bundle";
+import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
