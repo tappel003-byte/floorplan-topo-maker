@@ -932,11 +932,27 @@ export function FieldTab({
           }
 
 
-          const updated = { ...point, x: finalX, y: finalY };
-          await savePoint(updated);
-          const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
-          onPointsChange(nextPts);
-          commitSnap(nextPts);
+          if (drag.originsById) {
+            const dx = finalX - drag.origX;
+            const dy = finalY - drag.origY;
+            const origins = drag.originsById;
+            const nextPts = points.map((p) => {
+              const o = origins.get(p.id);
+              return o ? { ...p, x: o.x + dx, y: o.y + dy } : p;
+            });
+            for (const p of nextPts) {
+              if (origins.has(p.id)) await savePoint(p);
+            }
+            onPointsChange(nextPts);
+            commitSnap(nextPts);
+          } else {
+            const updated = { ...point, x: finalX, y: finalY };
+            await savePoint(updated);
+            const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
+            onPointsChange(nextPts);
+            commitSnap(nextPts);
+          }
+
         }}
         drawOverlay={(ctx) => {
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
