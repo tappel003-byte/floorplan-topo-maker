@@ -42,7 +42,10 @@ type DragState = {
   origY: number;
   lastX: number;
   lastY: number;
+  /** When set, drag translates every listed point (group drag). Keyed by point id → original {x,y}. */
+  originsById?: Map<string, { x: number; y: number }>;
 };
+
 
 type NoteDragState = {
   id: string;
