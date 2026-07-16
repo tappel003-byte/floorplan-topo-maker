@@ -1240,15 +1240,13 @@ function renderTopoTop(
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
     const dotR = Math.max(1, overlay?.pointSize ?? 6);
+    const dotColor = overlay?.pointColor ?? "#dc2626";
     for (const p of points) {
-      // dot
+      // dot — matches data screen: solid colored fill, no white ring.
       ctx.beginPath();
       ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
-      ctx.fillStyle = p.isBasePoint ? "#16834a" : "#17130e";
+      ctx.fillStyle = p.isBasePoint ? "#16a34a" : dotColor;
       ctx.fill();
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
       if (highlightId === p.id) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, dotR + 6, 0, Math.PI * 2);
