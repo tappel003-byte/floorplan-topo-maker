@@ -40,7 +40,11 @@ export function AlignPlanMode({
   onCancel,
   pointColor,
   pointSize,
+  onOpenTransitions,
+  onOpenReview,
+  title = "Cleanup",
 }: Props) {
+
   // Working state (session only).
   const [planDataUrl, setPlanDataUrl] = useState<string | undefined>(floor.planDataUrl);
   const [planWidth, setPlanWidth] = useState<number | undefined>(floor.planWidth);
