@@ -44,6 +44,8 @@ interface Props {
   focusRequest?: { x: number; y: number; nonce: number };
   /** Keep the current pan/zoom when the wrapper changes size, e.g. mobile keyboard. */
   refitOnResize?: boolean;
+  /** Optional per-floor plan-image transform (Align mode). Applied to the raster only; points/overlays unchanged. */
+  planTransform?: { tx: number; ty: number; scale: number; rotation: number };
 }
 
 const IMPLIED_W = 1000;
