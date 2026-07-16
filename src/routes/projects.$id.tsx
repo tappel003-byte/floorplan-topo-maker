@@ -202,6 +202,20 @@ function ProjectWorkspace() {
     [handleFloorChange],
   );
 
+  // Align mode: entered via #align hash from ProjectList's V2 menu.
+  // Only allowed on duplicated projects (parentProjectId set) so an
+  // original survey can never be destroyed by a plan-image swap.
+  const [alignOpen, setAlignOpen] = useState(false);
+  useEffect(() => {
+    if (!project) return;
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#align" && project.parentProjectId) {
+      setAlignOpen(true);
+      // Strip the hash so a refresh doesn't reopen align mode.
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, [project]);
+
 
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
