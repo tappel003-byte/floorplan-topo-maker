@@ -311,6 +311,7 @@ function ProjectWorkspace() {
             settings={settings}
             onSettingsChange={setSettings}
             pointSize={pointSize}
+            pointColor={pointColor}
             selectedIds={topoHighlightIds}
             excludedIds={topoExcludedIds}
             onExcludedIdsChange={setTopoExcludedIds}
