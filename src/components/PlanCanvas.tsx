@@ -196,12 +196,28 @@ export function PlanCanvas({
     ctx.translate(transform.tx, transform.ty);
     ctx.scale(transform.scale, transform.scale);
 
+    // Helper: wrap a plan-image draw call in the optional planTransform
+    // (translate + rotate + scale around image center).
+    const drawPlanImage = (img: HTMLImageElement, alpha: number) => {
+      ctx.save();
+      if (planTransform) {
+        const cx = imgW / 2;
+        const cy = imgH / 2;
+        ctx.translate(cx + planTransform.tx, cy + planTransform.ty);
+        ctx.rotate(planTransform.rotation);
+        ctx.scale(planTransform.scale, planTransform.scale);
+        ctx.translate(-cx, -cy);
+      }
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(img, 0, 0, imgW, imgH);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    };
+
     // Plan bounds — under the overlay UNLESS planOnTop
     if (!hidePlan && !planOnTop) {
       if (imgLoaded && imgRef.current) {
-        ctx.globalAlpha = planOpacity;
-        ctx.drawImage(imgRef.current, 0, 0, imgW, imgH);
-        ctx.globalAlpha = 1;
+        drawPlanImage(imgRef.current, planOpacity);
       } else {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, imgW, imgH);
@@ -219,7 +235,7 @@ export function PlanCanvas({
     // Plan on top: multiply blend keeps walls crisp while white paper reveals color underneath
     if (!hidePlan && planOnTop && imgLoaded && imgRef.current) {
       ctx.globalCompositeOperation = "multiply";
-      ctx.drawImage(imgRef.current, 0, 0, imgW, imgH);
+      drawPlanImage(imgRef.current, 1);
       ctx.globalCompositeOperation = "source-over";
     }
 
