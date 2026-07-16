@@ -6,6 +6,7 @@ import {
   FileText,
   Download,
   Upload,
+  Copy,
   MoreVertical,
   RotateCcw,
 } from "lucide-react";
