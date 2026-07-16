@@ -561,6 +561,7 @@ export function TopoTab({
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
               legendSelected,
               pointSize,
+              pointColor,
             });
           }}
         />
