@@ -254,6 +254,7 @@ export function PlanCanvas({
     planOpacity,
     hidePlan,
     planOnTop,
+    planTransform,
   ]);
 
   useEffect(() => {
