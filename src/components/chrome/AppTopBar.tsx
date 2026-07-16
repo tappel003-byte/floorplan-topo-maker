@@ -9,9 +9,11 @@ type Props = {
   onOpenReview: () => void;
   onOpenExport: () => void;
   onOpenTransitions?: () => void;
+  onOpenCleanup?: () => void;
   undoEnabled?: boolean;
   redoEnabled?: boolean;
 };
+
 
 
 /**
