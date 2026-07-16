@@ -93,6 +93,7 @@ export function TopoTab({
   onSettingsChange,
   selectedIds,
   pointSize = 6,
+  pointColor = "#dc2626",
   excludedIds: excludedIdsProp,
   onExcludedIdsChange,
 }: Props) {
