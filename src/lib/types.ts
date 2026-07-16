@@ -66,6 +66,11 @@ export interface Floor {
   // treats as holes. Readings inside still plot and appear in Review; they
   // just don't influence the contour surface or the stats.
   exclusions?: Exclusion[];
+  // Optional visual transform applied to the plan image only. Points stay
+  // in the same coordinate space; this shifts/scales/rotates the raster
+  // beneath them so a replaced photo/screenshot can be re-aligned to
+  // existing points. Only mutated inside Align mode on a duplicated project.
+  planTransform?: PlanTransform;
 
 }
 
