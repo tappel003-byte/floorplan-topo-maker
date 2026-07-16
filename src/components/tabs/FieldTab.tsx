@@ -42,7 +42,10 @@ type DragState = {
   origY: number;
   lastX: number;
   lastY: number;
+  /** When set, drag translates every listed point (group drag). Keyed by point id → original {x,y}. */
+  originsById?: Map<string, { x: number; y: number }>;
 };
+
 
 type NoteDragState = {
   id: string;
@@ -711,6 +714,18 @@ export function FieldTab({
           if (!hit) return false;
           const { point: hp } = hit;
           setSelectedIds(new Set([hp.id]));
+          // Group drag: if the pressed point is part of an existing multi-selection,
+          // capture origins for every selected point so drag translates them together.
+          const wasGroupSelected = selectedIds.has(hp.id) && selectedIds.size > 1;
+          let originsById: Map<string, { x: number; y: number }> | undefined;
+          if (wasGroupSelected) {
+            originsById = new Map();
+            for (const p of points) {
+              if (selectedIds.has(p.id)) originsById.set(p.id, { x: p.x, y: p.y });
+            }
+            // Preserve the multi-selection for the drag (setSelectedIds above collapsed it).
+            setSelectedIds(new Set(selectedIds));
+          }
           const drag: DragState = {
             id: hp.id,
             moved: false,
@@ -723,9 +738,11 @@ export function FieldTab({
             origY: hp.y,
             lastX: hp.x,
             lastY: hp.y,
+            originsById,
           };
           dragRef.current = drag;
           setDragging(drag);
+
           // Long-press to arm point dragging. Without this, a pinch that starts
           // near a point drags it before the second finger registers.
           if (longPressTimerRef.current) {
@@ -804,9 +821,33 @@ export function FieldTab({
           const nextDrag = { ...drag, moved: true, lastX: nx, lastY: ny };
           dragRef.current = nextDrag;
           setDragging(nextDrag);
-          onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x: nx, y: ny } : p)));
+          if (drag.originsById) {
+            const dx = nx - drag.origX;
+            const dy = ny - drag.origY;
+            const origins = drag.originsById;
+            onPointsChange(
+              points.map((p) => {
+                const o = origins.get(p.id);
+                return o ? { ...p, x: o.x + dx, y: o.y + dy } : p;
+              }),
+            );
+          } else {
+            onPointsChange(points.map((p) => (p.id === nextDrag.id ? { ...p, x: nx, y: ny } : p)));
+          }
+
         }}
         onImagePointerCancel={() => {
+          // Restore group-drag origins so an aborted pinch doesn't leave points shifted.
+          const cur = dragRef.current;
+          if (cur?.originsById && cur.moved) {
+            const origins = cur.originsById;
+            onPointsChange(
+              points.map((p) => {
+                const o = origins.get(p.id);
+                return o ? { ...p, x: o.x, y: o.y } : p;
+              }),
+            );
+          }
           dragRef.current = null;
           setDragging(null);
           if (longPressTimerRef.current) {
@@ -822,6 +863,7 @@ export function FieldTab({
           noteDragRef.current = null;
           setNoteDragTick((t) => t + 1);
         }}
+
         onImagePointerUp={async (x, y, _event) => {
           const nd = noteDragRef.current;
           if (nd) {
@@ -890,11 +932,27 @@ export function FieldTab({
           }
 
 
-          const updated = { ...point, x: finalX, y: finalY };
-          await savePoint(updated);
-          const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
-          onPointsChange(nextPts);
-          commitSnap(nextPts);
+          if (drag.originsById) {
+            const dx = finalX - drag.origX;
+            const dy = finalY - drag.origY;
+            const origins = drag.originsById;
+            const nextPts = points.map((p) => {
+              const o = origins.get(p.id);
+              return o ? { ...p, x: o.x + dx, y: o.y + dy } : p;
+            });
+            for (const p of nextPts) {
+              if (origins.has(p.id)) await savePoint(p);
+            }
+            onPointsChange(nextPts);
+            commitSnap(nextPts);
+          } else {
+            const updated = { ...point, x: finalX, y: finalY };
+            await savePoint(updated);
+            const nextPts = points.map((p) => (p.id === updated.id ? updated : p));
+            onPointsChange(nextPts);
+            commitSnap(nextPts);
+          }
+
         }}
         drawOverlay={(ctx) => {
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
