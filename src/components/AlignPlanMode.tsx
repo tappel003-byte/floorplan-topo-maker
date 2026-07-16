@@ -329,7 +329,7 @@ export function AlignPlanMode({
           planWidth={imgW}
           planHeight={imgH}
           planTransform={transform}
-          refitOnResize={false}
+          refitOnResize={true}
           drawOverlayTop={drawPointsOverlay}
           onImagePointerDown={onImageDown}
           onImagePointerMove={onImageMove}
