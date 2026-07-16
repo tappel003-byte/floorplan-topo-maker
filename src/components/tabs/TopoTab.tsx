@@ -28,6 +28,7 @@ interface Props {
   onSettingsChange: (s: RenderSettings) => void;
   selectedIds?: Set<string>;
   pointSize?: number;
+  pointColor?: string;
   excludedIds?: Set<string>;
   onExcludedIdsChange?: (ids: Set<string>) => void;
 }
@@ -92,6 +93,7 @@ export function TopoTab({
   onSettingsChange,
   selectedIds,
   pointSize = 6,
+  pointColor = "#dc2626",
   excludedIds: excludedIdsProp,
   onExcludedIdsChange,
 }: Props) {
@@ -559,6 +561,7 @@ export function TopoTab({
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
               legendSelected,
               pointSize,
+              pointColor,
             });
           }}
         />
@@ -1220,6 +1223,7 @@ function renderTopoTop(
     highlightPin?: "pin-high" | "pin-low" | null;
     legendSelected?: boolean;
     pointSize?: number;
+    pointColor?: string;
   },
 ) {
   const resolved = resolveSettings(settings);
@@ -1236,15 +1240,13 @@ function renderTopoTop(
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
     const dotR = Math.max(1, overlay?.pointSize ?? 6);
+    const dotColor = overlay?.pointColor ?? "#dc2626";
     for (const p of points) {
-      // dot
+      // dot — matches data screen: solid colored fill, no white ring.
       ctx.beginPath();
       ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
-      ctx.fillStyle = p.isBasePoint ? "#16834a" : "#17130e";
+      ctx.fillStyle = p.isBasePoint ? "#16a34a" : dotColor;
       ctx.fill();
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
       if (highlightId === p.id) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, dotR + 6, 0, Math.PI * 2);
