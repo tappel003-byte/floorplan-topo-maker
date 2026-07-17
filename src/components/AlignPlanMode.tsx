@@ -8,7 +8,7 @@ import type { Floor, PlanTransform, SurveyPoint } from "@/lib/types";
 import { toast } from "sonner";
 
 /**
- * Cleanup screen — the "sit down at a desk" surface for manipulating (not
+ * Finishing screen — the "sit down at a desk" surface for manipulating (not
  * entering, not presenting) the survey data. Two sub-modes:
  *   - "image": drag/scale/rotate the raster + replace plan image; points locked.
  *   - "points": drag individual points, or multi-select and drag as a group.
@@ -22,10 +22,10 @@ interface Props {
   onCancel: () => void;
   pointColor: string;
   pointSize: number;
-  /** Optional shortcuts surfaced in the Cleanup header. */
+  /** Optional shortcuts surfaced in the Finishing header. */
   onOpenTransitions?: () => void;
   onOpenReview?: () => void;
-  /** Title shown in the header. Defaults to "Cleanup". */
+  /** Title shown in the header. Defaults to "Finishing". */
   title?: string;
 }
 
@@ -42,7 +42,7 @@ export function AlignPlanMode({
   pointSize,
   onOpenTransitions,
   onOpenReview,
-  title = "Cleanup",
+  title = "Finishing",
 }: Props) {
 
   // Working state (session only).
