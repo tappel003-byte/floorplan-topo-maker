@@ -1,55 +1,39 @@
+Rename the "Cleanup" screen to "Finishing"
 
-# Cleanup screen
+We agreed on "Finishing" as the new screen name. This is a label-only rename with no behavior or data changes. The existing `#cleanup` and `#align` URL hashes will be kept as aliases so existing links and ProjectList's "Replace plan image…" action still work.
 
-A new full-screen view opened from the ⋯ menu in the top bar, alongside Review / Setup / Transitions / Export. Its job is **manipulating the underlying data** — as opposed to Topo, which *presents* it, and Data, which *enters* it.
+Files to change
 
-Available on every project (not gated to V2 duplicates).
+1. `src/components/AlignPlanMode.tsx`
+   - Update the component doc comment: "Cleanup screen" → "Finishing screen".
+   - Update the header comment: "Cleanup header" → "Finishing header".
+   - Update the `title` prop comment: "Defaults to 'Cleanup'" → "Defaults to 'Finishing'".
+   - Change the default `title = "Cleanup"` to `title = "Finishing"`.
 
-## Entry point
+2. `src/components/chrome/AppTopBar.tsx`
+   - Rename the prop `onOpenCleanup` to `onOpenFinishing`.
+   - Rename the handler variable inside the component.
+   - Change the menu label from "Cleanup" to "Finishing".
 
-Add "Cleanup" to the ⋯ menu in `AppTopBar.tsx`, above Export. Opens a new route/hash view over the project shell — same pattern Align mode uses today.
+3. `src/routes/projects.$id.tsx`
+   - Rename state variables `cleanupOpen` / `setCleanupOpen` to `finishingOpen` / `setFinishingOpen`.
+   - Update the inline comments to refer to "Finishing mode" and "Finishing screen".
+   - Extend the hash check so it accepts `#finishing`, `#cleanup`, and `#align`.
+   - Update the `AppTopBar` prop from `onOpenCleanup` to `onOpenFinishing`.
+   - Update the `AlignPlanMode` usage to pass the renamed handler and set `title="Finishing"` explicitly (or rely on the new default).
 
-## What lives inside
+4. `src/components/ProjectList.tsx`
+   - No change required. The "Replace plan image…" action uses the `#align` hash; it remains a specific entry point into Finishing mode. The hash alias stays active.
 
-Phase 1 — move the existing pieces in first, no new behavior:
+5. `mem://index.md`
+   - Update the Core bullet that says "Desktop mode is a separate future tool for cleanup / bulk ops" to "finishing / bulk ops" so the project memory matches the new name.
 
-- **Move points** — the multi-select + group-drag interaction we already built for Align mode, lifted out and made the default tool of the Cleanup tab. Single-tap still drags one point.
-- **Replace plan image + Align** — the current AlignPlanMode UI (image translate / scale / rotate, upload new raster). No longer V2-gated.
-- **Transitions** — the current `TransitionsSheet` embedded as a panel here. Editing transitions is a "sit down and think" task, not a field task.
-- **Review** — the sortable table (`ReviewTab`) embedded as a panel here. Same reasoning: it's the desk view of the data.
+6. `.lovable/plan.md` (historical)
+   - Leave as-is. It documents the original feature name. If the user prefers terminology consistency across docs, we can update it as a follow-up.
 
-Phase 2 (later, not this build): bulk edits, rectangle marquee, keyboard nudge, snap-to-grid. Called out so we know where they land.
+Validation
 
-## What stays where it is
-
-- **Data panel** on the Field screen — unchanged. Still the primary entry surface on the phone.
-- **Topo tab** — unchanged. Its dropdown toolbox keeps all presentation controls (palettes, label mode, high/low sizes, legend, contours). Cleanup does not duplicate any of them.
-- **Setup / Export** — stay in the ⋯ menu as separate items. Setup is boundary definition, Export is output — neither is data manipulation.
-
-## Menu after this change
-
-⋯ menu:
-- Review → *(now opens inside Cleanup)*
-- Setup
-- Transitions → *(now opens inside Cleanup)*
-- **Cleanup** *(new)*
-- Export
-
-Open question for the build phase: whether Review and Transitions get their own menu items *and* live inside Cleanup, or whether the menu items go away and Cleanup becomes the sole entry point. My default is to keep the shortcuts and also surface them inside Cleanup — least disruptive, and the ⋯ menu is cheap.
-
-## Files touched
-
-- `src/components/chrome/AppTopBar.tsx` — add "Cleanup" menu item and `onOpenCleanup` prop.
-- `src/routes/projects.$id.tsx` — wire a `#cleanup` hash view that renders the new screen, same pattern as `#align`.
-- `src/components/CleanupScreen.tsx` *(new)* — layout with sub-tabs / panels for Move points, Plan align, Transitions, Review.
-- `src/components/AlignPlanMode.tsx` — extract the image-align controls and the multi-select point tools so `CleanupScreen` can host them without duplicating logic. Existing `#align` entry point keeps working during transition.
-- No changes to `TopoTab.tsx`, `DataPointsPanel.tsx`, `FieldTab.tsx`, or `PlanCanvas.tsx` core behavior.
-
-## Acceptance
-
-- ⋯ menu shows a "Cleanup" item on every project (V1 and V2).
-- Selecting it opens a full-screen view over the project with sub-panels for Move points, Plan align, Transitions, Review.
-- Move points inside Cleanup behaves exactly like today's Align → Move points: tap Select, tap points to toggle, drag any selected point to move the group.
-- Replace plan image works from Cleanup on any project, not just duplicates.
-- Field / Data / Topo screens are visibly unchanged.
-- Done commits, Cancel discards, same as Align does today.
+- Run a TypeScript/build check to confirm no broken imports or prop references.
+- Open the preview, navigate to a project, and confirm the ⋯ menu shows "Finishing" instead of "Cleanup".
+- Open the screen and confirm the header title reads "Finishing".
+- Manually add `#cleanup` to the URL and confirm the screen still opens (backward compatibility).
