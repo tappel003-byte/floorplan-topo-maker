@@ -73,9 +73,18 @@ export function registerServiceWorker(): void {
     return;
   }
 
-  window.addEventListener("load", () => {
+  const doRegister = () => {
     navigator.serviceWorker.register(APP_SW_URL).catch(() => {
       // Registration failed — nothing to do; app still works online.
     });
-  });
+  };
+
+  // `useEffect` typically runs after `load` has already fired, so attaching
+  // a `load` listener would never trigger. Register immediately if the
+  // document has already loaded; otherwise wait for the event.
+  if (document.readyState === "complete") {
+    doRegister();
+  } else {
+    window.addEventListener("load", doRegister, { once: true });
+  }
 }
