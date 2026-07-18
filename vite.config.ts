@@ -17,7 +17,11 @@ export default defineConfig({
       workbox: {
         navigateFallback: "/",
         navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+        globPatterns: ["client/**/*.{js,css,html,ico,png,svg,webmanifest}"],
+        globIgnores: ["server/**", "**/*.map"],
+        // TanStack Start emits into client/ and server/ subfolders; strip the
+        // client/ prefix so precache URLs match how assets are actually served.
+        modifyURLPrefix: { "client/": "" },
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
