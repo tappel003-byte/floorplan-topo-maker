@@ -17,11 +17,23 @@ export default defineConfig({
       workbox: {
         navigateFallback: "/",
         navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
-        globPatterns: ["client/**/*.{js,css,html,ico,png,svg,webmanifest}"],
-        globIgnores: ["server/**", "**/*.map"],
-        // TanStack Start emits into client/ and server/ subfolders; strip the
-        // client/ prefix so precache URLs match how assets are actually served.
-        modifyURLPrefix: { "client/": "" },
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+        globIgnores: ["**/node_modules/**", "**/*.map", "sw.js", "workbox-*.js"],
+        // TanStack Start emits into client/ and server/ subfolders; rewrite the
+        // precache manifest so cached URLs match the published browser URLs.
+        manifestTransforms: [
+          async (entries) => {
+            const manifest = entries
+              .filter((entry) => !entry.url.startsWith("server/"))
+              .map((entry) =>
+                entry.url.startsWith("client/")
+                  ? { ...entry, url: entry.url.slice("client/".length) }
+                  : entry,
+              );
+
+            return { manifest, warnings: [] };
+          },
+        ],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
