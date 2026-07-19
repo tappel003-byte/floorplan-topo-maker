@@ -34,6 +34,7 @@ export default defineConfig({
             return { manifest, warnings: [] };
           },
         ],
+        additionalManifestEntries: [{ url: "/", revision: null }],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
