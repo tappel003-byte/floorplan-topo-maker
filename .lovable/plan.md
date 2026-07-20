@@ -1,35 +1,36 @@
-## What I confirmed
+## Why the earlier steps didn't work
 
-- Floor Survey routes are only `/` and `/projects/$id`, and both boot through `src/routes/__root.tsx`.
-- The published Floor Survey site now does register `/sw.js` in desktop Chromium, but the offline failure can still happen because its navigation fallback is `/` while `/` is not listed in the precache manifest.
-- The working Distress Survey app avoids that mismatch by falling back to a concrete precached HTML shell (`/survey.html`) and by registering the SW earlier from router bootstrap.
+On iOS, a home-screen PWA and Safari are separate storage sandboxes. They don't share service workers or caches. Opening `?sw=off` in Safari only cleared Safari's copy — your home-screen icon still had its own untouched old service worker, so it kept serving the old cached shell.
+
+The fix is a one-time reset **inside the home-screen sandbox**, plus a permanent way to force an update from inside the app so this never traps you again.
 
 ## Plan
 
-1. **Move SW registration to router bootstrap**
-   - Import and call the registration wrapper once in `src/router.tsx`, matching the working Distress Survey pattern.
-   - Remove the `useEffect` registration from `src/routes/__root.tsx` so there is only one registration path.
+### 1. One-time reset on your phone (no code change)
 
-2. **Make Floor’s offline HTML fallback actually precached**
-   - Update the PWA Workbox config so the built HTML entry is included in the precache with a URL the browser can request offline.
-   - Replace the current simple `modifyURLPrefix` setup with the same safer `manifestTransforms` style used in Distress Survey:
-     - Strip `client/` from built client files.
-     - Exclude `server/` bundle files.
-     - Preserve built HTML/JS/CSS/icons/manifest.
+- Long-press the "Floor Survey" icon on your home screen → Delete / Remove App.
+- Open Safari, go to `https://floorplan-topo-maker.lovable.app/`.
+- Tap Share → Add to Home Screen. Re-add it.
+- Open the new home-screen icon. It'll install the current published build (with the foreground-check behavior baked in) fresh, from scratch.
 
-3. **Keep the safety rules unchanged**
-   - Keep `/sw.js`.
-   - Keep `generateSW`.
-   - Keep `injectRegister: null`.
-   - Keep `devOptions.enabled: false`.
-   - Keep preview/dev/iframe refusal.
-   - Keep `?sw=off` and `?sw=on` behavior.
-   - Do not touch IndexedDB, localStorage survey data, UI, components, or the data model.
+From this point forward, every time I publish a change and you reopen the icon, it'll check in the background and the "Update available — tap to refresh" banner will appear.
 
-4. **Verify after implementation**
-   - Check the generated/live `/sw.js` manifest contains a real HTML fallback entry and valid asset URLs.
-   - Check live `navigator.serviceWorker.getRegistrations()`, `navigator.serviceWorker.ready`, and `caches.keys()` again after publish.
+### 2. Add a permanent "Check for updates" button (code change)
 
-## Expected result
+So you're never stuck like this again — even if iOS gets stubborn — add a small manual escape hatch inside the app itself.
 
-After publishing and one online load, Safari should have a registered worker plus a precached HTML shell, so airplane-mode cold start can open the app shell instead of showing Safari’s “not connected to the internet” page.
+- Add a "Check for updates" button on the landing screen (in `ProjectList.tsx`), probably tucked in a corner or under a small menu so it doesn't clutter the UI.
+- When tapped, it calls `registration.update()` on the active service worker. If a new version exists, the existing update banner appears at the top and you tap it to refresh. If nothing new exists, show a brief "You're up to date" confirmation.
+- This means: no more relying on iOS to decide when to check. If you ever suspect the app is stale, one tap forces the check from inside the home-screen sandbox itself.
+
+### Technical details
+
+- The button uses the same `navigator.serviceWorker.getRegistration()` → `registration.update()` path the automatic foreground check uses. No new SW logic, no new caching behavior.
+- If no service worker is registered (e.g. you're inside Safari on a Lovable preview URL where SW is refused), the button is hidden.
+- No changes to `sw.ts`, `vite.config.ts`, or the update banner. Purely additive UI + a small wrapper around `registration.update()`.
+
+### What this does NOT change
+
+- The service worker itself, caching rules, offline behavior — all untouched.
+- The "Floor Survey" heading color — untouched.
+- The existing update banner — untouched. The button just triggers the same check the banner already listens for.
