@@ -238,6 +238,43 @@ export function ProjectList() {
         </div>
       </header>
 
+      {(() => {
+        const unsaved = projects.filter(isUnbackedUp);
+        if (nagDismissed || unsaved.length === 0) return null;
+        return (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
+            <div className="flex-1">
+              <div className="font-medium">
+                {unsaved.length} project{unsaved.length === 1 ? "" : "s"} not backed up
+              </div>
+              <div className="text-xs mt-0.5 text-amber-800">
+                Export saves a .json file you can re-import if the app icon is removed.
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="default"
+                onClick={handleExportAll}
+                disabled={exportingAll}
+              >
+                <Download className="mr-1 h-3.5 w-3.5" />
+                {exportingAll ? "Exporting…" : "Export all"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-amber-900 hover:text-amber-900"
+                onClick={() => setNagDismissed(true)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
+
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : projects.length === 0 ? (
