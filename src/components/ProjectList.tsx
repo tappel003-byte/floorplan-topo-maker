@@ -78,8 +78,11 @@ export function ProjectList() {
   const [open, setOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [nagDismissed, setNagDismissed] = useState(false);
+  const [exportingAll, setExportingAll] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
+
 
   async function refresh() {
     const list = await listProjects();
