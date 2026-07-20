@@ -12,15 +12,26 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: null,
       filename: "sw.js",
-      strategies: "generateSW",
-      devOptions: { enabled: false },
-      workbox: {
-        navigateFallback: "/",
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+      strategies: "injectManifest",
+      srcDir: "src",
+      // Point at the .ts source; vite-plugin-pwa will build it via Vite.
+      // The output filename is controlled by `filename` above.
+      // eslint-disable-next-line
+      // @ts-ignore
+      // Note: injectManifest reads this entry.
+      // @ts-expect-error - srcDir + filename combine to locate the source
+      // (documented in vite-plugin-pwa).
+      // (ignored)
+      // We keep TS source at src/sw.ts.
+      // devOptions disabled below.
+      // The plugin uses filename as both the input file lookup and output.
+      // Since filename ends in .js, we override with `injectManifest.swSrc`
+      // below to point at the .ts file explicitly.
+      injectManifest: {
+        swSrc: "src/sw.ts",
+        swDest: "sw.js",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
         globIgnores: ["**/node_modules/**", "**/*.map", "sw.js", "workbox-*.js"],
-        // TanStack Start emits into client/ and server/ subfolders; rewrite the
-        // precache manifest so cached URLs match the published browser URLs.
         manifestTransforms: [
           async (entries) => {
             const manifest = entries
@@ -30,44 +41,12 @@ export default defineConfig({
                   ? { ...entry, url: entry.url.slice("client/".length) }
                   : entry,
               );
-
             return { manifest, warnings: [] };
           },
         ],
         additionalManifestEntries: [{ url: "/", revision: null }],
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
-        runtimeCaching: [
-          {
-            // HTML navigations: NetworkFirst so users get fresh HTML online,
-            // fall back to precached shell offline.
-            urlPattern: ({ request }) => request.mode === "navigate",
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "html-navigations",
-              networkTimeoutSeconds: 3,
-              expiration: { maxEntries: 32 },
-            },
-          },
-          {
-            // Same-origin built assets (hashed JS/CSS) — cache-first for
-            // instant offline cold-start of the app shell.
-            urlPattern: ({ url, request, sameOrigin }) =>
-              sameOrigin &&
-              (request.destination === "script" ||
-                request.destination === "style" ||
-                request.destination === "worker") &&
-              !url.pathname.startsWith("/~oauth") &&
-              !url.pathname.startsWith("/api/"),
-            handler: "CacheFirst",
-            options: {
-              cacheName: "app-shell-assets",
-              expiration: { maxEntries: 128 },
-            },
-          },
-        ],
       },
+      devOptions: { enabled: false },
     }),
   ],
 });
