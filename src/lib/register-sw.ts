@@ -101,9 +101,9 @@ export function getOfflineMode(): "on" | "off" {
   }
 }
 
-// Off = force-fetch latest code now. Clears Cache Storage entries owned
-// by this app's SW only, then reloads. Auto-flips back to "on" after
-// reload so the user stays protected for the next field trip.
+// Off = force-fetch latest code now and stay online-only until the user
+// turns Offline mode back on. Clears Cache Storage entries owned by this
+// app's SW only, then reloads.
 export async function setOfflineMode(next: "on" | "off"): Promise<void> {
   if (typeof window === "undefined") return;
   if (next === "on") {
@@ -122,7 +122,7 @@ export async function setOfflineMode(next: "on" | "off"): Promise<void> {
   //   3) reload
   // Never touches IndexedDB / localStorage (except the flag) / cookies.
   try {
-    window.localStorage.setItem(OFFLINE_MODE_KEY, "on"); // self-heal after reload
+    window.localStorage.setItem(OFFLINE_MODE_KEY, "off");
   } catch {
     // ignore
   }
@@ -224,9 +224,17 @@ export function registerServiceWorker(): void {
     return;
   }
 
-  // Self-heal: if user toggled Off in a previous session, flip back to On.
+  if (!forceOn && getOfflineMode() === "off") {
+    void (async () => {
+      await unregisterAppServiceWorkers();
+      await clearAppShellCaches();
+    })();
+    return;
+  }
+
+  // Offline mode is on by default for field use.
   try {
-    if (window.localStorage.getItem(OFFLINE_MODE_KEY) !== "on") {
+    if (forceOn || window.localStorage.getItem(OFFLINE_MODE_KEY) !== "on") {
       window.localStorage.setItem(OFFLINE_MODE_KEY, "on");
     }
   } catch {
