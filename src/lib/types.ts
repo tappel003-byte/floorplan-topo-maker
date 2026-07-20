@@ -13,11 +13,15 @@ export interface ProjectMeta {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
+  // Timestamp of the last successful export. Used to warn users when local
+  // changes have not been backed up to a .json bundle.
+  lastExportedAt?: number;
   // Set when this project was created via duplicateProject(). Presence of
   // this field unlocks destructive "swap plan image" tools that we never
   // want on original surveys.
   parentProjectId?: string;
 }
+
 
 export interface PlanTransform {
   tx: number;       // translate in image-coord pixels
