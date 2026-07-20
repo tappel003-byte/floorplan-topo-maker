@@ -74,9 +74,38 @@ export function registerServiceWorker(): void {
   }
 
   const doRegister = () => {
-    navigator.serviceWorker.register(APP_SW_URL).catch(() => {
-      // Registration failed — nothing to do; app still works online.
-    });
+    navigator.serviceWorker
+      .register(APP_SW_URL)
+      .then((registration) => {
+        // iOS home-screen apps often resume from bfcache instead of reloading.
+        // Check for a new service worker when the page is restored this way.
+        window.addEventListener("pageshow", (event) => {
+          if (event.persisted) {
+            void registration.update();
+          }
+        });
+
+        // Also check for updates whenever the app is brought back to the
+        // foreground after being backgrounded.
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            void registration.update();
+          }
+        });
+
+        // When skipWaiting + clientsClaim installs a new worker, reload once
+        // so the user gets the fresh version without a manual refresh.
+        let hasReloaded = false;
+        navigator.serviceWorker.oncontrollerchange = () => {
+          if (!hasReloaded) {
+            hasReloaded = true;
+            window.location.reload();
+          }
+        };
+      })
+      .catch(() => {
+        // Registration failed — nothing to do; app still works online.
+      });
   };
 
   // `useEffect` typically runs after `load` has already fired, so attaching
