@@ -119,11 +119,30 @@ export function registerServiceWorker(): void {
       .register(APP_SW_URL)
       .then((registration) => {
         trackUpdates(registration);
+
+        // iOS home-screen PWAs typically resume the page from memory instead
+        // of doing a fresh load, so the browser never checks for a new SW on
+        // its own. Nudge it to check whenever the app comes back to the
+        // foreground. This does NOT auto-reload — it just lets the update
+        // banner appear so the user can tap it.
+        const checkForUpdate = () => {
+          registration.update().catch(() => {
+            // Best-effort — offline or transient failures are fine.
+          });
+        };
+
+        window.addEventListener("pageshow", (event) => {
+          if ((event as PageTransitionEvent).persisted) checkForUpdate();
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") checkForUpdate();
+        });
       })
       .catch(() => {
         // Registration failed — nothing to do; app still works online.
       });
   };
+
 
   if (document.readyState === "complete") {
     doRegister();
