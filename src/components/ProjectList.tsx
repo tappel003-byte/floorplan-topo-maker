@@ -10,7 +10,6 @@ import {
   MoreVertical,
   RotateCcw,
   ImagePlus,
-  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +45,7 @@ import {
   saveFloor,
 } from "@/lib/db";
 import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
+import { OfflineModeToggle } from "@/components/OfflineModeToggle";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -156,7 +156,7 @@ export function ProjectList() {
           <p className="text-sm text-muted-foreground mt-1">
             Topographical mapping for foundation inspection
           </p>
-          <CheckForUpdatesButton />
+          <OfflineModeToggle />
         </div>
 
         <div className="flex items-center gap-2">
@@ -401,61 +401,4 @@ function NewProjectDialog({
   );
 }
 
-function CheckForUpdatesButton() {
-  const [supported, setSupported] = useState(false);
-  const [checking, setChecking] = useState(false);
-
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.getRegistration().then((reg) => {
-      if (reg) setSupported(true);
-    });
-  }, []);
-
-  if (!supported) return null;
-
-  async function handleCheck() {
-    if (checking) return;
-    setChecking(true);
-    try {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (!reg) {
-        toast("No update system registered");
-        return;
-      }
-      // If a new worker is already waiting, the UpdateBanner is already
-      // showing — just tell the user.
-      if (reg.waiting) {
-        toast("Update ready — tap the banner at the top to refresh");
-        return;
-      }
-      const beforeInstalling = reg.installing;
-      await reg.update();
-      // Give the browser a moment to discover a new worker.
-      await new Promise((r) => setTimeout(r, 800));
-      const foundNew = !!reg.installing && reg.installing !== beforeInstalling;
-      if (foundNew || reg.waiting) {
-        toast.success("Update found — installing…");
-      } else {
-        toast.success("You're up to date");
-      }
-    } catch {
-      toast.error("Couldn't check for updates");
-    } finally {
-      setChecking(false);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleCheck}
-      disabled={checking}
-      className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-    >
-      <RefreshCw className={`h-3 w-3 ${checking ? "animate-spin" : ""}`} />
-      {checking ? "Checking…" : "Check for updates"}
-    </button>
-  );
-}
 

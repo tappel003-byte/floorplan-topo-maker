@@ -55,7 +55,18 @@ setCatchHandler(async ({ request }) => {
   return Response.error();
 });
 
-// Wait for the app to send SKIP_WAITING before activating a new SW.
+// Take over as soon as a new version installs so users always get the
+// latest code the next time the app is backgrounded/reopened. The app
+// side defers the reload to a safe moment.
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// Legacy: still honor an explicit SKIP_WAITING message if anything sends one.
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
