@@ -10,7 +10,6 @@ import {
   MoreVertical,
   RotateCcw,
   ImagePlus,
-  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +45,7 @@ import {
   saveFloor,
 } from "@/lib/db";
 import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
+import { OfflineModeToggle } from "@/components/OfflineModeToggle";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -156,7 +156,7 @@ export function ProjectList() {
           <p className="text-sm text-muted-foreground mt-1">
             Topographical mapping for foundation inspection
           </p>
-          <CheckForUpdatesButton />
+          <OfflineModeToggle />
         </div>
 
         <div className="flex items-center gap-2">
