@@ -1,15 +1,16 @@
 // Guarded service worker registration. The service worker caches the app
 // shell (HTML, JS, CSS) so the app can cold-start with no network.
 //
-// Rules enforced here:
-// - Never register in dev, in Lovable preview, inside an iframe, or when
-//   the URL has ?sw=off (kill switch). In any refused context, actively
-//   unregister any existing /sw.js so preview builds never serve stale
-//   cached content.
-// - Registration path is /sw.js (matches vite-plugin-pwa filename).
-// - When a new worker is waiting, notify subscribers so UI can prompt the user.
+// Data-safety boundary: setOfflineMode("off") only touches Cache Storage
+// entries owned by this app's SW (html-navigations, app-shell-assets,
+// workbox-*). It NEVER touches localStorage (beyond the offlineMode
+// flag), sessionStorage, IndexedDB (where project data lives via
+// src/lib/db.ts), or cookies. No indexedDB.deleteDatabase, no unfiltered
+// caches.delete(), no navigator.storage.clear() — ever.
 
 const APP_SW_URL = "/sw.js";
+const OFFLINE_MODE_KEY = "offlineMode";
+const APP_CACHE_NAMES = new Set(["html-navigations", "app-shell-assets"]);
 
 type WaitingListener = (waiting: ServiceWorker) => void;
 const waitingListeners = new Set<WaitingListener>();
@@ -60,26 +61,74 @@ async function unregisterAppServiceWorkers(): Promise<void> {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
       registrations.map(async (registration) => {
-        const scriptURL = registration.active?.scriptURL ?? "";
+        const scriptURL =
+          registration.active?.scriptURL ??
+          registration.waiting?.scriptURL ??
+          registration.installing?.scriptURL ??
+          "";
         if (scriptURL.endsWith(APP_SW_URL)) {
           await registration.unregister();
         }
       }),
     );
   } catch {
-    // Ignore — best-effort cleanup.
+    // Best-effort cleanup.
   }
 }
 
-function activateWaiting(worker: ServiceWorker) {
-  notifyWaiting(worker);
-  // Auto-apply: tell the waiting SW to take over immediately. The
-  // controllerchange handler below will reload the page once.
+// Delete ONLY this app's SW caches. Never a blanket caches.delete().
+async function clearAppShellCaches(): Promise<void> {
+  if (typeof caches === "undefined") return;
   try {
-    worker.postMessage({ type: "SKIP_WAITING" });
+    const names = await caches.keys();
+    await Promise.all(
+      names
+        .filter((name) => APP_CACHE_NAMES.has(name) || name.startsWith("workbox-"))
+        .map((name) => caches.delete(name)),
+    );
   } catch {
     // ignore
   }
+}
+
+export function getOfflineMode(): "on" | "off" {
+  if (typeof window === "undefined") return "on";
+  try {
+    const v = window.localStorage.getItem(OFFLINE_MODE_KEY);
+    return v === "off" ? "off" : "on";
+  } catch {
+    return "on";
+  }
+}
+
+// Off = force-fetch latest code now. Clears Cache Storage entries owned
+// by this app's SW only, then reloads. Auto-flips back to "on" after
+// reload so the user stays protected for the next field trip.
+export async function setOfflineMode(next: "on" | "off"): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (next === "on") {
+    try {
+      window.localStorage.setItem(OFFLINE_MODE_KEY, "on");
+    } catch {
+      // ignore
+    }
+    registerServiceWorker();
+    return;
+  }
+
+  // "off" branch — the ONLY place we clear caches. Boundary:
+  //   1) unregister /sw.js
+  //   2) delete Cache Storage entries (app-shell only, name-filtered)
+  //   3) reload
+  // Never touches IndexedDB / localStorage (except the flag) / cookies.
+  try {
+    window.localStorage.setItem(OFFLINE_MODE_KEY, "on"); // self-heal after reload
+  } catch {
+    // ignore
+  }
+  await unregisterAppServiceWorkers();
+  await clearAppShellCaches();
+  window.location.reload();
 }
 
 function checkForUpdate(registration: ServiceWorkerRegistration) {
@@ -93,35 +142,60 @@ function checkForUpdate(registration: ServiceWorkerRegistration) {
 }
 
 function trackUpdates(registration: ServiceWorkerRegistration) {
-  // Already-waiting worker (installed before this page loaded).
   if (registration.waiting && navigator.serviceWorker.controller) {
-    activateWaiting(registration.waiting);
+    notifyWaiting(registration.waiting);
   }
-
   registration.addEventListener("updatefound", () => {
     const installing = registration.installing;
     if (!installing) return;
     installing.addEventListener("statechange", () => {
-      if (
-        installing.state === "installed" &&
-        navigator.serviceWorker.controller
-      ) {
-        activateWaiting(installing);
+      if (installing.state === "installed" && navigator.serviceWorker.controller) {
+        notifyWaiting(installing);
       }
     });
   });
 }
 
+// Deferred reload: never reload while the app is visible. Wait until the
+// user backgrounds it (visibilitychange -> hidden) or returns from bfcache
+// (pageshow). This avoids yanking the page mid-input.
 let reloadedForUpdate = false;
+let reloadPending = false;
+
+function performReload() {
+  if (reloadedForUpdate) return;
+  reloadedForUpdate = true;
+  window.location.reload();
+}
+
+function schedulePendingReload() {
+  if (reloadPending) return;
+  reloadPending = true;
+
+  const tryReload = () => {
+    if (document.visibilityState === "hidden") {
+      performReload();
+    }
+  };
+
+  document.addEventListener("visibilitychange", tryReload);
+  window.addEventListener("pageshow", (e) => {
+    // Reload on bfcache restore — user just came back, page will feel fresh.
+    if ((e as PageTransitionEvent).persisted) performReload();
+  });
+}
+
 function setupControllerReload() {
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (reloadedForUpdate) return;
-    reloadedForUpdate = true;
-    window.location.reload();
+    if (document.visibilityState === "hidden") {
+      performReload();
+    } else {
+      schedulePendingReload();
+    }
   });
 }
-
 
 export function registerServiceWorker(): void {
   if (typeof window === "undefined") return;
@@ -147,18 +221,21 @@ export function registerServiceWorker(): void {
     return;
   }
 
+  // Self-heal: if user toggled Off in a previous session, flip back to On.
+  try {
+    if (window.localStorage.getItem(OFFLINE_MODE_KEY) !== "on") {
+      window.localStorage.setItem(OFFLINE_MODE_KEY, "on");
+    }
+  } catch {
+    // ignore
+  }
+
   const doRegister = () => {
     setupControllerReload();
     navigator.serviceWorker
       .register(APP_SW_URL)
       .then((registration) => {
         trackUpdates(registration);
-
-        // iOS home-screen PWAs typically resume the page from memory instead
-        // of doing a fresh load, so the browser never checks for a new SW on
-        // its own. Nudge it to check whenever the app comes back to the
-        // foreground. When an update is found it is auto-applied via
-        // activateWaiting + controllerchange reload.
         checkForUpdate(registration);
 
         window.addEventListener("pageshow", () => checkForUpdate(registration));
@@ -168,11 +245,9 @@ export function registerServiceWorker(): void {
         });
       })
       .catch(() => {
-        // Registration failed — nothing to do; app still works online.
+        // Registration failed — app still works online.
       });
   };
-
-
 
   if (document.readyState === "complete") {
     doRegister();
