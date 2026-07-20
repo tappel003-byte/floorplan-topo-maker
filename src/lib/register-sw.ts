@@ -7,8 +7,32 @@
 //   unregister any existing /sw.js so preview builds never serve stale
 //   cached content.
 // - Registration path is /sw.js (matches vite-plugin-pwa filename).
+// - When a new worker is waiting, notify subscribers so UI can prompt the user.
 
 const APP_SW_URL = "/sw.js";
+
+type WaitingListener = (waiting: ServiceWorker) => void;
+const waitingListeners = new Set<WaitingListener>();
+let currentWaiting: ServiceWorker | null = null;
+
+export function onWaitingWorker(listener: WaitingListener): () => void {
+  waitingListeners.add(listener);
+  if (currentWaiting) listener(currentWaiting);
+  return () => {
+    waitingListeners.delete(listener);
+  };
+}
+
+function notifyWaiting(worker: ServiceWorker) {
+  currentWaiting = worker;
+  waitingListeners.forEach((l) => {
+    try {
+      l(worker);
+    } catch {
+      // ignore
+    }
+  });
+}
 
 function hostnameMatchesPreview(hostname: string): boolean {
   if (hostname.startsWith("id-preview--") || hostname.startsWith("preview--")) {
@@ -46,20 +70,37 @@ async function unregisterAppServiceWorkers(): Promise<void> {
   }
 }
 
+function trackUpdates(registration: ServiceWorkerRegistration) {
+  // Already-waiting worker (installed before this page loaded).
+  if (registration.waiting && navigator.serviceWorker.controller) {
+    notifyWaiting(registration.waiting);
+  }
+
+  registration.addEventListener("updatefound", () => {
+    const installing = registration.installing;
+    if (!installing) return;
+    installing.addEventListener("statechange", () => {
+      if (
+        installing.state === "installed" &&
+        navigator.serviceWorker.controller
+      ) {
+        notifyWaiting(installing);
+      }
+    });
+  });
+}
+
 export function registerServiceWorker(): void {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator)) return;
 
   const swParam = new URLSearchParams(window.location.search).get("sw");
 
-  // ?sw=off is an unconditional kill switch.
   if (swParam === "off") {
     void unregisterAppServiceWorkers();
     return;
   }
 
-  // ?sw=on forces registration even in normally-refused contexts
-  // (preview hosts, iframes, non-prod). Use with care.
   const forceOn = swParam === "on";
 
   const shouldRefuse =
@@ -76,14 +117,14 @@ export function registerServiceWorker(): void {
   const doRegister = () => {
     navigator.serviceWorker
       .register(APP_SW_URL)
+      .then((registration) => {
+        trackUpdates(registration);
+      })
       .catch(() => {
         // Registration failed — nothing to do; app still works online.
       });
   };
 
-  // `useEffect` typically runs after `load` has already fired, so attaching
-  // a `load` listener would never trigger. Register immediately if the
-  // document has already loaded; otherwise wait for the event.
   if (document.readyState === "complete") {
     doRegister();
   } else {
