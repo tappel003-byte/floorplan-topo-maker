@@ -3,12 +3,14 @@ import { getOfflineMode, setOfflineMode } from "@/lib/register-sw";
 
 // Rare manual escape hatch — small text link, not a daily control.
 // The app is offline-capable and auto-updates in the background whenever
-// signal is available; users should almost never need this.
+// signal is available; users should almost never need this. The link is only
+// shown when real connectivity is confirmed, so it can never clear the offline
+// cache while the user has no signal.
 export function OfflineModeToggle() {
   const [mounted, setMounted] = useState(false);
   const [on, setOn] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [noSignal, setNoSignal] = useState(false);
+  const [hasSignal, setHasSignal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -16,13 +18,36 @@ export function OfflineModeToggle() {
   }, []);
 
   useEffect(() => {
-    if (!noSignal) return;
-    const t = setTimeout(() => setNoSignal(false), 3000);
-    return () => clearTimeout(t);
-  }, [noSignal]);
+    async function checkSignal() {
+      if (!navigator.onLine) {
+        setHasSignal(false);
+        return;
+      }
+      try {
+        await fetch("/", {
+          method: "HEAD",
+          cache: "no-store",
+          signal: AbortSignal.timeout(3000),
+        });
+        setHasSignal(true);
+      } catch {
+        setHasSignal(false);
+      }
+    }
+
+    checkSignal();
+    window.addEventListener("online", checkSignal);
+    window.addEventListener("offline", checkSignal);
+
+    return () => {
+      window.removeEventListener("online", checkSignal);
+      window.removeEventListener("offline", checkSignal);
+    };
+  }, []);
 
   if (!mounted) return null;
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
+  if (!hasSignal) return null;
 
   async function hasConnectivity(): Promise<boolean> {
     if (!navigator.onLine) return false;
@@ -41,10 +66,8 @@ export function OfflineModeToggle() {
   async function handleClick() {
     if (busy) return;
     setBusy(true);
-    setNoSignal(false);
 
     if (!(await hasConnectivity())) {
-      setNoSignal(true);
       setBusy(false);
       return;
     }
@@ -69,11 +92,6 @@ export function OfflineModeToggle() {
       >
         {on ? "Force refresh app" : "Fetching latest…"}
       </button>
-      {noSignal && (
-        <p className="text-[11px] text-amber-600 mt-1" aria-live="polite">
-          No signal — can’t refresh right now
-        </p>
-      )}
     </div>
   );
 }
