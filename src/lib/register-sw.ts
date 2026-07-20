@@ -14,6 +14,7 @@ const APP_SW_URL = "/sw.js";
 type WaitingListener = (waiting: ServiceWorker) => void;
 const waitingListeners = new Set<WaitingListener>();
 let currentWaiting: ServiceWorker | null = null;
+let lastUpdateCheck = 0;
 
 export function onWaitingWorker(listener: WaitingListener): () => void {
   waitingListeners.add(listener);
@@ -79,6 +80,16 @@ function activateWaiting(worker: ServiceWorker) {
   } catch {
     // ignore
   }
+}
+
+function checkForUpdate(registration: ServiceWorkerRegistration) {
+  const now = Date.now();
+  if (now - lastUpdateCheck < 10_000) return;
+  lastUpdateCheck = now;
+
+  registration.update().catch(() => {
+    // Best-effort — offline or transient failures are fine.
+  });
 }
 
 function trackUpdates(registration: ServiceWorkerRegistration) {
@@ -148,17 +159,12 @@ export function registerServiceWorker(): void {
         // its own. Nudge it to check whenever the app comes back to the
         // foreground. When an update is found it is auto-applied via
         // activateWaiting + controllerchange reload.
-        const checkForUpdate = () => {
-          registration.update().catch(() => {
-            // Best-effort — offline or transient failures are fine.
-          });
-        };
+        checkForUpdate(registration);
 
-        window.addEventListener("pageshow", (event) => {
-          if ((event as PageTransitionEvent).persisted) checkForUpdate();
-        });
+        window.addEventListener("pageshow", () => checkForUpdate(registration));
+        window.addEventListener("focus", () => checkForUpdate(registration));
         document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") checkForUpdate();
+          if (document.visibilityState === "visible") checkForUpdate(registration);
         });
       })
       .catch(() => {
