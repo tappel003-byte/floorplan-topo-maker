@@ -156,7 +156,9 @@ export function ProjectList() {
           <p className="text-sm text-muted-foreground mt-1">
             Topographical mapping for foundation inspection
           </p>
+          <CheckForUpdatesButton />
         </div>
+
         <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
