@@ -14,19 +14,7 @@ export default defineConfig({
       filename: "sw.js",
       strategies: "injectManifest",
       srcDir: "src",
-      // Point at the .ts source; vite-plugin-pwa will build it via Vite.
-      // The output filename is controlled by `filename` above.
-      // eslint-disable-next-line
-      // @ts-ignore
-      // Note: injectManifest reads this entry.
-      // @ts-expect-error - srcDir + filename combine to locate the source
-      // (documented in vite-plugin-pwa).
-      // (ignored)
-      // We keep TS source at src/sw.ts.
-      // devOptions disabled below.
-      // The plugin uses filename as both the input file lookup and output.
-      // Since filename ends in .js, we override with `injectManifest.swSrc`
-      // below to point at the .ts file explicitly.
+      devOptions: { enabled: false },
       injectManifest: {
         swSrc: "src/sw.ts",
         swDest: "sw.js",
@@ -46,7 +34,6 @@ export default defineConfig({
         ],
         additionalManifestEntries: [{ url: "/", revision: null }],
       },
-      devOptions: { enabled: false },
     }),
   ],
 });
