@@ -137,6 +137,7 @@ export function registerServiceWorker(): void {
   }
 
   const doRegister = () => {
+    setupControllerReload();
     navigator.serviceWorker
       .register(APP_SW_URL)
       .then((registration) => {
@@ -145,8 +146,8 @@ export function registerServiceWorker(): void {
         // iOS home-screen PWAs typically resume the page from memory instead
         // of doing a fresh load, so the browser never checks for a new SW on
         // its own. Nudge it to check whenever the app comes back to the
-        // foreground. This does NOT auto-reload — it just lets the update
-        // banner appear so the user can tap it.
+        // foreground. When an update is found it is auto-applied via
+        // activateWaiting + controllerchange reload.
         const checkForUpdate = () => {
           registration.update().catch(() => {
             // Best-effort — offline or transient failures are fine.
@@ -164,6 +165,7 @@ export function registerServiceWorker(): void {
         // Registration failed — nothing to do; app still works online.
       });
   };
+
 
 
   if (document.readyState === "complete") {
