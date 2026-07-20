@@ -70,10 +70,21 @@ async function unregisterAppServiceWorkers(): Promise<void> {
   }
 }
 
+function activateWaiting(worker: ServiceWorker) {
+  notifyWaiting(worker);
+  // Auto-apply: tell the waiting SW to take over immediately. The
+  // controllerchange handler below will reload the page once.
+  try {
+    worker.postMessage({ type: "SKIP_WAITING" });
+  } catch {
+    // ignore
+  }
+}
+
 function trackUpdates(registration: ServiceWorkerRegistration) {
   // Already-waiting worker (installed before this page loaded).
   if (registration.waiting && navigator.serviceWorker.controller) {
-    notifyWaiting(registration.waiting);
+    activateWaiting(registration.waiting);
   }
 
   registration.addEventListener("updatefound", () => {
@@ -84,11 +95,22 @@ function trackUpdates(registration: ServiceWorkerRegistration) {
         installing.state === "installed" &&
         navigator.serviceWorker.controller
       ) {
-        notifyWaiting(installing);
+        activateWaiting(installing);
       }
     });
   });
 }
+
+let reloadedForUpdate = false;
+function setupControllerReload() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloadedForUpdate) return;
+    reloadedForUpdate = true;
+    window.location.reload();
+  });
+}
+
 
 export function registerServiceWorker(): void {
   if (typeof window === "undefined") return;
@@ -115,6 +137,7 @@ export function registerServiceWorker(): void {
   }
 
   const doRegister = () => {
+    setupControllerReload();
     navigator.serviceWorker
       .register(APP_SW_URL)
       .then((registration) => {
@@ -123,8 +146,8 @@ export function registerServiceWorker(): void {
         // iOS home-screen PWAs typically resume the page from memory instead
         // of doing a fresh load, so the browser never checks for a new SW on
         // its own. Nudge it to check whenever the app comes back to the
-        // foreground. This does NOT auto-reload — it just lets the update
-        // banner appear so the user can tap it.
+        // foreground. When an update is found it is auto-applied via
+        // activateWaiting + controllerchange reload.
         const checkForUpdate = () => {
           registration.update().catch(() => {
             // Best-effort — offline or transient failures are fine.
@@ -142,6 +165,7 @@ export function registerServiceWorker(): void {
         // Registration failed — nothing to do; app still works online.
       });
   };
+
 
 
   if (document.readyState === "complete") {
