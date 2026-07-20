@@ -43,6 +43,7 @@ import {
   listFloors,
   listPoints,
   saveFloor,
+  markProjectExported,
 } from "@/lib/db";
 import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
 import { OfflineModeToggle } from "@/components/OfflineModeToggle";
@@ -52,6 +53,24 @@ interface Row extends ProjectMeta {
   floorCount: number;
   pointCount: number;
 }
+
+function formatAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  if (d < 30) return `${d}d ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
+function isUnbackedUp(p: ProjectMeta): boolean {
+  if (!p.lastExportedAt) return true;
+  return p.updatedAt > p.lastExportedAt + 1000; // small tolerance
+}
+
 
 export function ProjectList() {
   const [projects, setProjects] = useState<Row[]>([]);
