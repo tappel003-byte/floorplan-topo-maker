@@ -297,6 +297,18 @@ export function ProjectList() {
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {p.inspectionDate || "no date"}
                 </div>
+                <div className="mt-1">
+                  {isUnbackedUp(p) ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-medium">
+                      {p.lastExportedAt ? "Unsaved changes" : "Not backed up"}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
+                      Backed up {formatAgo(p.lastExportedAt!)}
+                    </span>
+                  )}
+                </div>
+
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
