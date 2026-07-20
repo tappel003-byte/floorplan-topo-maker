@@ -88,6 +88,14 @@ export async function saveProject(p: ProjectMeta) {
   const db = await getDB();
   await db.put("projects", { ...p, updatedAt: Date.now() });
 }
+export async function markProjectExported(id: string) {
+  const db = await getDB();
+  const p = await db.get("projects", id);
+  if (!p) return;
+  // Do NOT bump updatedAt — this is a backup event, not a data edit.
+  await db.put("projects", { ...p, lastExportedAt: Date.now() });
+}
+
 export async function deleteProject(id: string) {
   const db = await getDB();
   const floors = await listFloors(id);

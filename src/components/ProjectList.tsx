@@ -43,6 +43,7 @@ import {
   listFloors,
   listPoints,
   saveFloor,
+  markProjectExported,
 } from "@/lib/db";
 import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
 import { OfflineModeToggle } from "@/components/OfflineModeToggle";
@@ -53,14 +54,35 @@ interface Row extends ProjectMeta {
   pointCount: number;
 }
 
+function formatAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  if (d < 30) return `${d}d ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
+function isUnbackedUp(p: ProjectMeta): boolean {
+  if (!p.lastExportedAt) return true;
+  return p.updatedAt > p.lastExportedAt + 1000; // small tolerance
+}
+
+
 export function ProjectList() {
   const [projects, setProjects] = useState<Row[]>([]);
   const [trashed, setTrashed] = useState<ProjectMeta[]>([]);
   const [open, setOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [nagDismissed, setNagDismissed] = useState(false);
+  const [exportingAll, setExportingAll] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
+
 
   async function refresh() {
     const list = await listProjects();
@@ -121,11 +143,42 @@ export function ProjectList() {
     try {
       const blob = await exportProject(p.id);
       downloadBundle(blob, bundleFilename(p.name));
+      await markProjectExported(p.id);
+      await refresh();
       toast.success("Project exported");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Export failed");
     }
   }
+
+  async function handleExportAll() {
+    const unsaved = projects.filter(isUnbackedUp);
+    const targets = unsaved.length > 0 ? unsaved : projects;
+    if (targets.length === 0) {
+      toast("Nothing to export");
+      return;
+    }
+    setExportingAll(true);
+    let ok = 0;
+    let failed = 0;
+    for (const p of targets) {
+      try {
+        const blob = await exportProject(p.id);
+        downloadBundle(blob, bundleFilename(p.name));
+        await markProjectExported(p.id);
+        ok++;
+        // Small delay so iOS Safari doesn't drop back-to-back downloads.
+        await new Promise((r) => setTimeout(r, 400));
+      } catch {
+        failed++;
+      }
+    }
+    setExportingAll(false);
+    await refresh();
+    if (failed === 0) toast.success(`Exported ${ok} project${ok === 1 ? "" : "s"}`);
+    else toast.error(`Exported ${ok}, failed ${failed}`);
+  }
+
 
   async function handleDuplicate(p: Row) {
     try {
@@ -185,6 +238,43 @@ export function ProjectList() {
         </div>
       </header>
 
+      {(() => {
+        const unsaved = projects.filter(isUnbackedUp);
+        if (nagDismissed || unsaved.length === 0) return null;
+        return (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
+            <div className="flex-1">
+              <div className="font-medium">
+                {unsaved.length} project{unsaved.length === 1 ? "" : "s"} not backed up
+              </div>
+              <div className="text-xs mt-0.5 text-amber-800">
+                Export saves a .json file you can re-import if the app icon is removed.
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="default"
+                onClick={handleExportAll}
+                disabled={exportingAll}
+              >
+                <Download className="mr-1 h-3.5 w-3.5" />
+                {exportingAll ? "Exporting…" : "Export all"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-amber-900 hover:text-amber-900"
+                onClick={() => setNagDismissed(true)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
+
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : projects.length === 0 ? (
@@ -207,6 +297,18 @@ export function ProjectList() {
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {p.inspectionDate || "no date"}
                 </div>
+                <div className="mt-1">
+                  {isUnbackedUp(p) ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-medium">
+                      {p.lastExportedAt ? "Unsaved changes" : "Not backed up"}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
+                      Backed up {formatAgo(p.lastExportedAt!)}
+                    </span>
+                  )}
+                </div>
+
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
