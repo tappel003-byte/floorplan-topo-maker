@@ -204,7 +204,10 @@ export function registerServiceWorker(): void {
   const swParam = new URLSearchParams(window.location.search).get("sw");
 
   if (swParam === "off") {
-    void unregisterAppServiceWorkers();
+    void (async () => {
+      await unregisterAppServiceWorkers();
+      await clearAppShellCaches();
+    })();
     return;
   }
 
