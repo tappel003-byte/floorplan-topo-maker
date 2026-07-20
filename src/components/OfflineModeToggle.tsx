@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Switch } from "@/components/ui/switch";
 import { getOfflineMode, setOfflineMode } from "@/lib/register-sw";
 
+// Rare manual escape hatch — small text link, not a daily control.
+// The app is offline-capable and auto-updates in the background whenever
+// signal is available; users should almost never need this.
 export function OfflineModeToggle() {
   const [mounted, setMounted] = useState(false);
   const [on, setOn] = useState(true);
@@ -15,26 +17,27 @@ export function OfflineModeToggle() {
   if (!mounted) return null;
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
 
-  async function handleChange(next: boolean) {
+  async function handleClick() {
     if (busy) return;
     setBusy(true);
-    setOn(next);
-    // "off" reloads the page. "on" registers the SW.
-    await setOfflineMode(next ? "on" : "off");
+    // Toggle: if currently on, "off" clears app-shell cache & reloads to
+    // pull the latest build; then user can flip it back on. Project data
+    // in IndexedDB is never touched.
+    const next = on ? "off" : "on";
+    setOn(next === "on");
+    await setOfflineMode(next);
     setBusy(false);
   }
 
   return (
-    <div className="mt-3 flex flex-col items-center gap-1">
-      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Switch checked={on} onCheckedChange={handleChange} disabled={busy} />
-        <span className="font-medium text-foreground">Offline mode</span>
-      </label>
-      <p className="text-[11px] text-muted-foreground max-w-[260px] text-center leading-tight">
-        {on
-          ? "On — works with no signal. Flip off to grab the latest update."
-          : "Off — fetching latest version…"}
-      </p>
-    </div>
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={busy}
+      className="mt-2 text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+      title="Clears the cached app shell and reloads from the network. Does not touch project data."
+    >
+      {on ? "Force refresh app" : "Fetching latest…"}
+    </button>
   );
 }
