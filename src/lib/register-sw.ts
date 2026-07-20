@@ -70,10 +70,21 @@ async function unregisterAppServiceWorkers(): Promise<void> {
   }
 }
 
+function activateWaiting(worker: ServiceWorker) {
+  notifyWaiting(worker);
+  // Auto-apply: tell the waiting SW to take over immediately. The
+  // controllerchange handler below will reload the page once.
+  try {
+    worker.postMessage({ type: "SKIP_WAITING" });
+  } catch {
+    // ignore
+  }
+}
+
 function trackUpdates(registration: ServiceWorkerRegistration) {
   // Already-waiting worker (installed before this page loaded).
   if (registration.waiting && navigator.serviceWorker.controller) {
-    notifyWaiting(registration.waiting);
+    activateWaiting(registration.waiting);
   }
 
   registration.addEventListener("updatefound", () => {
@@ -84,11 +95,22 @@ function trackUpdates(registration: ServiceWorkerRegistration) {
         installing.state === "installed" &&
         navigator.serviceWorker.controller
       ) {
-        notifyWaiting(installing);
+        activateWaiting(installing);
       }
     });
   });
 }
+
+let reloadedForUpdate = false;
+function setupControllerReload() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloadedForUpdate) return;
+    reloadedForUpdate = true;
+    window.location.reload();
+  });
+}
+
 
 export function registerServiceWorker(): void {
   if (typeof window === "undefined") return;
