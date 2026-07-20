@@ -1,5 +1,3 @@
-// @lovable.dev/vite-tanstack-config already includes tanstackStart, viteReact,
-// tailwindcss, tsConfigPaths, nitro, componentTagger, env injection, aliases, etc.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -11,13 +9,11 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: null,
-      filename: "sw.js",
       strategies: "injectManifest",
       srcDir: "src",
+      filename: "sw.ts",
       devOptions: { enabled: false },
       injectManifest: {
-        swSrc: "src/sw.ts",
-        swDest: "sw.js",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
         globIgnores: ["**/node_modules/**", "**/*.map", "sw.js", "workbox-*.js"],
         manifestTransforms: [
