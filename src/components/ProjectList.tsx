@@ -143,11 +143,42 @@ export function ProjectList() {
     try {
       const blob = await exportProject(p.id);
       downloadBundle(blob, bundleFilename(p.name));
+      await markProjectExported(p.id);
+      await refresh();
       toast.success("Project exported");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Export failed");
     }
   }
+
+  async function handleExportAll() {
+    const unsaved = projects.filter(isUnbackedUp);
+    const targets = unsaved.length > 0 ? unsaved : projects;
+    if (targets.length === 0) {
+      toast("Nothing to export");
+      return;
+    }
+    setExportingAll(true);
+    let ok = 0;
+    let failed = 0;
+    for (const p of targets) {
+      try {
+        const blob = await exportProject(p.id);
+        downloadBundle(blob, bundleFilename(p.name));
+        await markProjectExported(p.id);
+        ok++;
+        // Small delay so iOS Safari doesn't drop back-to-back downloads.
+        await new Promise((r) => setTimeout(r, 400));
+      } catch {
+        failed++;
+      }
+    }
+    setExportingAll(false);
+    await refresh();
+    if (failed === 0) toast.success(`Exported ${ok} project${ok === 1 ? "" : "s"}`);
+    else toast.error(`Exported ${ok}, failed ${failed}`);
+  }
+
 
   async function handleDuplicate(p: Row) {
     try {
