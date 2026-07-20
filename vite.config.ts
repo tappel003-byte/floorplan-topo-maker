@@ -1,5 +1,6 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
+import { resolve } from "node:path";
 
 export default defineConfig({
   tanstackStart: {
@@ -14,6 +15,7 @@ export default defineConfig({
       filename: "sw.ts",
       devOptions: { enabled: false },
       injectManifest: {
+        swDest: resolve(process.cwd(), "dist/sw.js"),
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
         globIgnores: ["**/node_modules/**", "**/*.map", "sw.js", "workbox-*.js"],
         manifestTransforms: [
