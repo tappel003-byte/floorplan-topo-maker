@@ -15,7 +15,8 @@ export function OfflineModeToggle() {
 
   useEffect(() => {
     setMounted(true);
-    setOn(getOfflineMode() === "on");
+    getOfflineMode();
+    setOn(true);
   }, []);
 
   useEffect(() => {
@@ -107,8 +108,7 @@ export function OfflineModeToggle() {
       setBusy(false);
     }, 10000);
 
-    const next = on ? "off" : "on";
-    setOn(next === "on");
+    const next = "off";
     try {
       await withTimeout(setOfflineMode(next), 5000);
     } catch {
@@ -126,7 +126,7 @@ export function OfflineModeToggle() {
     }
   }
 
-  const label = errored ? "Couldn’t update — tap to retry" : on ? "Update app" : "Fetching latest…";
+  const label = errored ? "Couldn’t update — tap to retry" : busy ? "Fetching latest…" : "Update app";
 
   return (
     <div className="mt-2">
