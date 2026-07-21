@@ -334,10 +334,19 @@ export function ProjectList() {
                 size="sm"
                 variant="default"
                 onClick={handleExportAll}
-                disabled={exportingAll}
+                disabled={exportingAll || sharingAll}
               >
                 <Download className="mr-1 h-3.5 w-3.5" />
                 {exportingAll ? "Exporting…" : "Export all"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleShareAll}
+                disabled={exportingAll || sharingAll}
+              >
+                <Share className="mr-1 h-3.5 w-3.5" />
+                {sharingAll ? "Sharing…" : "Share all"}
               </Button>
               <Button
                 size="sm"
