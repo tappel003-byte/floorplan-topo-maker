@@ -90,7 +90,7 @@ export function OfflineModeToggle() {
         className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
         title="Clears the cached app shell and reloads from the network. Does not touch project data."
       >
-        {on ? "Force refresh app" : "Fetching latest…"}
+        {on ? "Update app" : "Fetching latest…"}
       </button>
     </div>
   );
