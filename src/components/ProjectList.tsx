@@ -181,6 +181,82 @@ export function ProjectList() {
     else toast.error(`Exported ${ok}, failed ${failed}`);
   }
 
+  async function handleShare(p: Row) {
+    try {
+      const blob = await exportProject(p.id);
+      const filename = bundleFilename(p.name);
+      const file = new File([blob], filename, { type: "application/json" });
+
+      const shareable =
+        typeof navigator !== "undefined" &&
+        !!navigator.share &&
+        !!navigator.canShare &&
+        navigator.canShare({ files: [file] });
+
+      if (shareable) {
+        await navigator.share({ files: [file], title: p.name });
+      } else {
+        downloadBundle(blob, filename);
+      }
+
+      await markProjectExported(p.id);
+      await refresh();
+      toast.success(shareable ? "Project shared" : "Project exported");
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        // User cancelled the share sheet.
+        return;
+      }
+      toast.error(err instanceof Error ? err.message : "Share failed");
+    }
+  }
+
+  async function handleShareAll() {
+    const unsaved = projects.filter(isUnbackedUp);
+    const targets = unsaved.length > 0 ? unsaved : projects;
+    if (targets.length === 0) {
+      toast("Nothing to share");
+      return;
+    }
+    setSharingAll(true);
+    try {
+      const files: File[] = [];
+      for (const p of targets) {
+        const blob = await exportProject(p.id);
+        files.push(new File([blob], bundleFilename(p.name), { type: "application/json" }));
+      }
+
+      const shareable =
+        typeof navigator !== "undefined" &&
+        !!navigator.share &&
+        !!navigator.canShare &&
+        navigator.canShare({ files });
+
+      if (shareable) {
+        await navigator.share({ files, title: "Floor Survey projects" });
+      } else {
+        for (const f of files) {
+          downloadBundle(f, f.name);
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+
+      for (const p of targets) {
+        await markProjectExported(p.id);
+      }
+      await refresh();
+      toast.success(
+        shareable
+          ? `Shared ${files.length} project${files.length === 1 ? "" : "s"}`
+          : `Exported ${files.length} project${files.length === 1 ? "" : "s"}`,
+      );
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      toast.error(err instanceof Error ? err.message : "Share failed");
+    } finally {
+      setSharingAll(false);
+    }
+  }
 
   async function handleDuplicate(p: Row) {
     try {
