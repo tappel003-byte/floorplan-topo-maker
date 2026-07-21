@@ -135,6 +135,7 @@ export function AppTopBar({
                   }}
                 />
               )}
+              <FinishingDesktopMenuLink onClick={() => setMenuOpen(false)} />
               <MenuItem
                 label="Export"
                 onClick={() => {
