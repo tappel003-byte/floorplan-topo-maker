@@ -3,8 +3,8 @@
 //
 // Data-safety boundary: setOfflineMode("off") only touches Cache Storage
 // entries owned by this app's SW (html-navigations, app-shell-assets,
-// workbox-*). It NEVER touches localStorage (beyond the offlineMode
-// flag), sessionStorage, IndexedDB (where project data lives via
+// workbox-*). It NEVER touches localStorage (beyond keeping the offlineMode
+// flag self-healed to "on"), sessionStorage, IndexedDB (where project data lives via
 // src/lib/db.ts), or cookies. No indexedDB.deleteDatabase, no unfiltered
 // caches.delete(), no navigator.storage.clear() — ever.
 
@@ -95,15 +95,23 @@ export function getOfflineMode(): "on" | "off" {
   if (typeof window === "undefined") return "on";
   try {
     const v = window.localStorage.getItem(OFFLINE_MODE_KEY);
-    return v === "off" ? "off" : "on";
+    if (v === "off") {
+      // "off" used to be persisted before the refresh work completed. If the
+      // app was closed mid-refresh, the next launch would render as permanently
+      // "Fetching latest…". Offline mode is now always-on; force refresh is a
+      // one-shot action, so stale "off" values self-heal immediately.
+      window.localStorage.setItem(OFFLINE_MODE_KEY, "on");
+    } else if (v !== "on") {
+      window.localStorage.setItem(OFFLINE_MODE_KEY, "on");
+    }
+    return "on";
   } catch {
     return "on";
   }
 }
 
-// Off = force-fetch latest code now and stay online-only until the user
-// turns Offline mode back on. Clears Cache Storage entries owned by this
-// app's SW only, then reloads.
+// Off = one-shot force-fetch latest code now. It clears Cache Storage entries
+// owned by this app's SW only, then reloads. It is NOT a persisted app state.
 export async function setOfflineMode(next: "on" | "off"): Promise<void> {
   if (typeof window === "undefined") return;
   if (next === "on") {
@@ -120,9 +128,9 @@ export async function setOfflineMode(next: "on" | "off"): Promise<void> {
   //   1) unregister /sw.js
   //   2) delete Cache Storage entries (app-shell only, name-filtered)
   //   3) reload
-  // Never touches IndexedDB / localStorage (except the flag) / cookies.
+  // Never touches IndexedDB / localStorage (except keeping the flag "on") / cookies.
   try {
-    window.localStorage.setItem(OFFLINE_MODE_KEY, "off");
+    window.localStorage.setItem(OFFLINE_MODE_KEY, "on");
   } catch {
     // ignore
   }
@@ -239,13 +247,7 @@ export function registerServiceWorker(): void {
     return;
   }
 
-  if (!forceOn && getOfflineMode() === "off") {
-    void (async () => {
-      await unregisterAppServiceWorkers();
-      await clearAppShellCaches();
-    })();
-    return;
-  }
+  getOfflineMode();
 
   // Offline mode is on by default for field use.
   try {
