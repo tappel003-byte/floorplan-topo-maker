@@ -390,7 +390,7 @@ function PointList({
   onSelect,
 }: {
   points: SurveyPoint[];
-  excludedIds: Map<string, string> | Set<string>;
+  excludedIds: Set<string> | Map<string, unknown>;
   selectedIds: Set<string>;
   onSelect: (id: string) => void;
 }) {
