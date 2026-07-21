@@ -245,7 +245,7 @@ export function ProjectList() {
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
             <div className="flex-1">
               <div className="font-medium">
-                {unsaved.length} project{unsaved.length === 1 ? "" : "s"} not backed up
+                {unsaved.length} project{unsaved.length === 1 ? "" : "s"} not exported
               </div>
               <div className="text-xs mt-0.5 text-amber-800">
                 Export saves a .json file you can re-import if the app icon is removed.
@@ -300,7 +300,7 @@ export function ProjectList() {
                 <div className="mt-1">
                   {isUnbackedUp(p) ? (
                     <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-medium">
-                      {p.lastExportedAt ? "Unsaved changes" : "Not backed up"}
+                      {p.lastExportedAt ? "Unsaved changes" : "Not exported"}
                     </span>
                   ) : (
                     <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
