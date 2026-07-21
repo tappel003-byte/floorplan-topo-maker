@@ -75,11 +75,7 @@ export interface Floor {
   // beneath them so a replaced photo/screenshot can be re-aligned to
   // existing points. Only mutated inside Align mode on a duplicated project.
   planTransform?: PlanTransform;
-  // Finishing screen (desktop) presentation settings — isolated from the
-  // Field/Topo `renderSettings` on the route so styling done at a desk
-  // never disturbs the field capture view. Seeded from the current
-  // render settings on first Finishing open.
-  finishingSettings?: RenderSettings;
+
 }
 
 export interface Exclusion {
