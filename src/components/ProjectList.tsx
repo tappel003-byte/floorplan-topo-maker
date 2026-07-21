@@ -423,6 +423,9 @@ export function ProjectList() {
                   <DropdownMenuItem onClick={() => handleExport(p)}>
                     <Download className="mr-2 h-4 w-4" /> Export
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare(p)}>
+                    <Share className="mr-2 h-4 w-4" /> Share
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleTrash(p)}
                     className="text-destructive focus:text-destructive"
