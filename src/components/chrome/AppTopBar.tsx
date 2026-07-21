@@ -135,6 +135,7 @@ export function AppTopBar({
                   }}
                 />
               )}
+              <FinishingDesktopMenuLink onClick={() => setMenuOpen(false)} />
               <MenuItem
                 label="Export"
                 onClick={() => {
@@ -172,5 +173,24 @@ function MenuItem({
     >
       {label}
     </button>
+  );
+}
+
+function FinishingDesktopMenuLink({ onClick }: { onClick: () => void }) {
+  // Route-aware link — must be inside a route context. Reads projectId from URL.
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const match = pathname.match(/^\/projects\/([^/]+)/);
+  const projectId = match?.[1];
+  if (!projectId) return null;
+  return (
+    <Link
+      to="/projects/$id/finishing"
+      params={{ id: projectId }}
+      onClick={onClick}
+      role="menuitem"
+      className="block w-full text-left px-3 py-1.5 hover:bg-accent text-sm"
+    >
+      Finishing (desktop)
+    </Link>
   );
 }
