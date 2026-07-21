@@ -126,8 +126,23 @@ export async function setOfflineMode(next: "on" | "off"): Promise<void> {
   } catch {
     // ignore
   }
-  await unregisterAppServiceWorkers();
-  await clearAppShellCaches();
+  // Bound each step so a hung SW call (seen on iOS) can't strand the UI.
+  const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T | void> =>
+    new Promise((resolve) => {
+      const t = setTimeout(() => resolve(), ms);
+      p.then(
+        (v) => {
+          clearTimeout(t);
+          resolve(v);
+        },
+        () => {
+          clearTimeout(t);
+          resolve();
+        },
+      );
+    });
+  await withTimeout(unregisterAppServiceWorkers(), 3000);
+  await withTimeout(clearAppShellCaches(), 3000);
   window.location.reload();
 }
 

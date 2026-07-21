@@ -11,6 +11,7 @@ export function OfflineModeToggle() {
   const [on, setOn] = useState(true);
   const [busy, setBusy] = useState(false);
   const [hasSignal, setHasSignal] = useState(false);
+  const [errored, setErrored] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -63,34 +64,80 @@ export function OfflineModeToggle() {
     }
   }
 
+  function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("timeout")), ms);
+      p.then(
+        (v) => {
+          clearTimeout(t);
+          resolve(v);
+        },
+        (e) => {
+          clearTimeout(t);
+          reject(e);
+        },
+      );
+    });
+  }
+
   async function handleClick() {
     if (busy) return;
     setBusy(true);
+    setErrored(false);
 
     if (!(await hasConnectivity())) {
       setBusy(false);
       return;
     }
 
-    // Toggle: if currently on, "off" clears app-shell cache & reloads to
-    // pull the latest build; then user can flip it back on. Project data
-    // in IndexedDB is never touched.
+    // Safety net: if the reload never happens within 6s (e.g. an internal
+    // step hangs), force it ourselves. If even that fails, surface an
+    // error state so the user isn't stuck on "Fetching latest…".
+    const forceReload = setTimeout(() => {
+      try {
+        window.location.reload();
+      } catch {
+        setErrored(true);
+        setBusy(false);
+      }
+    }, 6000);
+
+    const resetOnFailure = setTimeout(() => {
+      setErrored(true);
+      setBusy(false);
+    }, 10000);
+
     const next = on ? "off" : "on";
     setOn(next === "on");
-    await setOfflineMode(next);
-    setBusy(false);
+    try {
+      await withTimeout(setOfflineMode(next), 5000);
+    } catch {
+      // Fall through — the forceReload timeout will kick in, or the
+      // resetOnFailure timeout will surface an error.
+    }
+    clearTimeout(forceReload);
+    clearTimeout(resetOnFailure);
+    // If setOfflineMode returned without triggering a reload, do it now.
+    try {
+      window.location.reload();
+    } catch {
+      setErrored(true);
+      setBusy(false);
+    }
   }
+
+  const label = errored ? "Couldn’t update — tap to retry" : on ? "Update app" : "Fetching latest…";
 
   return (
     <div className="mt-2">
       <button
         type="button"
         onClick={handleClick}
-        disabled={busy}
+        disabled={busy && !errored}
         className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
         title="Clears the cached app shell and reloads from the network. Does not touch project data."
       >
-        {on ? "Update app" : "Fetching latest…"}
+        {label}
       </button>
     </div>
   );
