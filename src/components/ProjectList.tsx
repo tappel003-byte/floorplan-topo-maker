@@ -10,6 +10,7 @@ import {
   MoreVertical,
   RotateCcw,
   ImagePlus,
+  Share,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
