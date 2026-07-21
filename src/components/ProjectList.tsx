@@ -304,7 +304,7 @@ export function ProjectList() {
                     </span>
                   ) : (
                     <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
-                      Backed up {formatAgo(p.lastExportedAt!)}
+                      Exported {formatAgo(p.lastExportedAt!)}
                     </span>
                   )}
                 </div>
