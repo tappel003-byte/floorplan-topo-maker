@@ -8,14 +8,13 @@ import { getOfflineMode, setOfflineMode } from "@/lib/register-sw";
 // cache while the user has no signal.
 export function OfflineModeToggle() {
   const [mounted, setMounted] = useState(false);
-  const [on, setOn] = useState(true);
   const [busy, setBusy] = useState(false);
   const [hasSignal, setHasSignal] = useState(false);
   const [errored, setErrored] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setOn(getOfflineMode() === "on");
+    getOfflineMode();
   }, []);
 
   useEffect(() => {
@@ -107,8 +106,7 @@ export function OfflineModeToggle() {
       setBusy(false);
     }, 10000);
 
-    const next = on ? "off" : "on";
-    setOn(next === "on");
+    const next = "off";
     try {
       await withTimeout(setOfflineMode(next), 5000);
     } catch {
@@ -126,7 +124,7 @@ export function OfflineModeToggle() {
     }
   }
 
-  const label = errored ? "Couldn’t update — tap to retry" : on ? "Update app" : "Fetching latest…";
+  const label = errored ? "Couldn’t update — tap to retry" : busy ? "Fetching latest…" : "Update app";
 
   return (
     <div className="mt-2">
