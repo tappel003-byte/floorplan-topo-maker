@@ -1,63 +1,67 @@
-Multi-user updates, offline, data-safety boundary on the toggle, and a mid-entry safeguard on the auto-reload.
+# Finishing Screen — Build Plan (V2)
 
-## Silent auto-update (the real update path)
+Desktop-first consolidation screen. Reuses existing render pipeline; no new topo math. Target: **80–90 credits total**.
 
-Offline mode stays **On by default**. The service worker pulls in new versions in the background whenever a user opens the app with signal — no banners, no buttons, no instructions to teammates.
+## Layout (locked)
 
-1. Open the home-screen app.
-2. With signal, it quietly checks for a newer version.
-3. If found, it downloads and takes over.
-4. The app reloads to the new version **only when it's safe** (see below).
-5. No signal → nothing happens; cached app runs normally.
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  Header: project · floor · [Back to Field] [Export]         │
+├──────────────┬──────────────────────────────┬───────────────┤
+│  LEFT        │                              │  RIGHT        │
+│  Data panel  │        CANVAS (topo)         │  Contour      │
+│  - points    │                              │  Palette      │
+│  - visibility│                              │  Labels/Text  │
+│  - stats     │                              │  Boundary     │
+│              │                              │  Exclusions   │
+└──────────────┴──────────────────────────────┴───────────────┘
+```
 
-## MID-ENTRY SAFEGUARD — when the reload actually fires
+Groups are collapsible cards. No drag/float in v1 — keep it a molehill.
 
-When a new service worker takes over (`controllerchange`), the reload is **deferred, not immediate**. It fires only when the app is not actively in use:
+## Steps
 
-- If `document.visibilityState === "hidden"` at that moment → reload now (user isn't looking).
-- Otherwise → set a flag and wait. Reload happens on the **next** `visibilitychange → hidden` OR `pageshow` after a background return.
-- Result: nobody ever sees a reload mid-keypress or mid-form. The update lands the next time they background/reopen the app, which on iOS home-screen usage happens constantly.
+**1. Persistence: `finishingSettings` on Floor (~8 cr)**
+- Add optional `finishingSettings?: RenderSettings` to Floor type.
+- Migration: on first Finishing open, seed from current `renderSettings`.
+- Bundle export/import already generic — verify roundtrip, no schema bump.
 
-This is stronger than a "dirty form" check because it doesn't depend on every form correctly tracking unsaved state — it just never reloads while the user is present.
+**2. Route + shell + desktop gate (~12 cr)**
+- New route `/project/$id/floor/$fid/finishing`.
+- Min-width gate (≥1024px): below that, show "Open on desktop" card with a copy-link button. No mobile layout work.
+- Three-column CSS grid shell, header with Back/Export.
 
-## Offline mode toggle (rare safety net)
+**3. Canvas wiring (~10 cr)**
+- Mount existing topo renderer bound to `finishingSettings` (not `renderSettings`).
+- Read-only for points (no add/edit/drag here — Field owns capture).
+- White background, existing zoom/pan.
 
-Landing screen switch, **On by default**. Invisible to 99% of users.
+**4. Right panel — settings groups (~20 cr)**
+- Reuse existing controls from `TopoTab`: contour (interval, smoothing, legend size), palette, labels/text (high/low size, PIN visibility), boundary, exclusions.
+- Group into 5 collapsible cards. All writes go to `finishingSettings`.
+- This is the risk area — kept to reuse-and-regroup, no new controls.
 
-- Off: force-fetch newest code right now.
-- On: normal state.
+**5. Left panel — data + stats (~15 cr)**
+- Sortable point table (reuse Review table columns: PIN, X, Y, elevation).
+- Row ↔ canvas selection (already wired pattern).
+- Embed `TopoDiagnosticPanel` (high/low/delta) at top of left column.
 
-## DATA SAFETY — WHAT "OFF" TOUCHES
+**6. Export + polish (~10 cr)**
+- "Export" button in header: same bundle path, now carries `finishingSettings`.
+- Verify V1 bundles import cleanly (missing `finishingSettings` → seed from `renderSettings`).
+- Empty states, loading, and a "Reset to Field settings" link in the header overflow.
 
-The Off action does exactly these three things, in this order:
-1. `registration.unregister()` on `/sw.js`.
-2. Delete entries from the **Cache Storage API only**, filtered by name to this app's SW caches (`html-navigations`, `app-shell-assets`, `workbox-*` scoped to this registration).
-3. Reload the page.
+**Total: ~75 credits estimated, 80–90 budget with headroom for step 4.**
 
-Will **NOT** touch, under any circumstances:
-- `localStorage` (beyond writing the `offlineMode` flag).
-- `sessionStorage`.
-- **IndexedDB** — all project data lives here (`src/lib/db.ts` via `idb`). Untouched.
-- Cookies.
-- Any other origin storage.
+## Out of scope (explicit)
+- 3D model view (separate future build).
+- Mobile Finishing layout.
+- New topo math, new point editing, new export formats.
+- Floating/draggable panels (revisit after v1).
 
-No `indexedDB.deleteDatabase`. No unfiltered `caches.delete()`. No `navigator.storage.clear()`. If a future edit tries to add any of those, it's a bug — call it out.
+## Assumptions
+- Field screen and its settings remain untouched and authoritative for capture.
+- `RenderSettings` shape is sufficient; no new fields needed for v1.
+- Desktop = ≥1024px viewport; no tablet-landscape special case.
 
-## Technical changes
-
-- `src/sw.ts`:
-  - On install: `self.skipWaiting()`.
-  - On activate: `self.clients.claim()`.
-- `src/lib/register-sw.ts`:
-  - Default `offlineMode` → `"on"`, self-heal to `"on"` after an Off cycle.
-  - Keep `registration.update()` on `pageshow` / `visibilitychange` / `focus`.
-  - **Change `controllerchange` handler**: if `document.visibilityState === "hidden"` reload immediately; else set `pendingReload = true` and attach listeners for `visibilitychange` (fire when hidden) and `pageshow` (fire on return from bfcache). Reload at most once.
-  - Add `setOfflineMode("off")` implementing the three-step boundary above.
-- New `src/components/OfflineModeToggle.tsx`: shadcn Switch + one-line hint.
-- `src/components/ProjectList.tsx`: replace `<CheckForUpdatesButton />` with `<OfflineModeToggle />`.
-- Preview/dev guards and `?sw=off` unchanged.
-- `UpdateBanner`: file kept, unmounted from `__root.tsx`.
-
-## Migration
-
-One-time: open the home-screen app once with signal so the new self-updating worker installs. After that, every publish reaches everyone automatically on their next backgrounded/reopened session.
+Ready for Tim's review.
