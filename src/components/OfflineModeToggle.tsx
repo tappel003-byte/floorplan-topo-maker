@@ -8,7 +8,6 @@ import { getOfflineMode, setOfflineMode } from "@/lib/register-sw";
 // cache while the user has no signal.
 export function OfflineModeToggle() {
   const [mounted, setMounted] = useState(false);
-  const [on, setOn] = useState(true);
   const [busy, setBusy] = useState(false);
   const [hasSignal, setHasSignal] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -16,7 +15,6 @@ export function OfflineModeToggle() {
   useEffect(() => {
     setMounted(true);
     getOfflineMode();
-    setOn(true);
   }, []);
 
   useEffect(() => {
