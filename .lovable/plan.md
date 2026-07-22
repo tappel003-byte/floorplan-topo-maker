@@ -1,63 +1,39 @@
-Multi-user updates, offline, data-safety boundary on the toggle, and a mid-entry safeguard on the auto-reload.
+# Remove Finishing screen from V1
 
-## Silent auto-update (the real update path)
+V1 is Tim's live daily-use app. Finishing is the only entry point to the destructive plan-image swap, and point-dragging already exists in Topo and Data tabs — nothing else is lost.
 
-Offline mode stays **On by default**. The service worker pulls in new versions in the background whenever a user opens the app with signal — no banners, no buttons, no instructions to teammates.
+## 1. What gets removed
 
-1. Open the home-screen app.
-2. With signal, it quietly checks for a newer version.
-3. If found, it downloads and takes over.
-4. The app reloads to the new version **only when it's safe** (see below).
-5. No signal → nothing happens; cached app runs normally.
+**Deleted file**
+- `src/components/AlignPlanMode.tsx` — sole consumer of the Finishing surface.
 
-## MID-ENTRY SAFEGUARD — when the reload actually fires
+**Edited: `src/routes/projects.$id.tsx`**
+- Remove the `AlignPlanMode` import.
+- Remove the `finishingOpen` state and its `useEffect` that reads `#finishing` / `#cleanup` / `#align` hashes.
+- Remove the `onOpenFinishing` prop passed to `AppTopBar`.
+- Remove the `{finishingOpen && <AlignPlanMode … />}` block at the bottom of the JSX.
 
-When a new service worker takes over (`controllerchange`), the reload is **deferred, not immediate**. It fires only when the app is not actively in use:
+**Edited: `src/components/chrome/AppTopBar.tsx`**
+- Remove the `onOpenFinishing?: () => void` prop, its destructure, and the "Finishing" `<MenuItem>`.
+- The ⋯ button and menu itself stay. Review / Setup / Transitions / Export entries stay untouched.
 
-- If `document.visibilityState === "hidden"` at that moment → reload now (user isn't looking).
-- Otherwise → set a flag and wait. Reload happens on the **next** `visibilitychange → hidden` OR `pageshow` after a background return.
-- Result: nobody ever sees a reload mid-keypress or mid-form. The update lands the next time they background/reopen the app, which on iOS home-screen usage happens constantly.
+## 2. What stays untouched
 
-This is stronger than a "dirty form" check because it doesn't depend on every form correctly tracking unsaved state — it just never reloads while the user is present.
+- `Floor.planTransform` field in `src/lib/types.ts`.
+- `PlanCanvas.tsx` reading and applying `planTransform` when it draws the plan image.
+- All persisted `planTransform` values in IndexedDB.
+- Every other menu item, tab, chip, sheet, service worker, export/share/delete flow.
 
-## Offline mode toggle (rare safety net)
+## 3. Data-safety confirmation
 
-Landing screen switch, **On by default**. Invisible to 99% of users.
+`planTransform` is a property on the `Floor` record, persisted in IndexedDB via `saveFloor`, and read directly by `PlanCanvas` on every render (`src/components/PlanCanvas.tsx` lines 48, 73, 199–208, 257). `AlignPlanMode` is only a **writer** — it lets the user edit `planTransform`. Removing it does not touch the reader path, the stored values, or the schema. Any floor previously aligned will continue to render with the exact same tx/ty/scale/rotation it has today. No migration needed, no visual regression, no data loss.
 
-- Off: force-fetch newest code right now.
-- On: normal state.
+Bundle export/import (`src/lib/bundle.ts`) round-trips the full `Floor` object, so `planTransform` also survives export → import unchanged.
 
-## DATA SAFETY — WHAT "OFF" TOUCHES
+## 4. Credit estimate
 
-The Off action does exactly these three things, in this order:
-1. `registration.unregister()` on `/sw.js`.
-2. Delete entries from the **Cache Storage API only**, filtered by name to this app's SW caches (`html-navigations`, `app-shell-assets`, `workbox-*` scoped to this registration).
-3. Reload the page.
+~6–10 credits. Three small edits + one file deletion, no logic changes, no new tests, no schema changes.
 
-Will **NOT** touch, under any circumstances:
-- `localStorage` (beyond writing the `offlineMode` flag).
-- `sessionStorage`.
-- **IndexedDB** — all project data lives here (`src/lib/db.ts` via `idb`). Untouched.
-- Cookies.
-- Any other origin storage.
+## Approval
 
-No `indexedDB.deleteDatabase`. No unfiltered `caches.delete()`. No `navigator.storage.clear()`. If a future edit tries to add any of those, it's a bug — call it out.
-
-## Technical changes
-
-- `src/sw.ts`:
-  - On install: `self.skipWaiting()`.
-  - On activate: `self.clients.claim()`.
-- `src/lib/register-sw.ts`:
-  - Default `offlineMode` → `"on"`, self-heal to `"on"` after an Off cycle.
-  - Keep `registration.update()` on `pageshow` / `visibilitychange` / `focus`.
-  - **Change `controllerchange` handler**: if `document.visibilityState === "hidden"` reload immediately; else set `pendingReload = true` and attach listeners for `visibilitychange` (fire when hidden) and `pageshow` (fire on return from bfcache). Reload at most once.
-  - Add `setOfflineMode("off")` implementing the three-step boundary above.
-- New `src/components/OfflineModeToggle.tsx`: shadcn Switch + one-line hint.
-- `src/components/ProjectList.tsx`: replace `<CheckForUpdatesButton />` with `<OfflineModeToggle />`.
-- Preview/dev guards and `?sw=off` unchanged.
-- `UpdateBanner`: file kept, unmounted from `__root.tsx`.
-
-## Migration
-
-One-time: open the home-screen app once with signal so the new self-updating worker installs. After that, every publish reaches everyone automatically on their next backgrounded/reopened session.
+Waiting on Tim's explicit go-ahead before any code changes, per the V1-stability rule.
