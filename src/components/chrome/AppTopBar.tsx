@@ -9,7 +9,7 @@ type Props = {
   onOpenReview: () => void;
   onOpenExport: () => void;
   onOpenTransitions?: () => void;
-  onOpenFinishing?: () => void;
+  
   undoEnabled?: boolean;
   redoEnabled?: boolean;
 };
@@ -28,7 +28,7 @@ export function AppTopBar({
   onOpenReview,
   onOpenExport,
   onOpenTransitions,
-  onOpenFinishing,
+  
   undoEnabled = true,
   redoEnabled = true,
 }: Props) {
@@ -123,15 +123,6 @@ export function AppTopBar({
                   onClick={() => {
                     setMenuOpen(false);
                     onOpenTransitions();
-                  }}
-                />
-              )}
-              {onOpenFinishing && (
-                <MenuItem
-                  label="Finishing"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onOpenFinishing();
                   }}
                 />
               )}
