@@ -17,7 +17,7 @@ import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues } from "@/lib/transitions";
 import { computeExclusionMap } from "@/lib/exclusions";
-import { AlignPlanMode } from "@/components/AlignPlanMode";
+
 
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
@@ -202,21 +202,6 @@ function ProjectWorkspace() {
     [handleFloorChange],
   );
 
-  // Finishing mode: entered via the ⋯ menu ("Finishing") on any project, or via
-  // the `#finishing` / `#cleanup` / `#align` URL hashes (the latter two kept
-  // for ProjectList's "Replace plan image…" action and existing links).
-  // Finishing is the desk-side surface for manipulating data — move points,
-  // replace/align the plan image, and jump to Transitions/Review.
-  const [finishingOpen, setFinishingOpen] = useState(false);
-  useEffect(() => {
-    if (!project) return;
-    if (typeof window === "undefined") return;
-    const h = window.location.hash;
-    if (h === "#finishing" || h === "#cleanup" || h === "#align") {
-      setFinishingOpen(true);
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    }
-  }, [project]);
 
 
 
@@ -247,7 +232,7 @@ function ProjectWorkspace() {
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
         onOpenTransitions={() => setTransitionsSheetOpen(true)}
-        onOpenFinishing={() => setFinishingOpen(true)}
+        
         undoEnabled={undoActive && history.canUndo}
         redoEnabled={undoActive && history.canRedo}
       />
@@ -416,29 +401,6 @@ function ProjectWorkspace() {
         onClose={() => setTransitionsSheetOpen(false)}
         onFloorChange={handleFloorAveragesChange}
       />
-      {finishingOpen && (
-        <AlignPlanMode
-          title="Finishing"
-          floor={activeFloor}
-          points={points}
-          pointColor={pointColor}
-          pointSize={pointSize}
-          onOpenTransitions={() => {
-            setFinishingOpen(false);
-            setTransitionsSheetOpen(true);
-          }}
-          onOpenReview={() => {
-            setFinishingOpen(false);
-            setMode("review");
-          }}
-          onDone={(nextFloor, updatedPoints) => {
-            setFloors((prev) => prev.map((f) => (f.id === nextFloor.id ? nextFloor : f)));
-            setPoints(updatedPoints);
-            setFinishingOpen(false);
-          }}
-          onCancel={() => setFinishingOpen(false)}
-        />
-      )}
 
     </div>
   );
