@@ -1,39 +1,34 @@
-# Remove Finishing screen from V1
+## Add GPS address auto-fill to V1 Setup (Nominatim)
 
-V1 is Tim's live daily-use app. Finishing is the only entry point to the destructive plan-image swap, and point-dragging already exists in Topo and Data tabs — nothing else is lost.
+Copy the Distress Survey pattern into Floor Survey V1's Setup > Details screen. Free, no API key, no connector.
 
-## 1. What gets removed
+### What gets added
 
-**Deleted file**
-- `src/components/AlignPlanMode.tsx` — sole consumer of the Finishing surface.
+Two small buttons next to the existing address text input:
+- **Auto-fill address** — calls `navigator.geolocation.getCurrentPosition`, then reverse-geocodes via OpenStreetMap Nominatim (`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=...&lon=...`) and writes the resulting street address into the field.
+- **Use GPS coords only** — fills the field with `lat, lon` (plus accuracy) as a fallback when reverse geocoding fails or the user prefers raw coords.
 
-**Edited: `src/routes/projects.$id.tsx`**
-- Remove the `AlignPlanMode` import.
-- Remove the `finishingOpen` state and its `useEffect` that reads `#finishing` / `#cleanup` / `#align` hashes.
-- Remove the `onOpenFinishing` prop passed to `AppTopBar`.
-- Remove the `{finishingOpen && <AlignPlanMode … />}` block at the bottom of the JSX.
+Handles: no GPS support, permission denied, timeout, network/reverse-geocode failure (falls back to coords).
 
-**Edited: `src/components/chrome/AppTopBar.tsx`**
-- Remove the `onOpenFinishing?: () => void` prop, its destructure, and the "Finishing" `<MenuItem>`.
-- The ⋯ button and menu itself stay. Review / Setup / Transitions / Export entries stay untouched.
+### What stays untouched
 
-## 2. What stays untouched
+- Address stays a single plain string on the project — no new lat/lng fields, no schema change, no migration.
+- No new dependencies, no connector, no secrets.
+- Everything else in Setup (name, other fields, flow) unchanged.
 
-- `Floor.planTransform` field in `src/lib/types.ts`.
-- `PlanCanvas.tsx` reading and applying `planTransform` when it draws the plan image.
-- All persisted `planTransform` values in IndexedDB.
-- Every other menu item, tab, chip, sheet, service worker, export/share/delete flow.
+### Files touched
 
-## 3. Data-safety confirmation
+- The Setup > Details component (the one rendering the address input today) — add the two buttons and the geolocation handler.
+- One tiny helper (inline or in `src/lib/`) for the Nominatim fetch + error handling.
 
-`planTransform` is a property on the `Floor` record, persisted in IndexedDB via `saveFloor`, and read directly by `PlanCanvas` on every render (`src/components/PlanCanvas.tsx` lines 48, 73, 199–208, 257). `AlignPlanMode` is only a **writer** — it lets the user edit `planTransform`. Removing it does not touch the reader path, the stored values, or the schema. Any floor previously aligned will continue to render with the exact same tx/ty/scale/rotation it has today. No migration needed, no visual regression, no data loss.
+### Nominatim usage note
 
-Bundle export/import (`src/lib/bundle.ts`) round-trips the full `Floor` object, so `planTransform` also survives export → import unchanged.
+Nominatim's public endpoint requires a descriptive `User-Agent` per their usage policy. Browser `fetch` can't set `User-Agent`, but Nominatim accepts browser requests in practice — Distress Survey already runs this way. Low request volume (one tap per project), so no rate-limit concerns.
 
-## 4. Credit estimate
+### Estimated cost
 
-~6–10 credits. Three small edits + one file deletion, no logic changes, no new tests, no schema changes.
+~6–10 credits.
 
-## Approval
+### Approval
 
-Waiting on Tim's explicit go-ahead before any code changes, per the V1-stability rule.
+V1 is your live app — wait for your explicit "go" before touching code.
