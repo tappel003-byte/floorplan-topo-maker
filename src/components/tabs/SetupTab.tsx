@@ -162,7 +162,11 @@ function DetailsPanel({
           value={local.address}
           onChange={(e) => setLocal({ ...local, address: e.target.value })}
         />
+        <AddressGpsButtons
+          onAddress={(addr) => setLocal((prev) => ({ ...prev, address: addr }))}
+        />
       </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="label-micro">Client</Label>
