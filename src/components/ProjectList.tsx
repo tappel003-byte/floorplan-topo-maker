@@ -48,6 +48,7 @@ import {
 } from "@/lib/db";
 import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
 import { OfflineModeToggle } from "@/components/OfflineModeToggle";
+import { AddressGpsButtons } from "@/components/AddressGpsButtons";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -546,6 +547,7 @@ function NewProjectDialog({
             Address
           </Label>
           <Input id="np-addr" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <AddressGpsButtons onAddress={setAddress} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
