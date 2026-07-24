@@ -1276,7 +1276,7 @@ export function FieldTab({
                   }
                 : undefined)
             : activeTransitionId
-              ? () => setActiveTransitionId(null)
+              ? () => { setActiveTransitionId(null); setHighlightTransitionId(null); }
               : undefined
         }
         onAddTransition={
