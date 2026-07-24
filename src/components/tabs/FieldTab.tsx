@@ -145,6 +145,27 @@ export function FieldTab({
     return out;
   }
 
+  /** Set of `tid` plus all of its descendants (does NOT walk to root). Used
+   *  for highlighting: tapping a branch lights up only that branch downward.
+   *  Tapping the root still lights the full chain because its descendants
+   *  cover the whole tree. */
+  function descendantsOf(tid: string | null | undefined): Set<string> {
+    const out = new Set<string>();
+    if (!tid) return out;
+    out.add(tid);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const t of transitions) {
+        if (t.parentId && out.has(t.parentId) && !out.has(t.id)) {
+          out.add(t.id);
+          added = true;
+        }
+      }
+    }
+    return out;
+  }
+
   /** Ordered chain root → leaf starting from the active transition's root. */
   function chainOrdered(tid: string | null | undefined): Transition[] {
     if (!tid) return [];
@@ -960,12 +981,12 @@ export function FieldTab({
         drawOverlay={(ctx) => {
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
 
-          // Highlighted ids = full chain of the viewed transition, plus the
-          // active chain when its popover is open (so tapping the pill lights
-          // up every point tied to any link in the chain).
+          // Highlight = the tapped/active transition and everything downstream
+          // of it. Tapping a branch lights only that branch (not siblings);
+          // tapping the root still lights the whole chain.
           const highlightIds = new Set<string>();
-          if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
-          if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
+          if (viewingTransitionId) for (const id of descendantsOf(viewingTransitionId)) highlightIds.add(id);
+          if (chainPopoverOpen && activeTransitionId) for (const id of descendantsOf(activeTransitionId)) highlightIds.add(id);
           // Explicit per-point highlight set — includes every anchor point tied
           // to any transition in the active/viewed chain (root anchor included),
           // so the tile-side baseline reading lights up with the rest.
