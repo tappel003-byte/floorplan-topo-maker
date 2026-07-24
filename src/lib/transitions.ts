@@ -15,6 +15,12 @@ export const SURFACE_BASE: Record<string, "slab" | "subfloor" | null> = {
   "Carpet/slab": "slab",
   "Subfloor": "subfloor",
   "Carpet/subfloor": "subfloor",
+  "Hardwood": "subfloor",
+  "Engineered wood": "subfloor",
+  "Laminate": "subfloor",
+  "LVP": "subfloor",
+  "Vinyl sheet": "subfloor",
+  "Linoleum": "subfloor",
 };
 
 /** Sentinel label for user-defined surfaces. Not stored as-is — replaced with typed text. */
@@ -23,9 +29,15 @@ export const OTHER_SENTINEL = "Other";
 /** Ordered list for dropdowns. "Other" trailing option triggers a custom text input. */
 export const COMMON_SURFACES = [
   "Tile",
+  "Hardwood",
+  "Engineered wood",
+  "Laminate",
+  "LVP",
+  "Vinyl sheet",
+  "Linoleum",
   "Concrete/slab",
-  "Subfloor",
   "Carpet/slab",
+  "Subfloor",
   "Carpet/subfloor",
   OTHER_SENTINEL,
 ] as const;
