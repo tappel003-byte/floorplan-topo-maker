@@ -106,6 +106,11 @@ export function FieldTab({
 
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
+  // Which transition anchor the user last tapped — drives the yellow halo
+  // for that anchor + everything downstream. Kept separate from
+  // activeTransitionId so tapping mid-chain highlights only from that point
+  // down without disturbing the root-based chain-arm behavior.
+  const [highlightTransitionId, setHighlightTransitionId] = useState<string | null>(null);
   const [addingTransition, setAddingTransition] = useState(false);
   const [chainPopoverOpen, setChainPopoverOpen] = useState(false);
 
