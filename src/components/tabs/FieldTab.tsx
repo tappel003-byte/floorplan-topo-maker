@@ -378,6 +378,7 @@ export function FieldTab({
     setAddingTransition(false);
     // Subsequent points on side B will be tagged with this transition.
     setActiveTransitionId(t.id);
+    setHighlightTransitionId(t.id);
   }
 
   /** Save edits from TransitionDetailDialog. Anchor's stored value follows readingA. */
