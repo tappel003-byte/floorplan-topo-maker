@@ -89,7 +89,7 @@ export function TransitionsSheet({ open, floor, points, onClose, onFloorChange }
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {g.surfaceA} → {g.surfaceB}
+                    {g.labelA} → {g.labelB}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
                     {g.transitions.length} doorway
