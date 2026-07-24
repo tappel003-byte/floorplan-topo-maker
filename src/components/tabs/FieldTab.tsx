@@ -1268,13 +1268,25 @@ export function FieldTab({
         open={addingTransition && !!pending}
         onClose={() => setAddingTransition(false)}
         onSave={handleAddTransition}
-        parentDelta={
-          activeTransition
-            ? activeTransition.readingA - activeTransition.readingB
-            : undefined
-        }
-        parentSurface={activeTransition ? activeTransition.surfaceB : undefined}
+        ancestors={(() => {
+          if (isBasePointCapture || !activeTransition) return undefined;
+          const byId = new Map(transitions.map((t) => [t.id, t]));
+          const chain: { id: string; surface: string; delta: number }[] = [];
+          const seen = new Set<string>();
+          let cur: typeof activeTransition | undefined = activeTransition;
+          while (cur && !seen.has(cur.id)) {
+            seen.add(cur.id);
+            chain.push({
+              id: cur.id,
+              surface: cur.surfaceB,
+              delta: cur.readingA - cur.readingB,
+            });
+            cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+          }
+          return chain;
+        })()}
       />
+
 
 
       {/* Anchor diamond → detail dialog. */}
