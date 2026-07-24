@@ -204,6 +204,7 @@ export function FieldTab({
     setEditingNoteId(null);
     setNoteMode(false);
     setActiveTransitionId(null);
+    setHighlightTransitionId(null);
     setViewingTransitionId(null);
 
   }, [floor.id]);
