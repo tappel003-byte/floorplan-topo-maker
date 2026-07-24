@@ -106,6 +106,11 @@ export function FieldTab({
 
   // Transitions state
   const [activeTransitionId, setActiveTransitionId] = useState<string | null>(null);
+  // Which transition anchor the user last tapped — drives the yellow halo
+  // for that anchor + everything downstream. Kept separate from
+  // activeTransitionId so tapping mid-chain highlights only from that point
+  // down without disturbing the root-based chain-arm behavior.
+  const [highlightTransitionId, setHighlightTransitionId] = useState<string | null>(null);
   const [addingTransition, setAddingTransition] = useState(false);
   const [chainPopoverOpen, setChainPopoverOpen] = useState(false);
 
@@ -199,6 +204,7 @@ export function FieldTab({
     setEditingNoteId(null);
     setNoteMode(false);
     setActiveTransitionId(null);
+    setHighlightTransitionId(null);
     setViewingTransitionId(null);
 
   }, [floor.id]);
@@ -372,6 +378,7 @@ export function FieldTab({
     setAddingTransition(false);
     // Subsequent points on side B will be tagged with this transition.
     setActiveTransitionId(t.id);
+    setHighlightTransitionId(t.id);
   }
 
   /** Save edits from TransitionDetailDialog. Anchor's stored value follows readingA. */
@@ -408,6 +415,7 @@ export function FieldTab({
     onPointsChange(reindexed);
     commitSnap(reindexed);
     if (activeTransitionId === id) setActiveTransitionId(null);
+    if (highlightTransitionId === id) setHighlightTransitionId(null);
     setViewingTransitionId(null);
   }
 
@@ -580,6 +588,7 @@ export function FieldTab({
             <button
               onClick={() => {
                 setActiveTransitionId(null);
+                setHighlightTransitionId(null);
                 setChainPopoverOpen(false);
               }}
               className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
@@ -607,6 +616,7 @@ export function FieldTab({
                     <button
                       onClick={() => {
                         setViewingTransitionId(t.id);
+                        setHighlightTransitionId(t.id);
                         setChainPopoverOpen(false);
                       }}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-amber-50"
@@ -948,6 +958,9 @@ export function FieldTab({
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
                 setActiveTransitionId(rootTransitionId(point.transitionId));
+                // Halo highlights from THIS tapped anchor downward, not the
+                // whole chain — tap mid-chain to isolate that branch.
+                setHighlightTransitionId(point.transitionId);
                 return;
               }
             }
@@ -986,7 +999,7 @@ export function FieldTab({
           // tapping the root still lights the whole chain.
           const highlightIds = new Set<string>();
           if (viewingTransitionId) for (const id of descendantsOf(viewingTransitionId)) highlightIds.add(id);
-          if (chainPopoverOpen && activeTransitionId) for (const id of descendantsOf(activeTransitionId)) highlightIds.add(id);
+          if (highlightTransitionId) for (const id of descendantsOf(highlightTransitionId)) highlightIds.add(id);
           // Explicit per-point highlight set — includes every anchor point tied
           // to any transition in the active/viewed chain (root anchor included),
           // so the tile-side baseline reading lights up with the rest.
@@ -1232,6 +1245,7 @@ export function FieldTab({
                     await savePoint({ ...d, transitionId: undefined });
                   }
                   if (activeTransitionId === tid) setActiveTransitionId(null);
+                  if (highlightTransitionId === tid) setHighlightTransitionId(null);
                 }
                 await deletePoint(p.id);
                 const reindexed = await reindexFloorPoints(floor.id);
@@ -1262,7 +1276,7 @@ export function FieldTab({
                   }
                 : undefined)
             : activeTransitionId
-              ? () => setActiveTransitionId(null)
+              ? () => { setActiveTransitionId(null); setHighlightTransitionId(null); }
               : undefined
         }
         onAddTransition={
@@ -1276,6 +1290,7 @@ export function FieldTab({
           !editingPoint && activeTransitionId
             ? () => {
                 setActiveTransitionId(null);
+                setHighlightTransitionId(null);
                 setPending(null);
               }
             : undefined
