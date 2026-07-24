@@ -145,6 +145,27 @@ export function FieldTab({
     return out;
   }
 
+  /** Set of `tid` plus all of its descendants (does NOT walk to root). Used
+   *  for highlighting: tapping a branch lights up only that branch downward.
+   *  Tapping the root still lights the full chain because its descendants
+   *  cover the whole tree. */
+  function descendantsOf(tid: string | null | undefined): Set<string> {
+    const out = new Set<string>();
+    if (!tid) return out;
+    out.add(tid);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const t of transitions) {
+        if (t.parentId && out.has(t.parentId) && !out.has(t.id)) {
+          out.add(t.id);
+          added = true;
+        }
+      }
+    }
+    return out;
+  }
+
   /** Ordered chain root → leaf starting from the active transition's root. */
   function chainOrdered(tid: string | null | undefined): Transition[] {
     if (!tid) return [];
