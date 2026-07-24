@@ -997,7 +997,7 @@ export function FieldTab({
           // tapping the root still lights the whole chain.
           const highlightIds = new Set<string>();
           if (viewingTransitionId) for (const id of descendantsOf(viewingTransitionId)) highlightIds.add(id);
-          if (chainPopoverOpen && activeTransitionId) for (const id of descendantsOf(activeTransitionId)) highlightIds.add(id);
+          if (highlightTransitionId) for (const id of descendantsOf(highlightTransitionId)) highlightIds.add(id);
           // Explicit per-point highlight set — includes every anchor point tied
           // to any transition in the active/viewed chain (root anchor included),
           // so the tile-side baseline reading lights up with the rest.
