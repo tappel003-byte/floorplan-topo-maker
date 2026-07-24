@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Flag } from "lucide-react";
 import type { Floor } from "@/lib/types";
-import { formatDelta, transitionGroupKey } from "@/lib/transitions";
+import { categoryLabel, formatDelta, surfaceCategory, transitionGroupKey } from "@/lib/transitions";
 
 interface Props {
   floor: Floor;
