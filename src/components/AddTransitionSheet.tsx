@@ -42,9 +42,15 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
   const chained = !!ancestors && ancestors.length > 0;
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [surfaceA, setSurfaceA] = useState<string>("Tile");
-  const [surfaceB, setSurfaceB] = useState<string>("Carpet");
+  const [surfaceB, setSurfaceB] = useState<string>("Carpet/slab");
   const [readingA, setReadingA] = useState<string>("");
   const [readingB, setReadingB] = useState<string>("");
+  // Custom-text buffers for the "Other" option. When non-empty, the actual
+  // stored surface string is the typed label.
+  const [otherA, setOtherA] = useState<string>("");
+  const [otherB, setOtherB] = useState<string>("");
+  const [isOtherA, setIsOtherA] = useState<boolean>(false);
+  const [isOtherB, setIsOtherB] = useState<boolean>(false);
 
   // Dedupe ancestors by surface so the picker isn't cluttered when two
   // ancestors happen to share a surface — we key by id but display by surface.
