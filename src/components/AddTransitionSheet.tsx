@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Link2 } from "lucide-react";
-import { COMMON_SURFACES, formatDelta } from "@/lib/transitions";
+import { COMMON_SURFACES, OTHER_SENTINEL, formatDelta } from "@/lib/transitions";
 
 /** One ancestor in the active chain, ordered nearest parent → root. */
 export interface AncestorOption {
