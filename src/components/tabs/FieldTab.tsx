@@ -307,11 +307,13 @@ export function FieldTab({
     readingA: number;
     readingB: number;
     readingARawOnParent?: number;
+    parentId?: string;
   }) {
     if (!pending) return;
     const isBP = isBasePointCapture;
-    // Chain to the active transition (if any) for traceability.
-    const parentId = !isBP && activeTransitionId ? activeTransitionId : undefined;
+    // Prefer the ancestor the user picked in the sheet; fall back to the active
+    // transition for legacy paths. Base-point captures never chain.
+    const parentId = isBP ? undefined : data.parentId ?? activeTransitionId ?? undefined;
     const t: Transition = {
       id: uid(),
       x: pending.x,
@@ -324,6 +326,7 @@ export function FieldTab({
       parentId,
       readingARawOnParent: data.readingARawOnParent,
     };
+
     // Anchor point uses readingA (base-frame value).
     const anchor: SurveyPoint = {
       id: uid(),
