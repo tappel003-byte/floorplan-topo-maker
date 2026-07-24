@@ -94,26 +94,58 @@ function ProjectWorkspace() {
       }
       setProject(p);
       const fs = await listFloors(id);
-      // Legacy migration: transitionDelta() precedence changed so a doorway
-      // uses its own measured delta unless it explicitly opts into the group
-      // average via `useGroupAverage`. Projects saved before this change had
-      // group averages applied globally — preserve their prior behavior by
-      // stamping the flag on every transition whose surface pair has an
-      // applied average in the stored floor.
+      // Legacy migrations:
+      //  1. Surface labels: bare "Carpet"/"Concrete" → compound
+      //     "Carpet/slab"/"Concrete/slab". Safe default; users can change any
+      //     point manually. transitionGroupAverages keys are re-derived under
+      //     the new base-grouped `transitionGroupKey`.
+      //  2. transitionDelta() precedence changed so a doorway uses its own
+      //     measured delta unless it explicitly opts into the group average
+      //     via `useGroupAverage`. Projects saved before that change had
+      //     group averages applied globally — preserve their prior behavior
+      //     by stamping the flag on every transition whose surface pair has
+      //     an applied average in the stored floor.
       const migrated = fs.map((f) => {
-        const avgs = f.transitionGroupAverages;
-        if (!avgs || !f.transitions?.length) return f;
+        if (!f.transitions?.length) return f;
         let changed = false;
-        const nextT = f.transitions.map((t) => {
-          const hasAvg = avgs[`${t.surfaceA}→${t.surfaceB}`] !== undefined;
-          if (hasAvg && t.useGroupAverage === undefined) {
+        let nextT = f.transitions.map((t) => {
+          const a2 = migrateSurfaceName(t.surfaceA);
+          const b2 = migrateSurfaceName(t.surfaceB);
+          if (a2 !== t.surfaceA || b2 !== t.surfaceB) {
             changed = true;
-            return { ...t, useGroupAverage: true };
+            return { ...t, surfaceA: a2, surfaceB: b2 };
           }
           return t;
         });
+        let nextAvgs = f.transitionGroupAverages;
+        if (nextAvgs && Object.keys(nextAvgs).length) {
+          const rekeyed: Record<string, number> = {};
+          for (const t of nextT) {
+            const legacyPairKey = `${t.surfaceA}→${t.surfaceB}`;
+            const v =
+              nextAvgs[transitionGroupKey(t)] ?? nextAvgs[legacyPairKey];
+            if (v !== undefined) rekeyed[transitionGroupKey(t)] = v;
+          }
+          const oldKeys = Object.keys(nextAvgs).sort().join("|");
+          const newKeys = Object.keys(rekeyed).sort().join("|");
+          if (oldKeys !== newKeys) {
+            changed = true;
+            nextAvgs = Object.keys(rekeyed).length ? rekeyed : undefined;
+          }
+        }
+        if (nextAvgs) {
+          const avgs = nextAvgs;
+          nextT = nextT.map((t) => {
+            const hasAvg = avgs[transitionGroupKey(t)] !== undefined;
+            if (hasAvg && t.useGroupAverage === undefined) {
+              changed = true;
+              return { ...t, useGroupAverage: true };
+            }
+            return t;
+          });
+        }
         if (!changed) return f;
-        const nf = { ...f, transitions: nextT };
+        const nf = { ...f, transitions: nextT, transitionGroupAverages: nextAvgs };
         void saveFloor(nf);
         return nf;
       });
