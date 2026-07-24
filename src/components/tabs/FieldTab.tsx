@@ -1290,6 +1290,7 @@ export function FieldTab({
           !editingPoint && activeTransitionId
             ? () => {
                 setActiveTransitionId(null);
+                setHighlightTransitionId(null);
                 setPending(null);
               }
             : undefined
