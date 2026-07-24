@@ -128,8 +128,8 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
         {chained && selectedAncestor && (
           <div className="mb-3 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs flex items-start gap-2">
             <Link2 className="h-3.5 w-3.5 mt-0.5 text-amber-600" />
-            <div>
-              <div className="font-medium text-amber-900 dark:text-amber-200">
+            <div className="min-w-0">
+              <div className="truncate font-medium text-amber-900 dark:text-amber-200">
                 Chained from {selectedAncestor.surface} ({formatDelta(parentDelta)}")
               </div>
               <div className="text-amber-800/80 dark:text-amber-200/70">
@@ -140,8 +140,8 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+          <label className="flex min-w-0 flex-col gap-1">
             <span className="text-xs text-muted-foreground">
               {chained ? "Branch from (chain)" : "From surface (reference)"}
             </span>
@@ -186,13 +186,13 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                     onChange={(e) => setOtherA(e.target.value)}
                     maxLength={20}
                     placeholder="(20 characters max)"
-                    className="mt-1 h-9 rounded-md border px-2 bg-background text-sm"
+                    className="mt-1 h-9 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
                   />
                 )}
               </>
             )}
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex min-w-0 flex-col gap-1">
             <span className="text-xs text-muted-foreground">To surface (other side)</span>
             <select
               value={isOtherB ? OTHER_SENTINEL : surfaceB}
@@ -218,16 +218,16 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                 type="text"
                 value={otherB}
                 onChange={(e) => setOtherB(e.target.value)}
-                    maxLength={20}
-                    placeholder="(20 characters max)"
-                className="mt-1 h-9 rounded-md border px-2 bg-background text-sm"
+                maxLength={20}
+                placeholder="(20 characters max)"
+                className="mt-1 h-9 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
               />
             )}
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">
-              {effectiveA || "From"} reading" {chained ? "(raw)" : ""}
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="truncate text-xs text-muted-foreground">
+              From reading" {chained ? "(raw)" : ""}
             </span>
             <input
               type="number"
@@ -245,8 +245,8 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
               </span>
             )}
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{effectiveB || "To"} reading" (raw)</span>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="truncate text-xs text-muted-foreground">To reading" (raw)</span>
             <input
               type="number"
               inputMode="decimal"
@@ -261,15 +261,15 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
 
         <div className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
           <span className="text-muted-foreground">
-            {effectiveB || "Surface"} correction
+            Correction
           </span>
           <span className="font-mono tabular-nums font-semibold">
             {valid ? `${formatDelta(delta)}"` : "—"}
           </span>
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Plots a diamond anchor. Subsequent {effectiveB || "surface"} readings display as{" "}
-          <span className="font-mono">raw {formatDelta(delta || 0.4)}</span> ({effectiveB || "surface"} correction).
+          Plots a diamond anchor. Subsequent readings display as{" "}
+          <span className="font-mono">raw {formatDelta(delta || 0.4)}</span>.
         </p>
 
 
