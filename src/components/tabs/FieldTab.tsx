@@ -1245,6 +1245,7 @@ export function FieldTab({
                     await savePoint({ ...d, transitionId: undefined });
                   }
                   if (activeTransitionId === tid) setActiveTransitionId(null);
+                  if (highlightTransitionId === tid) setHighlightTransitionId(null);
                 }
                 await deletePoint(p.id);
                 const reindexed = await reindexFloorPoints(floor.id);
