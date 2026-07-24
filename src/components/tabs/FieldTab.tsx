@@ -587,6 +587,7 @@ export function FieldTab({
             <button
               onClick={() => {
                 setActiveTransitionId(null);
+                setHighlightTransitionId(null);
                 setChainPopoverOpen(false);
               }}
               className="w-6 h-6 rounded-full hover:bg-amber-200 flex items-center justify-center"
