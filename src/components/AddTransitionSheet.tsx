@@ -161,7 +161,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
             ) : (
               <>
                 <select
-                  value={surfaceA}
+                  value={isOtherA ? OTHER_SENTINEL : surfaceA}
                   onChange={(e) => {
                     const v = e.target.value;
                     if (v === OTHER_SENTINEL) {
