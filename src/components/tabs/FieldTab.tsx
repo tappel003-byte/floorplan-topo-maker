@@ -414,6 +414,7 @@ export function FieldTab({
     onPointsChange(reindexed);
     commitSnap(reindexed);
     if (activeTransitionId === id) setActiveTransitionId(null);
+    if (highlightTransitionId === id) setHighlightTransitionId(null);
     setViewingTransitionId(null);
   }
 
