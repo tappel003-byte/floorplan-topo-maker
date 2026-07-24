@@ -149,7 +149,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
               <select
                 value={selectedParentId}
                 onChange={(e) => onPickParent(e.target.value)}
-                className="h-10 rounded-md border px-2 bg-background text-sm"
+                className="h-10 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
               >
                 {ancestorOptions.map((a, i) => (
                   <option key={a.id} value={a.id}>
@@ -171,7 +171,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                       setSurfaceA(v);
                     }
                   }}
-                  className="h-10 rounded-md border px-2 bg-background text-sm"
+                  className="h-10 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
                 >
                   {COMMON_SURFACES.map((s) => (
                     <option key={s} value={s}>
@@ -179,16 +179,6 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                     </option>
                   ))}
                 </select>
-                {isOtherA && (
-                  <input
-                    type="text"
-                    value={otherA}
-                    onChange={(e) => setOtherA(e.target.value)}
-                    maxLength={20}
-                    placeholder="(20 characters max)"
-                    className="mt-1 h-9 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
-                  />
-                )}
               </>
             )}
           </label>
@@ -205,7 +195,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                   setSurfaceB(v);
                 }
               }}
-              className="h-10 rounded-md border px-2 bg-background text-sm"
+              className="h-10 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
             >
               {COMMON_SURFACES.map((s) => (
                 <option key={s} value={s}>
@@ -213,17 +203,35 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                 </option>
               ))}
             </select>
-            {isOtherB && (
+          </label>
+
+          {!chained && isOtherA && (
+            <label className="col-span-2 flex min-w-0 flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Other from surface</span>
+              <input
+                type="text"
+                value={otherA}
+                onChange={(e) => setOtherA(e.target.value)}
+                maxLength={20}
+                placeholder="(20 characters max)"
+                className="h-9 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
+              />
+            </label>
+          )}
+
+          {isOtherB && (
+            <label className="col-span-2 flex min-w-0 flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Other to surface</span>
               <input
                 type="text"
                 value={otherB}
                 onChange={(e) => setOtherB(e.target.value)}
                 maxLength={20}
                 placeholder="(20 characters max)"
-                className="mt-1 h-9 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
+                className="h-9 w-full min-w-0 rounded-md border px-2 bg-background text-sm"
               />
-            )}
-          </label>
+            </label>
+          )}
 
           <label className="flex min-w-0 flex-col gap-1">
             <span className="truncate text-xs text-muted-foreground">
@@ -236,7 +244,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
               value={readingA}
               onChange={(e) => setReadingA(e.target.value)}
               placeholder="0.0"
-              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
+              className="h-12 w-full min-w-0 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
               autoFocus
             />
             {chained && valid && (
@@ -254,7 +262,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
               value={readingB}
               onChange={(e) => setReadingB(e.target.value)}
               placeholder="0.0"
-              className="h-12 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
+              className="h-12 w-full min-w-0 rounded-md border px-3 text-lg font-mono tabular-nums text-right bg-background placeholder:text-muted-foreground/25"
             />
           </label>
         </div>
