@@ -956,6 +956,9 @@ export function FieldTab({
               const stillExists = transitions.some((t) => t.id === point.transitionId);
               if (stillExists) {
                 setActiveTransitionId(rootTransitionId(point.transitionId));
+                // Halo highlights from THIS tapped anchor downward, not the
+                // whole chain — tap mid-chain to isolate that branch.
+                setHighlightTransitionId(point.transitionId);
                 return;
               }
             }
