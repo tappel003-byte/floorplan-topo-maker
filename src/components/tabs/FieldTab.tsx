@@ -981,12 +981,12 @@ export function FieldTab({
         drawOverlay={(ctx) => {
           const TRANSITION_COLOR = "#eab308"; // fixed yellow — not user-configurable
 
-          // Highlighted ids = full chain of the viewed transition, plus the
-          // active chain when its popover is open (so tapping the pill lights
-          // up every point tied to any link in the chain).
+          // Highlight = the tapped/active transition and everything downstream
+          // of it. Tapping a branch lights only that branch (not siblings);
+          // tapping the root still lights the whole chain.
           const highlightIds = new Set<string>();
-          if (viewingTransitionId) for (const id of chainOf(viewingTransitionId)) highlightIds.add(id);
-          if (chainPopoverOpen && activeTransitionId) for (const id of chainOf(activeTransitionId)) highlightIds.add(id);
+          if (viewingTransitionId) for (const id of descendantsOf(viewingTransitionId)) highlightIds.add(id);
+          if (chainPopoverOpen && activeTransitionId) for (const id of descendantsOf(activeTransitionId)) highlightIds.add(id);
           // Explicit per-point highlight set — includes every anchor point tied
           // to any transition in the active/viewed chain (root anchor included),
           // so the tile-side baseline reading lights up with the rest.
