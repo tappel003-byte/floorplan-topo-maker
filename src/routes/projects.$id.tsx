@@ -15,7 +15,7 @@ import { StatsChip } from "@/components/chrome/StatsChip";
 import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrectionsChip";
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
-import { withCorrectedValues } from "@/lib/transitions";
+import { withCorrectedValues, migrateSurfaceName, transitionGroupKey } from "@/lib/transitions";
 import { computeExclusionMap } from "@/lib/exclusions";
 
 
