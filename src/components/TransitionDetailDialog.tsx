@@ -135,7 +135,6 @@ export function TransitionDetailDialog({
           </div>
         </div>
 
-        {(() => null)()}
         {/* Derive "custom / Other" state from whether the current surface
             string is in the built-in list. Anything else is a user-typed
             label — show the text input for direct editing. */}
