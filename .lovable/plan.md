@@ -1,34 +1,31 @@
-## Add GPS address auto-fill to V1 Setup (Nominatim)
 
-Copy the Distress Survey pattern into Floor Survey V1's Setup > Details screen. Free, no API key, no connector.
+# Chained transitions: pick any ancestor as the "From" surface
 
-### What gets added
+## The problem
 
-Two small buttons next to the existing address text input:
-- **Auto-fill address** — calls `navigator.geolocation.getCurrentPosition`, then reverse-geocodes via OpenStreetMap Nominatim (`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=...&lon=...`) and writes the resulting street address into the field.
-- **Use GPS coords only** — fills the field with `lat, lon` (plus accuracy) as a fallback when reverse geocoding fails or the user prefers raw coords.
+In `AddTransitionSheet`, when you add a transition while another is active, the **From surface** dropdown is disabled and locked to the *most recently active* transition's surface. If you walked Tile → Hallway → Bedroom1, then came back and want to go Hallway → Bedroom2, you can't say "from Hallway" — the app forces you to chain off Bedroom1 (or you re-measure the hallway from scratch, which is what you've been doing).
 
-Handles: no GPS support, permission denied, timeout, network/reverse-geocode failure (falls back to coords).
+## The fix
 
-### What stays untouched
+Unlock that dropdown, but constrain it to the **surfaces of transitions in the current active chain only** — parent, grandparent, up to the chain root. Not every transition on the floor, not the full surface list.
 
-- Address stays a single plain string on the project — no new lat/lng fields, no schema change, no migration.
-- No new dependencies, no connector, no secrets.
-- Everything else in Setup (name, other fields, flow) unchanged.
+So if the active chain is `Tile → Hallway → Bedroom1`, the From picker shows:
+- Hallway (parent)
+- Tile (root)
 
-### Files touched
+Pick one, and the new transition chains off *that* anchor. The reading-A input stays "raw on the selected surface," and the app converts it to base-frame using that ancestor's delta (same math as today, just resolved against the chosen ancestor instead of the immediate parent).
 
-- The Setup > Details component (the one rendering the address input today) — add the two buttons and the geolocation handler.
-- One tiny helper (inline or in `src/lib/`) for the Nominatim fetch + error handling.
+Both readings are still entered at the doorway — matches current behavior, keeps the manometer honest.
 
-### Nominatim usage note
+## Out of scope
 
-Nominatim's public endpoint requires a descriptive `User-Agent` per their usage policy. Browser `fetch` can't set `User-Agent`, but Nominatim accepts browser requests in practice — Distress Survey already runs this way. Low request volume (one tap per project), so no rate-limit concerns.
+- Custom label for "Other" surface (Sunroom linoleum, etc.) — separate issue, worth its own plan.
+- Picking anchors outside the active chain — you said "in that chain only."
+- Reusing a stored reading instead of re-measuring — not doing it; you enter both readings fresh at each doorway.
 
-### Estimated cost
+## Technical notes
 
-~6–10 credits.
-
-### Approval
-
-V1 is your live app — wait for your explicit "go" before touching code.
+- `AddTransitionSheet.tsx` currently takes a single `parentDelta` + `parentSurface`. Change to accept the full ancestor chain (id, surface, cumulative delta to base) and render them as options in the From select.
+- When the user picks an ancestor, use *that* ancestor's cumulative delta as `parentDelta` for the conversion, and set the new transition's `parentId` to that ancestor's id.
+- Caller (`FieldTab`) walks `parentId` links from the active transition up to the root to build the ancestor list.
+- No data-model change. `Transition.parentId` already supports arbitrary chain re-parenting.
