@@ -30,10 +30,9 @@ export function TransitionsSheet({ open, floor, points, onClose, onFloorChange }
     if (value === null) delete next[g.key];
     else next[g.key] = value;
     const useFlag = value !== null;
+    const groupTxIds = new Set(g.transitions.map((t) => t.id));
     const nextTransitions = (floor.transitions ?? []).map((t) =>
-      t.surfaceA === g.surfaceA && t.surfaceB === g.surfaceB
-        ? { ...t, useGroupAverage: useFlag }
-        : t,
+      groupTxIds.has(t.id) ? { ...t, useGroupAverage: useFlag } : t,
     );
     const nextFloor: Floor = {
       ...floor,
