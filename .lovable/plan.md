@@ -1,31 +1,33 @@
+## Transition surface labels + base-grouped averaging
 
-# Chained transitions: pick any ancestor as the "From" surface
+### Surface list (compound where base matters)
+- Tile
+- Concrete/slab
+- Subfloor
+- Carpet/slab
+- Carpet/subfloor
+- Other (user-defined text — already planned separately)
 
-## The problem
+Every surface has an implicit **base**: `slab` or `subfloor` (Tile has no base tag — it stays neutral unless you tell me otherwise).
 
-In `AddTransitionSheet`, when you add a transition while another is active, the **From surface** dropdown is disabled and locked to the *most recently active* transition's surface. If you walked Tile → Hallway → Bedroom1, then came back and want to go Hallway → Bedroom2, you can't say "from Hallway" — the app forces you to chain off Bedroom1 (or you re-measure the hallway from scratch, which is what you've been doing).
+### Averaging groups by base
+When the app computes averages across transitions, it groups by structural base, not by finish:
 
-## The fix
+- **Slab group:** `Concrete/slab`, `Carpet/slab`
+- **Subfloor group:** `Subfloor`, `Carpet/subfloor`
+- **Tile:** its own group (no base tag)
+- **Other:** its own group per custom label
 
-Unlock that dropdown, but constrain it to the **surfaces of transitions in the current active chain only** — parent, grandparent, up to the chain root. Not every transition on the floor, not the full surface list.
+So a `Tile → Carpet/slab` delta and a `Tile → Concrete/slab` delta get averaged together, because both are "tile to slab."
 
-So if the active chain is `Tile → Hallway → Bedroom1`, the From picker shows:
-- Hallway (parent)
-- Tile (root)
+### What changes in code
+- `src/lib/surfaces.ts` (or wherever the surface list lives): replace `Carpet` / `Concrete` with the compound names above, add `base: 'slab' | 'subfloor' | null` metadata per surface.
+- `AddTransitionSheet.tsx`: dropdown reflects the new list.
+- Averaging logic in the transitions module: group deltas by `(fromBase, toBase)` instead of `(fromSurface, toSurface)`.
+- Existing saved projects: old `"Carpet"` / `"Concrete"` strings stay readable; a tiny migration maps `Carpet → Carpet/slab` and `Concrete → Concrete/slab` on load (safe default — you can change any point manually).
 
-Pick one, and the new transition chains off *that* anchor. The reading-A input stays "raw on the selected surface," and the app converts it to base-frame using that ancestor's delta (same math as today, just resolved against the chosen ancestor instead of the immediate parent).
+### Not included
+- The "Other = user-defined text" work is a separate already-agreed item; I'll fold it into the same build pass but list it here so nothing gets lost.
+- No changes to point capture, chaining, or the hub-branch picker.
 
-Both readings are still entered at the doorway — matches current behavior, keeps the manometer honest.
-
-## Out of scope
-
-- Custom label for "Other" surface (Sunroom linoleum, etc.) — separate issue, worth its own plan.
-- Picking anchors outside the active chain — you said "in that chain only."
-- Reusing a stored reading instead of re-measuring — not doing it; you enter both readings fresh at each doorway.
-
-## Technical notes
-
-- `AddTransitionSheet.tsx` currently takes a single `parentDelta` + `parentSurface`. Change to accept the full ancestor chain (id, surface, cumulative delta to base) and render them as options in the From select.
-- When the user picks an ancestor, use *that* ancestor's cumulative delta as `parentDelta` for the conversion, and set the new transition's `parentId` to that ancestor's id.
-- Caller (`FieldTab`) walks `parentId` links from the active transition up to the root to build the ancestor list.
-- No data-model change. `Transition.parentId` already supports arbitrary chain re-parenting.
+Confirm and I'll build it.
