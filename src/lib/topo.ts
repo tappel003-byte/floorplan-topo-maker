@@ -143,12 +143,17 @@ export function buildGrid(
   targetCols = TOPO_GRID_TARGET_COLS,
   exclusions?: Array<Array<{ x: number; y: number }>>,
 ): Grid | null {
-  // Drop readings that fall inside any exclusion — they must not influence
-  // the interpolated surface.
+  // Drop readings that fall outside the boundary or inside any exclusion —
+  // they must not influence the interpolated surface. Points outside the
+  // boundary still render on the plan; they just don't pull the contours.
   const excl = exclusions?.filter((p) => p.length >= 3) ?? [];
+  const insideBoundary =
+    boundary.length >= 3
+      ? points.filter((p) => pointInPolygon(p.x, p.y, boundary))
+      : points;
   const activePoints = excl.length
-    ? points.filter((p) => !excl.some((poly) => pointInPolygon(p.x, p.y, poly)))
-    : points;
+    ? insideBoundary.filter((p) => !excl.some((poly) => pointInPolygon(p.x, p.y, poly)))
+    : insideBoundary;
 
   if (activePoints.length < 3 || boundary.length < 3) return null;
 
