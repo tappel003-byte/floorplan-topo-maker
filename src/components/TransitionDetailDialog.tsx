@@ -135,35 +135,53 @@ export function TransitionDetailDialog({
           </div>
         </div>
 
+        {(() => null)()}
+        {/* Derive "custom / Other" state from whether the current surface
+            string is in the built-in list. Anything else is a user-typed
+            label — show the text input for direct editing. */}
         <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">From surface</span>
-            <select
-              value={surfaceA}
-              onChange={(e) => setSurfaceA(e.target.value)}
-              className="h-10 rounded-md border px-2 bg-background text-sm"
-            >
-              {COMMON_SURFACES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">To surface</span>
-            <select
-              value={surfaceB}
-              onChange={(e) => setSurfaceB(e.target.value)}
-              className="h-10 rounded-md border px-2 bg-background text-sm"
-            >
-              {COMMON_SURFACES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
+          {(["A", "B"] as const).map((side) => {
+            const value = side === "A" ? surfaceA : surfaceB;
+            const setValue = side === "A" ? setSurfaceA : setSurfaceB;
+            const builtIn = (COMMON_SURFACES as readonly string[]).includes(value);
+            const isOther = !builtIn && value !== "";
+            const selectValue = isOther ? OTHER_SENTINEL : value;
+            return (
+              <label key={side} className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {side === "A" ? "From surface" : "To surface"}
+                </span>
+                <select
+                  value={selectValue}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === OTHER_SENTINEL) {
+                      // Preserve existing custom text if already custom; else blank.
+                      setValue(isOther ? value : "");
+                    } else {
+                      setValue(v);
+                    }
+                  }}
+                  className="h-10 rounded-md border px-2 bg-background text-sm"
+                >
+                  {COMMON_SURFACES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                {selectValue === OTHER_SENTINEL && (
+                  <input
+                    type="text"
+                    value={isOther ? value : ""}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="e.g. Sunroom tile"
+                    className="mt-1 h-9 rounded-md border px-2 bg-background text-sm"
+                  />
+                )}
+              </label>
+            );
+          })}
 
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">{surfaceA || "From"} reading"</span>
