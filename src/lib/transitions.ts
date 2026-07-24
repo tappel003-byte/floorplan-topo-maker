@@ -2,22 +2,68 @@
 
 import type { SurveyPoint, Transition } from "./types";
 
-/** Common flooring surfaces in the surface dropdowns. Extendable via "Other". */
+/**
+ * Common flooring surfaces. Each surface has an implicit structural base:
+ *   'slab'     → measured to top of slab
+ *   'subfloor' → measured to top of subfloor
+ *   null       → neutral (e.g. Tile) — its own averaging group
+ * "Other" is a sentinel; the caller replaces it with a user-typed label.
+ */
+export const SURFACE_BASE: Record<string, "slab" | "subfloor" | null> = {
+  "Tile": null,
+  "Concrete/slab": "slab",
+  "Carpet/slab": "slab",
+  "Subfloor": "subfloor",
+  "Carpet/subfloor": "subfloor",
+};
+
+/** Sentinel label for user-defined surfaces. Not stored as-is — replaced with typed text. */
+export const OTHER_SENTINEL = "Other";
+
+/** Ordered list for dropdowns. "Other" trailing option triggers a custom text input. */
 export const COMMON_SURFACES = [
   "Tile",
-  "Carpet",
-  "Hardwood",
-  "LVP",
-  "Vinyl",
-  "Laminate",
-  "Concrete",
-  "Stone",
-  "Other",
+  "Concrete/slab",
+  "Subfloor",
+  "Carpet/slab",
+  "Carpet/subfloor",
+  OTHER_SENTINEL,
 ] as const;
 
-/** Canonical key for grouping transitions by surface pair. */
+/**
+ * Structural category used for averaging. Surfaces with a base tag collapse
+ * to that base ('slab' | 'subfloor'). Everything else (Tile, custom "Other:"
+ * labels) is its own category identified by the surface name itself.
+ */
+export function surfaceCategory(name: string): string {
+  const base = SURFACE_BASE[name];
+  if (base) return base;
+  return name;
+}
+
+/** Pretty label for a category identifier ('slab' → 'Slab'). */
+export function categoryLabel(cat: string): string {
+  if (cat === "slab") return "Slab";
+  if (cat === "subfloor") return "Subfloor";
+  return cat;
+}
+
+/**
+ * Canonical key for grouping transitions by structural base pair.
+ * `Tile → Carpet/slab` and `Tile → Concrete/slab` collapse to `Tile→slab`.
+ */
 export function transitionGroupKey(t: Pick<Transition, "surfaceA" | "surfaceB">): string {
-  return `${t.surfaceA}→${t.surfaceB}`;
+  return `${surfaceCategory(t.surfaceA)}→${surfaceCategory(t.surfaceB)}`;
+}
+
+/**
+ * Legacy → compound surface migration. Old projects stored bare "Carpet" /
+ * "Concrete" strings; map them to the new compound names on load.
+ */
+export function migrateSurfaceName(s: string): string {
+  if (s === "Carpet") return "Carpet/slab";
+  if (s === "Concrete") return "Concrete/slab";
+  return s;
 }
 
 /**
@@ -105,8 +151,13 @@ export function getChainBaselineSurface(
 /** One surface-pair group for the Transitions sheet. */
 export interface TransitionGroup {
   key: string;
+  /** Category identifier on the "from" side ('slab' | 'subfloor' | surface name). */
   surfaceA: string;
+  /** Category identifier on the "to" side. */
   surfaceB: string;
+  /** Human-readable category label for display. */
+  labelA: string;
+  labelB: string;
   transitions: Transition[];
   /** Mean of raw measured deltas (readingA − readingB) in this group. */
   measuredAverage: number;
@@ -114,7 +165,7 @@ export interface TransitionGroup {
   affectedPointCount: number;
 }
 
-/** Group every transition on the floor by canonical surface pair. */
+/** Group every transition on the floor by canonical structural base pair. */
 export function groupTransitionsBySurfacePair(
   transitions: readonly Transition[] | undefined,
   points: readonly SurveyPoint[] | undefined,
@@ -125,10 +176,14 @@ export function groupTransitionsBySurfacePair(
     const key = transitionGroupKey(t);
     let g = byKey.get(key);
     if (!g) {
+      const catA = surfaceCategory(t.surfaceA);
+      const catB = surfaceCategory(t.surfaceB);
       g = {
         key,
-        surfaceA: t.surfaceA,
-        surfaceB: t.surfaceB,
+        surfaceA: catA,
+        surfaceB: catB,
+        labelA: categoryLabel(catA),
+        labelB: categoryLabel(catB),
         transitions: [],
         measuredAverage: 0,
         affectedPointCount: 0,
