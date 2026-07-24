@@ -78,10 +78,14 @@ export function AveragedCorrectionsChip({ floor, storageKey, onManage }: Props) 
 
   if (entries.length === 0) return null;
 
-  // Look up display surfaces from the floor transitions since key is `${A}→${B}`.
+  // Look up display labels from the floor transitions. Group key is now
+  // structural (`slab`/`subfloor`/surface name), so show category labels.
   const surfaceForKey = new Map<string, { a: string; b: string }>();
   for (const t of floor.transitions ?? []) {
-    surfaceForKey.set(transitionGroupKey(t), { a: t.surfaceA, b: t.surfaceB });
+    surfaceForKey.set(transitionGroupKey(t), {
+      a: categoryLabel(surfaceCategory(t.surfaceA)),
+      b: categoryLabel(surfaceCategory(t.surfaceB)),
+    });
   }
 
   return (
