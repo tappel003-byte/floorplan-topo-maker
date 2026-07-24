@@ -82,11 +82,15 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
   const aBase = valid ? aRaw + parentDelta : 0;
   const delta = valid ? aBase - b : 0;
 
+  const effectiveA = isOtherA ? otherA.trim() : surfaceA;
+  const effectiveB = isOtherB ? otherB.trim() : surfaceB;
+  const surfacesReady = !!effectiveA && !!effectiveB;
+
   function submit() {
-    if (!valid) return;
+    if (!valid || !surfacesReady) return;
     onSave({
-      surfaceA,
-      surfaceB,
+      surfaceA: effectiveA,
+      surfaceB: effectiveB,
       readingA: aBase,
       readingB: b,
       readingARawOnParent: chained ? aRaw : undefined,
