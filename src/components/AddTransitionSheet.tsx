@@ -185,7 +185,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                     value={otherA}
                     onChange={(e) => setOtherA(e.target.value)}
                     maxLength={20}
-                    placeholder="e.g. Sunroom tile (20 characters max)"
+                    placeholder="(20 characters max)"
                     className="mt-1 h-9 rounded-md border px-2 bg-background text-sm"
                   />
                 )}
@@ -218,8 +218,8 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                 type="text"
                 value={otherB}
                 onChange={(e) => setOtherB(e.target.value)}
-                maxLength={20}
-                placeholder="e.g. Sunroom linoleum (20 characters max)"
+                    maxLength={20}
+                    placeholder="(20 characters max)"
                 className="mt-1 h-9 rounded-md border px-2 bg-background text-sm"
               />
             )}
