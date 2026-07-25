@@ -189,14 +189,12 @@ export function groupTransitionsBySurfacePair(
     const key = transitionGroupKey(t);
     let g = byKey.get(key);
     if (!g) {
-      const catA = surfaceCategory(t.surfaceA);
-      const catB = surfaceCategory(t.surfaceB);
       g = {
         key,
-        surfaceA: catA,
-        surfaceB: catB,
-        labelA: categoryLabel(catA),
-        labelB: categoryLabel(catB),
+        surfaceA: t.surfaceA,
+        surfaceB: t.surfaceB,
+        labelA: t.surfaceA,
+        labelB: t.surfaceB,
         transitions: [],
         measuredAverage: 0,
         affectedPointCount: 0,
