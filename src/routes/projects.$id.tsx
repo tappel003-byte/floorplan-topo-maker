@@ -96,15 +96,17 @@ function ProjectWorkspace() {
       const fs = await listFloors(id);
       // Legacy migrations:
       //  1. Surface labels: bare "Carpet"/"Concrete" → compound
-      //     "Carpet/slab"/"Concrete/slab". Safe default; users can change any
-      //     point manually. transitionGroupAverages keys are re-derived under
-      //     the new base-grouped `transitionGroupKey`.
+      //     "Carpet/slab"/"Concrete/slab". transitionGroupAverages are re-keyed
+      //     under the current `transitionGroupKey`, which normalizes only the
+      //     `/slab` and `/subfloor` compound variants to their base and leaves
+      //     every other surface literal (including custom "Other" text).
       //  2. transitionDelta() precedence changed so a doorway uses its own
       //     measured delta unless it explicitly opts into the group average
       //     via `useGroupAverage`. Projects saved before that change had
       //     group averages applied globally — preserve their prior behavior
       //     by stamping the flag on every transition whose surface pair has
       //     an applied average in the stored floor.
+
       const migrated = fs.map((f) => {
         if (!f.transitions?.length) return f;
         let changed = false;

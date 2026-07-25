@@ -43,31 +43,54 @@ export const COMMON_SURFACES = [
 ] as const;
 
 /**
- * Structural category used for averaging. Surfaces with a base tag collapse
- * to that base ('slab' | 'subfloor'). Everything else (Tile, custom "Other:"
- * labels) is its own category identified by the surface name itself.
+ * Grouping normalization for the Transitions "average across doorways" feature.
+ *
+ * Only the compound `/slab` and `/subfloor` labels collapse to their structural
+ * base — the top surface is treated as a modifier and dropped:
+ *   Carpet/slab, Concrete/slab       → "slab"
+ *   Subfloor, Carpet/subfloor        → "subfloor"
+ * Every other surface (Tile, Hardwood, Engineered wood, Laminate, LVP,
+ * Vinyl sheet, Linoleum, and any custom "Other" text) is kept as its exact
+ * literal name. Custom "Other" values are trimmed of surrounding whitespace
+ * and otherwise compared case-sensitively byte-for-byte; two doorways only
+ * share a group when their normalized names match on BOTH sides.
+ */
+export function normalizeSurfaceForGrouping(name: string): string {
+  const trimmed = (name ?? "").trim();
+  if (trimmed === "Carpet/slab" || trimmed === "Concrete/slab") return "slab";
+  if (trimmed === "Subfloor" || trimmed === "Carpet/subfloor") return "subfloor";
+  return trimmed;
+}
+
+/** Pretty label for the normalized grouping id ('slab' → 'Slab'). */
+export function normalizedSurfaceLabel(normalized: string): string {
+  if (normalized === "slab") return "Slab";
+  if (normalized === "subfloor") return "Subfloor";
+  return normalized;
+}
+
+/**
+ * Legacy: structural base category used only by the AveragedCorrectionsChip
+ * display fallback. Prefer normalizeSurfaceForGrouping for grouping logic.
  */
 export function surfaceCategory(name: string): string {
-  const base = SURFACE_BASE[name];
-  if (base) return base;
-  return name;
+  return normalizeSurfaceForGrouping(name);
 }
 
 /** Pretty label for a category identifier ('slab' → 'Slab'). */
 export function categoryLabel(cat: string): string {
-  if (cat === "slab") return "Slab";
-  if (cat === "subfloor") return "Subfloor";
-  return cat;
+  return normalizedSurfaceLabel(cat);
 }
 
 /**
  * Canonical key for grouping transitions in the Transitions sheet.
- * Each unique `surfaceA → surfaceB` pair is its own group — no collapsing
- * across structural base.
+ * Uses the normalized surface on each side, so `/slab` and `/subfloor`
+ * compound variants collapse together while every other surface stays literal.
  */
 export function transitionGroupKey(t: Pick<Transition, "surfaceA" | "surfaceB">): string {
-  return `${t.surfaceA}→${t.surfaceB}`;
+  return `${normalizeSurfaceForGrouping(t.surfaceA)}→${normalizeSurfaceForGrouping(t.surfaceB)}`;
 }
+
 
 /**
  * Legacy → compound surface migration. Old projects stored bare "Carpet" /
@@ -189,12 +212,14 @@ export function groupTransitionsBySurfacePair(
     const key = transitionGroupKey(t);
     let g = byKey.get(key);
     if (!g) {
+      const nA = normalizeSurfaceForGrouping(t.surfaceA);
+      const nB = normalizeSurfaceForGrouping(t.surfaceB);
       g = {
         key,
-        surfaceA: t.surfaceA,
-        surfaceB: t.surfaceB,
-        labelA: t.surfaceA,
-        labelB: t.surfaceB,
+        surfaceA: nA,
+        surfaceB: nB,
+        labelA: normalizedSurfaceLabel(nA),
+        labelB: normalizedSurfaceLabel(nB),
         transitions: [],
         measuredAverage: 0,
         affectedPointCount: 0,
@@ -203,6 +228,7 @@ export function groupTransitionsBySurfacePair(
     }
     g.transitions.push(t);
   }
+
   const idToKey = new Map(transitions.map((t) => [t.id, transitionGroupKey(t)]));
   const affectedByKey = new Map<string, number>();
   for (const p of points ?? []) {
