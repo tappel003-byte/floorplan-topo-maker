@@ -1,9 +1,14 @@
-## Fix "Other" surface overflow in Add Transition
+## Plan
 
-**Scope:** `src/components/AddTransitionSheet.tsx` only. No logic changes.
+Fix the Add Transition sheet so every open starts clean.
 
-1. Cap the custom "Other" text input at 20 characters (`maxLength={20}`).
-2. Set its placeholder to `e.g. Sunken living room (20 char max)` so the limit is visible before typing.
-3. Shorten the correction row label to `Correction` so a filled-in custom name has room to sit on one line.
+1. In `AddTransitionSheet.tsx`, update the existing `useEffect` that runs when the sheet opens.
+2. Always reset the custom “Other” fields on open:
+   - clear `otherA` and `otherB`
+   - set `isOtherA` and `isOtherB` back to `false`
+3. For non-chained transitions, also reset the surface dropdowns to their defaults:
+   - From: `Tile`
+   - To: `Carpet/slab`
+4. Keep the chained transition behavior intact: the From side still defaults to the selected chain parent surface.
 
-Nothing else touched — wood/vinyl list and boundary filter port to V2 come after you confirm this looks right.
+No transition math or save logic changes.
