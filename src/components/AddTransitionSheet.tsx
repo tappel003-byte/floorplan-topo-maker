@@ -60,11 +60,18 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
     if (open) {
       setReadingA("");
       setReadingB("");
+      setOtherA("");
+      setOtherB("");
+      setIsOtherA(false);
+      setIsOtherB(false);
       if (chained) {
         // Default to the nearest parent (index 0) — that's the most common case.
         const first = ancestorOptions[0];
         setSelectedParentId(first.id);
         setSurfaceA(first.surface);
+      } else {
+        setSurfaceA("Tile");
+        setSurfaceB("Carpet/slab");
       }
     }
   }, [open, chained, ancestorOptions]);
