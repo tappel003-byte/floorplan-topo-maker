@@ -87,11 +87,13 @@ export function TransitionsSheet({ open, floor, points, onClose, onFloorChange }
                     : "bg-background")
                 }
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">
-                    {g.labelA} → {g.labelB}
+                    {Array.from(
+                      new Set(g.transitions.map((t) => `${t.surfaceA} → ${t.surfaceB}`)),
+                    ).join(", ")}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground shrink-0">
                     {g.transitions.length} doorway
                     {g.transitions.length === 1 ? "" : "s"} · {g.affectedPointCount} pt
                     {g.affectedPointCount === 1 ? "" : "s"}
@@ -103,10 +105,12 @@ export function TransitionsSheet({ open, floor, points, onClose, onFloorChange }
                     return (
                       <li
                         key={t.id}
-                        className="flex items-center justify-between font-mono tabular-nums text-muted-foreground"
+                        className="flex items-center justify-between gap-2 font-mono tabular-nums text-muted-foreground"
                       >
-                        <span>Doorway {i + 1}</span>
-                        <span>{formatDelta(raw)}"</span>
+                        <span className="font-sans truncate">
+                          Doorway {i + 1} — {t.surfaceA} → {t.surfaceB}
+                        </span>
+                        <span className="shrink-0">{formatDelta(raw)}"</span>
                       </li>
                     );
                   })}
