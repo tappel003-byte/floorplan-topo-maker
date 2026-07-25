@@ -1,14 +1,9 @@
-## Plan
+Stop collapsing different surface pairs into one group in the Transitions panel. Each unique `surfaceA → surfaceB` pair is its own group.
 
-Fix the Add Transition sheet so every open starts clean.
+## What changes
+- In `src/components/TransitionsSheet.tsx`, group doorways by the exact `surfaceA → surfaceB` string (e.g. `Hardwood → Laminate`), not by structural base.
+- Result for the screenshot: `Hardwood → Laminate` becomes its own group (Doorway 1 + 2, avg of −0.20 / −0.30). `Laminate → Vinyl sheet` becomes its own group (Doorway 3, +0.80, "nothing to average").
+- Group header shows that single pair. No more combined "Hardwood → Laminate, Laminate → Vinyl sheet" headers.
 
-1. In `AddTransitionSheet.tsx`, update the existing `useEffect` that runs when the sheet opens.
-2. Always reset the custom “Other” fields on open:
-   - clear `otherA` and `otherB`
-   - set `isOtherA` and `isOtherB` back to `false`
-3. For non-chained transitions, also reset the surface dropdowns to their defaults:
-   - From: `Tile`
-   - To: `Carpet/slab`
-4. Keep the chained transition behavior intact: the From side still defaults to the selected chain parent surface.
-
-No transition math or save logic changes.
+## Not changing
+- Transition math, chaining, apply-average behavior, or anything outside the Transitions panel grouping.
