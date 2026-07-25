@@ -88,10 +88,8 @@ export function TransitionsSheet({ open, floor, points, onClose, onFloorChange }
                 }
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">
-                    {Array.from(
-                      new Set(g.transitions.map((t) => `${t.surfaceA} → ${t.surfaceB}`)),
-                    ).join(", ")}
+                  <span className="text-sm font-medium truncate">
+                    {g.labelA} → {g.labelB}
                   </span>
                   <span className="text-[11px] text-muted-foreground shrink-0">
                     {g.transitions.length} doorway

@@ -61,11 +61,12 @@ export function categoryLabel(cat: string): string {
 }
 
 /**
- * Canonical key for grouping transitions by structural base pair.
- * `Tile → Carpet/slab` and `Tile → Concrete/slab` collapse to `Tile→slab`.
+ * Canonical key for grouping transitions in the Transitions sheet.
+ * Each unique `surfaceA → surfaceB` pair is its own group — no collapsing
+ * across structural base.
  */
 export function transitionGroupKey(t: Pick<Transition, "surfaceA" | "surfaceB">): string {
-  return `${surfaceCategory(t.surfaceA)}→${surfaceCategory(t.surfaceB)}`;
+  return `${t.surfaceA}→${t.surfaceB}`;
 }
 
 /**
@@ -188,14 +189,12 @@ export function groupTransitionsBySurfacePair(
     const key = transitionGroupKey(t);
     let g = byKey.get(key);
     if (!g) {
-      const catA = surfaceCategory(t.surfaceA);
-      const catB = surfaceCategory(t.surfaceB);
       g = {
         key,
-        surfaceA: catA,
-        surfaceB: catB,
-        labelA: categoryLabel(catA),
-        labelB: categoryLabel(catB),
+        surfaceA: t.surfaceA,
+        surfaceB: t.surfaceB,
+        labelA: t.surfaceA,
+        labelB: t.surfaceB,
         transitions: [],
         measuredAverage: 0,
         affectedPointCount: 0,
