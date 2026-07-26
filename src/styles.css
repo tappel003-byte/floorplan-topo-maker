@@ -117,6 +117,10 @@
     border-color: var(--color-border);
   }
 
+  html {
+    font-size: clamp(16px, 1.05vw + 11px, 19px);
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
