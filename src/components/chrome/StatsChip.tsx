@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowDown } from "lucide-react";
 
 type SizeTier = "sm" | "md" | "lg";
 const SIZE_STYLES: Record<
@@ -185,14 +184,14 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
         className={`${sz.pad} flex items-center gap-0.5 text-gray-700`}
         onPointerUp={(e) => endDrag(e, "hi")}
       >
-        <ArrowUp className={`${sz.icon} text-emerald-600`} />
+        <span className={`font-semibold text-emerald-600 ${sz.text}`}>H</span>
         <span className="font-mono">{stats.hi.value.toFixed(2)}</span>
       </div>
       <div
         className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-700`}
         onPointerUp={(e) => endDrag(e, "lo")}
       >
-        <ArrowDown className={`${sz.icon} text-sky-600`} />
+        <span className={`font-semibold text-sky-600 ${sz.text}`}>L</span>
         <span className="font-mono">{stats.lo.value.toFixed(2)}</span>
       </div>
       <div className={`${sz.pad} flex items-center gap-0.5 border-l border-gray-200 text-gray-500`}>
