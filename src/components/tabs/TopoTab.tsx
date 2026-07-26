@@ -602,7 +602,7 @@ export function TopoTab({
                       firstContour: e.target.value === "" ? null : parseFloat(e.target.value),
                     })
                   }
-                  className="mt-1 h-9 text-base sm:text-xs"
+                  className="mt-1 h-9 text-base"
                 />
               </div>
               <div>
@@ -629,7 +629,7 @@ export function TopoTab({
                       update({ contourCount: isFinite(n) ? Math.max(2, n) : null });
                     }
                   }}
-                  className="mt-1 h-9 text-base sm:text-xs"
+                  className="mt-1 h-9 text-base"
                 />
               </div>
             </div>
@@ -794,7 +794,7 @@ export function TopoTab({
                       enterKeyHint="done"
                       value={resolved.pointLabelColor}
                       onChange={(e) => update({ pointLabelColor: e.target.value })}
-                      className="h-9 flex-1 font-mono text-base sm:text-xs"
+                      className="h-9 flex-1 font-mono text-base"
                     />
                   </div>
                 </div>
@@ -931,7 +931,7 @@ function StepInput({ value, onCommit }: { value: number; onCommit: (v: number) =
           setText(String(n));
         }
       }}
-      className="w-20 h-10 text-base sm:text-xs"
+      className="w-20 h-10 text-base"
     />
   );
 }

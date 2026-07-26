@@ -502,7 +502,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
                 onPointerMove={(e) => e.stopPropagation()}
                 onPointerUp={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
-                className="w-28 bg-transparent text-base outline-none border-b border-transparent focus:border-primary sm:w-24 sm:text-xs"
+                className="w-28 bg-transparent text-base outline-none border-b border-transparent focus:border-primary sm:w-24"
                 placeholder="Label"
                 enterKeyHint="done"
               />
