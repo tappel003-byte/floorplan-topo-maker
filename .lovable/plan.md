@@ -1,7 +1,11 @@
-## Fix
+The user selected option B: replace the ↑ / ↓ arrows in the floating elevation stats pill with explicit H and L labels.
 
-The legend's position is clamped with `Math.max(0, ...)` in image coordinates (TopoTab.tsx lines 510–511). Image coord `0` is the left edge of the floor plan raster, not the canvas edge. On desktop the plan is centered with whitespace to its left, so the legend can never cross into that left whitespace — exactly the wall you're hitting.
+## Change
+Update `src/components/chrome/StatsChip.tsx`:
+- Remove the `ArrowUp` and `ArrowDown` imports from `lucide-react`.
+- Replace the arrow icon in the high-value segment with the letter "H" (keep emerald-600 color).
+- Replace the arrow icon in the low-value segment with the letter "L" (keep sky-600 color).
+- Keep the numeric values, delta, layout, drag behavior, and tap-to-highlight behavior unchanged.
 
-Change: remove the `Math.max(0, ...)` clamp so `legendX` / `legendY` can go negative, letting the legend move freely into the whitespace on any side.
-
-No other behavior changes.
+## Result
+Header pill reads: `H 10.20 | L 8.20 | Δ 2.00` instead of `↑ 10.20 | ↓ 8.20 | Δ 2.00`.
