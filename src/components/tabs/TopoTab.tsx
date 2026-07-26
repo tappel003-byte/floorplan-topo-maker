@@ -751,11 +751,11 @@ export function TopoTab({
                 <StepperControl
                   label="Point label size"
                   value={resolved.pointLabelFontSize}
-                  min={7}
+                  min={6}
                   max={28}
                   step={1}
                   onChange={(v) =>
-                    update({ pointLabelFontSize: Math.max(7, Math.min(28, Math.round(v))) })
+                    update({ pointLabelFontSize: Math.max(6, Math.min(28, Math.round(v))) })
                   }
                 />
                 <StepperControl

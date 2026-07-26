@@ -290,8 +290,8 @@ export function DataPointsPanel({
                 </span>
                 <button
                   className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
-                  onClick={() => onLabelFontSizeChange(Math.max(7, labelFontSize - 1))}
-                  disabled={labelFontSize <= 7}
+                  onClick={() => onLabelFontSizeChange(Math.max(6, labelFontSize - 1))}
+                  disabled={labelFontSize <= 6}
                   aria-label="Smaller label"
                 >
                   <Minus className="h-3 w-3" />
