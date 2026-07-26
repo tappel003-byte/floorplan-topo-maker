@@ -507,8 +507,8 @@ export function TopoTab({
           onImagePointerMove={(x, y) => {
             if (legendDrag) {
               update({
-                legendX: Math.max(0, x - legendDrag.dx),
-                legendY: Math.max(0, y - legendDrag.dy),
+                legendX: x - legendDrag.dx,
+                legendY: y - legendDrag.dy,
               });
               return;
             }
