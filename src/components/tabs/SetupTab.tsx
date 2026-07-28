@@ -342,7 +342,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
   } | null>(null);
   const [, force] = useState(0);
 
-  const HIT_RADIUS = 18;
+  const HIT_RADIUS = 26;
 
   function findVertexAt(x: number, y: number):
     | { target: "boundary"; index: number }
