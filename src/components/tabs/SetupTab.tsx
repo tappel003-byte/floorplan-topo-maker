@@ -659,7 +659,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             boundary.forEach((p, i) => {
               const active = i === dragging;
               ctx.beginPath();
-              ctx.arc(p.x, p.y, active ? 9 : 6, 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, active ? 12 : 9, 0, Math.PI * 2);
               ctx.fillStyle = active ? "#f59e0b" : "#2563eb";
               ctx.fill();
               ctx.strokeStyle = "#ffffff";
