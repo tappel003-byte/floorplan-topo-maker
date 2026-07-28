@@ -342,7 +342,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
   } | null>(null);
   const [, force] = useState(0);
 
-  const HIT_RADIUS = 18;
+  const HIT_RADIUS = 26;
 
   function findVertexAt(x: number, y: number):
     | { target: "boundary"; index: number }
@@ -659,7 +659,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             boundary.forEach((p, i) => {
               const active = i === dragging;
               ctx.beginPath();
-              ctx.arc(p.x, p.y, active ? 9 : 6, 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, active ? 12 : 9, 0, Math.PI * 2);
               ctx.fillStyle = active ? "#f59e0b" : "#2563eb";
               ctx.fill();
               ctx.strokeStyle = "#ffffff";
@@ -684,11 +684,11 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
                   : -1;
               ex.polygon.forEach((p, i) => {
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, i === dragging ? 8 : 5, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, i === dragging ? 11 : 8, 0, Math.PI * 2);
                 ctx.fillStyle = i === dragging ? "#f59e0b" : "#4b5563";
                 ctx.fill();
                 ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 2;
                 ctx.stroke();
               });
               if (ex.polygon.length > 0 && ex.label) {
@@ -711,11 +711,11 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             drawExclusionShape(ctx, draft, { closed: draft.length >= 3, muted: false, hatched: true });
             draft.forEach((p, i) => {
               ctx.beginPath();
-              ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
               ctx.fillStyle = "#4b5563";
               ctx.fill();
               ctx.strokeStyle = "#fff";
-              ctx.lineWidth = 1.5;
+              ctx.lineWidth = 2;
               ctx.stroke();
               ctx.fillStyle = "#111827";
               ctx.font = "bold 10px sans-serif";
