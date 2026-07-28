@@ -556,6 +556,14 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               original: { x: boundary[hit.index].x, y: boundary[hit.index].y },
               moved: false,
             };
+          } else if (hit.target === "draft") {
+            if (!draft) return false;
+            dragRef.current = {
+              target: "draft",
+              index: hit.index,
+              original: { x: draft[hit.index].x, y: draft[hit.index].y },
+              moved: false,
+            };
           } else {
             const eid = hit.target.exclusionId;
             const ex = exclusions.find((e) => e.id === eid)!;
@@ -577,6 +585,13 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             const next = boundary.slice();
             next[drag.index] = { x, y };
             onChange({ ...floor, boundary: next });
+          } else if (drag.target === "draft") {
+            setDraft((d) => {
+              if (!d) return d;
+              const next = d.slice();
+              next[drag.index] = { x, y };
+              return next;
+            });
           } else {
             const eid = drag.target.exclusionId;
             onChange({
@@ -601,6 +616,13 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               const next = boundary.slice();
               next[drag.index] = drag.original;
               onChange({ ...floor, boundary: next });
+            } else if (drag.target === "draft") {
+              setDraft((d) => {
+                if (!d) return d;
+                const next = d.slice();
+                next[drag.index] = drag.original;
+                return next;
+              });
             } else {
               const eid = drag.target.exclusionId;
               onChange({
