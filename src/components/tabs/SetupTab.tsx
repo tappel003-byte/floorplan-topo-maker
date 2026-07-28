@@ -711,11 +711,11 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             drawExclusionShape(ctx, draft, { closed: draft.length >= 3, muted: false, hatched: true });
             draft.forEach((p, i) => {
               ctx.beginPath();
-              ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+              ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
               ctx.fillStyle = "#4b5563";
               ctx.fill();
               ctx.strokeStyle = "#fff";
-              ctx.lineWidth = 1.5;
+              ctx.lineWidth = 2;
               ctx.stroke();
               ctx.fillStyle = "#111827";
               ctx.font = "bold 10px sans-serif";
