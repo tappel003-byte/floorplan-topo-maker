@@ -333,9 +333,9 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
   const [tool, setTool] = useState<"boundary" | "exclusion">("boundary");
   const [draft, setDraft] = useState<{ x: number; y: number }[] | null>(null);
 
-  // Drag state — works for boundary and any exclusion polygon.
+  // Drag state — works for boundary, saved exclusions, and the in-progress draft.
   const dragRef = useRef<{
-    target: "boundary" | { exclusionId: string };
+    target: "boundary" | "draft" | { exclusionId: string };
     index: number;
     original: { x: number; y: number };
     moved: boolean;
@@ -346,16 +346,19 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
 
   function findVertexAt(x: number, y: number):
     | { target: "boundary"; index: number }
+    | { target: "draft"; index: number }
     | { target: { exclusionId: string }; index: number }
     | null {
-    let best: { target: "boundary" | { exclusionId: string }; index: number } | null = null;
+    let best:
+      | { target: "boundary" | "draft" | { exclusionId: string }; index: number }
+      | null = null;
     let bestD2 = HIT_RADIUS * HIT_RADIUS;
-    if (tool === "boundary" || tool === "exclusion") {
+    if (tool === "boundary") {
       for (let i = 0; i < boundary.length; i++) {
         const dx = boundary[i].x - x;
         const dy = boundary[i].y - y;
         const d2 = dx * dx + dy * dy;
-        if (d2 <= bestD2 && tool === "boundary") {
+        if (d2 <= bestD2) {
           bestD2 = d2;
           best = { target: "boundary", index: i };
         }
@@ -370,6 +373,17 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
           if (d2 <= bestD2) {
             bestD2 = d2;
             best = { target: { exclusionId: ex.id }, index: i };
+          }
+        }
+      }
+      if (draft) {
+        for (let i = 0; i < draft.length; i++) {
+          const dx = draft[i].x - x;
+          const dy = draft[i].y - y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= bestD2) {
+            bestD2 = d2;
+            best = { target: "draft", index: i };
           }
         }
       }
@@ -529,6 +543,8 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             if (hit) return; // handled as drag
             onChange({ ...floor, boundary: [...boundary, { x, y }] });
           } else if (drafting && draft) {
+            const hit = findVertexAt(x, y);
+            if (hit) return; // handled as drag
             setDraft([...draft, { x, y }]);
           }
         }}
@@ -540,6 +556,14 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               target: "boundary",
               index: hit.index,
               original: { x: boundary[hit.index].x, y: boundary[hit.index].y },
+              moved: false,
+            };
+          } else if (hit.target === "draft") {
+            if (!draft) return false;
+            dragRef.current = {
+              target: "draft",
+              index: hit.index,
+              original: { x: draft[hit.index].x, y: draft[hit.index].y },
               moved: false,
             };
           } else {
@@ -563,6 +587,13 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             const next = boundary.slice();
             next[drag.index] = { x, y };
             onChange({ ...floor, boundary: next });
+          } else if (drag.target === "draft") {
+            setDraft((d) => {
+              if (!d) return d;
+              const next = d.slice();
+              next[drag.index] = { x, y };
+              return next;
+            });
           } else {
             const eid = drag.target.exclusionId;
             onChange({
@@ -587,6 +618,13 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               const next = boundary.slice();
               next[drag.index] = drag.original;
               onChange({ ...floor, boundary: next });
+            } else if (drag.target === "draft") {
+              setDraft((d) => {
+                if (!d) return d;
+                const next = d.slice();
+                next[drag.index] = drag.original;
+                return next;
+              });
             } else {
               const eid = drag.target.exclusionId;
               onChange({
