@@ -684,11 +684,11 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
                   : -1;
               ex.polygon.forEach((p, i) => {
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, i === dragging ? 8 : 5, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, i === dragging ? 11 : 8, 0, Math.PI * 2);
                 ctx.fillStyle = i === dragging ? "#f59e0b" : "#4b5563";
                 ctx.fill();
                 ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 2;
                 ctx.stroke();
               });
               if (ex.polygon.length > 0 && ex.label) {
