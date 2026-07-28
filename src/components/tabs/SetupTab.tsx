@@ -543,6 +543,8 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             if (hit) return; // handled as drag
             onChange({ ...floor, boundary: [...boundary, { x, y }] });
           } else if (drafting && draft) {
+            const hit = findVertexAt(x, y);
+            if (hit) return; // handled as drag
             setDraft([...draft, { x, y }]);
           }
         }}
