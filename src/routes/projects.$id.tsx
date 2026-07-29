@@ -16,7 +16,7 @@ import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrections
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues, migrateSurfaceName, transitionGroupKey } from "@/lib/transitions";
-import { computeExclusionMap } from "@/lib/exclusions";
+import { computeExclusionMap, pointInPolygon } from "@/lib/exclusions";
 
 
 
@@ -223,6 +223,14 @@ function ProjectWorkspace() {
     () => correctedPoints.filter((p) => !exclusionMap.has(p.id)),
     [correctedPoints, exclusionMap],
   );
+  // Stats mirror the topo surface: only readings inside the drawn boundary
+  // (and outside exclusions) count toward High / Low / Δ.
+  const statsPoints = useMemo(() => {
+    const b = activeFloor?.boundary;
+    if (!b || b.length < 3) return nonExcludedPoints;
+    return nonExcludedPoints.filter((p) => pointInPolygon(p.x, p.y, b));
+  }, [nonExcludedPoints, activeFloor?.boundary]);
+
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
   const handleFloorChange = useCallback((f: Floor) => {
@@ -376,9 +384,10 @@ function ProjectWorkspace() {
           <StatsChip
             points={
               mode === "topo" && topoExcludedIds.size
-                ? nonExcludedPoints.filter((p) => !topoExcludedIds.has(p.id))
-                : nonExcludedPoints
+                ? statsPoints.filter((p) => !topoExcludedIds.has(p.id))
+                : statsPoints
             }
+
             onHighlight={(p) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
