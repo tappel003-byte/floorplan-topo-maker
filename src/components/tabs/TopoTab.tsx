@@ -18,6 +18,13 @@ import {
   type Grid,
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
+import { pointInPolygon } from "@/lib/exclusions";
+
+/** Points inside the drawn boundary. Used for High/Low pin placement only. */
+function pointsInBoundary(pts: SurveyPoint[], boundary: Floor["boundary"]) {
+  if (!boundary || boundary.length < 3) return pts;
+  return pts.filter((p) => pointInPolygon(p.x, p.y, boundary));
+}
 
 interface Props {
   floor: Floor;
