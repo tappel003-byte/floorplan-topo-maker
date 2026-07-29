@@ -223,6 +223,14 @@ function ProjectWorkspace() {
     () => correctedPoints.filter((p) => !exclusionMap.has(p.id)),
     [correctedPoints, exclusionMap],
   );
+  // Stats mirror the topo surface: only readings inside the drawn boundary
+  // (and outside exclusions) count toward High / Low / Δ.
+  const statsPoints = useMemo(() => {
+    const b = activeFloor?.boundary;
+    if (!b || b.length < 3) return nonExcludedPoints;
+    return nonExcludedPoints.filter((p) => pointInPolygon(p.x, p.y, b));
+  }, [nonExcludedPoints, activeFloor?.boundary]);
+
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
   const handleFloorChange = useCallback((f: Floor) => {
