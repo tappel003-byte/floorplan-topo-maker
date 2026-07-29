@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,12 +136,39 @@ function DetailsPanel({
   onChange: (p: ProjectMeta) => void;
 }) {
   const [local, setLocal] = useState(project);
+  const [saved, setSaved] = useState(false);
   useEffect(() => setLocal(project), [project.id]);
 
-  async function save() {
-    await saveProject(local);
-    onChange(local);
-  }
+  const latest = useRef(local);
+  latest.current = local;
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const save = useCallback(async () => {
+    const snapshot = latest.current;
+    await saveProject(snapshot);
+    onChange(snapshot);
+    setSaved(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSaved(false), 2000);
+  }, [onChange]);
+
+  // Autosave a short moment after typing stops, so navigating away never
+  // silently drops an edit. The manual button remains as an explicit action.
+  useEffect(() => {
+    if (local === project) return;
+    const t = setTimeout(() => {
+      void save();
+    }, 800);
+    return () => clearTimeout(t);
+  }, [local, project, save]);
+
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    [],
+  );
+
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-3">
@@ -192,7 +219,16 @@ function DetailsPanel({
           onChange={(e) => setLocal({ ...local, notes: e.target.value })}
         />
       </div>
-      <Button onClick={save}>Save details</Button>
+      <Button onClick={() => void save()} variant={saved ? "secondary" : "default"}>
+        {saved ? (
+          <>
+            <Check className="h-4 w-4 mr-1" />
+            Saved
+          </>
+        ) : (
+          "Save details"
+        )}
+      </Button>
     </div>
   );
 }
