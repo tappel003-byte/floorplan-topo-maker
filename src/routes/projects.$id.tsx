@@ -384,9 +384,10 @@ function ProjectWorkspace() {
           <StatsChip
             points={
               mode === "topo" && topoExcludedIds.size
-                ? nonExcludedPoints.filter((p) => !topoExcludedIds.has(p.id))
-                : nonExcludedPoints
+                ? statsPoints.filter((p) => !topoExcludedIds.has(p.id))
+                : statsPoints
             }
+
             onHighlight={(p) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
