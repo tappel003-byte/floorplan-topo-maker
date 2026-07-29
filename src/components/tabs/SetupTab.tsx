@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -219,7 +219,16 @@ function DetailsPanel({
           onChange={(e) => setLocal({ ...local, notes: e.target.value })}
         />
       </div>
-      <Button onClick={save}>Save details</Button>
+      <Button onClick={() => void save()} variant={saved ? "secondary" : "default"}>
+        {saved ? (
+          <>
+            <Check className="h-4 w-4 mr-1" />
+            Saved
+          </>
+        ) : (
+          "Save details"
+        )}
+      </Button>
     </div>
   );
 }
