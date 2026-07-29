@@ -1322,10 +1322,14 @@ function renderTopoTop(
         gridAndContours?.contours ?? null,
         overlay?.legendSelected ?? false,
       );
-    if (resolved.showHighLow && points.length) {
-      let hi = points[0],
-        lo = points[0];
-      for (const p of points) {
+    // High/Low pins are scoped to the drawn boundary — out-of-boundary
+    // reference readings (patio, garage) still draw as dots/labels above,
+    // but never receive a pin.
+    const pinCandidates = pointsInBoundary(points, floor.boundary);
+    if (resolved.showHighLow && pinCandidates.length) {
+      let hi = pinCandidates[0],
+        lo = pinCandidates[0];
+      for (const p of pinCandidates) {
         if (p.value > hi.value) hi = p;
         if (p.value < lo.value) lo = p;
       }
