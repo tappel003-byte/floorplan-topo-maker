@@ -16,7 +16,7 @@ import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrections
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues, migrateSurfaceName, transitionGroupKey } from "@/lib/transitions";
-import { computeExclusionMap } from "@/lib/exclusions";
+import { computeExclusionMap, pointInPolygon } from "@/lib/exclusions";
 
 
 
