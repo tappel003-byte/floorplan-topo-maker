@@ -30,6 +30,10 @@ interface Props {
    * When non-empty, the sheet enters "chained" mode and lets the user pick which
    * ancestor to branch from — matches the real hub/branch flow in the field. */
   ancestors?: AncestorOption[];
+  /** Project-scoped custom surface names, shown in both dropdowns. */
+  customSurfaces?: string[];
+  /** Persists a newly typed custom surface name onto the project. */
+  onAddCustomSurface?: (name: string) => void;
 }
 
 /**
@@ -38,7 +42,14 @@ interface Props {
  * Reading A is a raw reading on the *selected* ancestor's surface and is
  * converted to base-frame using that ancestor's stored delta.
  */
-export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) {
+export function AddTransitionSheet({
+  open,
+  onClose,
+  onSave,
+  ancestors,
+  customSurfaces,
+  onAddCustomSurface,
+}: Props) {
   const chained = !!ancestors && ancestors.length > 0;
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [surfaceA, setSurfaceA] = useState<string>("Tile");
@@ -55,6 +66,20 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
   // Dedupe ancestors by surface so the picker isn't cluttered when two
   // ancestors happen to share a surface — we key by id but display by surface.
   const ancestorOptions = useMemo(() => ancestors ?? [], [ancestors]);
+
+  // Built-in surfaces + any project-saved custom names, with "Other" last.
+  const surfaceOptions = useMemo(() => {
+    const base = COMMON_SURFACES.filter((s) => s !== OTHER_SENTINEL);
+    const seen = new Set(base.map((s) => s.toLowerCase()));
+    const extras: string[] = [];
+    for (const s of customSurfaces ?? []) {
+      const clean = s.trim();
+      if (!clean || seen.has(clean.toLowerCase())) continue;
+      seen.add(clean.toLowerCase());
+      extras.push(clean);
+    }
+    return [...base, ...extras, OTHER_SENTINEL];
+  }, [customSurfaces]);
 
   useEffect(() => {
     if (open) {
@@ -95,6 +120,8 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
 
   function submit() {
     if (!valid || !surfacesReady) return;
+    if (isOtherA) onAddCustomSurface?.(effectiveA);
+    if (isOtherB) onAddCustomSurface?.(effectiveB);
     onSave({
       surfaceA: effectiveA,
       surfaceB: effectiveB,
@@ -180,7 +207,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
                   }}
                   className="h-10 rounded-md border px-2 bg-background text-sm"
                 >
-                  {COMMON_SURFACES.map((s) => (
+                  {surfaceOptions.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -214,7 +241,7 @@ export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) 
               }}
               className="h-10 rounded-md border px-2 bg-background text-sm"
             >
-              {COMMON_SURFACES.map((s) => (
+              {surfaceOptions.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>

@@ -17,6 +17,10 @@ import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 interface Props {
   projectId: string;
+  /** Project-scoped custom flooring surface names typed via "Other". */
+  customSurfaces?: string[];
+  /** Persists a newly typed custom surface name onto the project. */
+  onAddCustomSurface?: (name: string) => void;
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
@@ -66,6 +70,8 @@ const LONG_PRESS_MS = 380;
 
 export function FieldTab({
   projectId,
+  customSurfaces,
+  onAddCustomSurface,
   floor,
   points,
   onPointsChange,
@@ -1307,6 +1313,8 @@ export function FieldTab({
         open={addingTransition && !!pending}
         onClose={() => setAddingTransition(false)}
         onSave={handleAddTransition}
+        customSurfaces={customSurfaces}
+        onAddCustomSurface={onAddCustomSurface}
         ancestors={(() => {
           if (isBasePointCapture || !activeTransition) return undefined;
           const byId = new Map(transitions.map((t) => [t.id, t]));

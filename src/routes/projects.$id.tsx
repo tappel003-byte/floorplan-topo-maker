@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { deletePoint, getProject, listFloors, listPoints, savePoint, saveFloor } from "@/lib/db";
+import { deletePoint, getProject, listFloors, listPoints, savePoint, saveFloor, saveProject } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { SetupTab } from "@/components/tabs/SetupTab";
@@ -244,6 +244,23 @@ function ProjectWorkspace() {
     [handleFloorChange],
   );
 
+  /** Persist a newly typed custom surface name onto the project (case-insensitive dedup). */
+  const handleAddCustomSurface = useCallback(
+    async (name: string) => {
+      const clean = name.trim();
+      if (!clean) return;
+      setProject((prev) => {
+        if (!prev) return prev;
+        const existing = prev.customSurfaces ?? [];
+        if (existing.some((s) => s.toLowerCase() === clean.toLowerCase())) return prev;
+        const next = { ...prev, customSurfaces: [...existing, clean] };
+        void saveProject(next);
+        return next;
+      });
+    },
+    [],
+  );
+
 
 
 
@@ -319,6 +336,8 @@ function ProjectWorkspace() {
         {mode === "field" && (
           <FieldTab
             projectId={project.id}
+            customSurfaces={project.customSurfaces}
+            onAddCustomSurface={handleAddCustomSurface}
             floor={activeFloor}
             points={points}
             onPointsChange={setPoints}
