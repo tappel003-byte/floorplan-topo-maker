@@ -70,6 +70,8 @@ const LONG_PRESS_MS = 380;
 
 export function FieldTab({
   projectId,
+  customSurfaces,
+  onAddCustomSurface,
   floor,
   points,
   onPointsChange,
