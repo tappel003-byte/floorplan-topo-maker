@@ -20,6 +20,9 @@ export interface ProjectMeta {
   // this field unlocks destructive "swap plan image" tools that we never
   // want on original surveys.
   parentProjectId?: string;
+  // Custom flooring surface names typed via the "Other" option in the
+  // transition picker. Accumulates for the life of the project.
+  customSurfaces?: string[];
 }
 
 
