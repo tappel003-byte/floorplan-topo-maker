@@ -30,6 +30,10 @@ interface Props {
    * When non-empty, the sheet enters "chained" mode and lets the user pick which
    * ancestor to branch from — matches the real hub/branch flow in the field. */
   ancestors?: AncestorOption[];
+  /** Project-scoped custom surface names, shown in both dropdowns. */
+  customSurfaces?: string[];
+  /** Persists a newly typed custom surface name onto the project. */
+  onAddCustomSurface?: (name: string) => void;
 }
 
 /**
@@ -38,7 +42,14 @@ interface Props {
  * Reading A is a raw reading on the *selected* ancestor's surface and is
  * converted to base-frame using that ancestor's stored delta.
  */
-export function AddTransitionSheet({ open, onClose, onSave, ancestors }: Props) {
+export function AddTransitionSheet({
+  open,
+  onClose,
+  onSave,
+  ancestors,
+  customSurfaces,
+  onAddCustomSurface,
+}: Props) {
   const chained = !!ancestors && ancestors.length > 0;
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [surfaceA, setSurfaceA] = useState<string>("Tile");
