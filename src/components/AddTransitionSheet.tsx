@@ -67,6 +67,20 @@ export function AddTransitionSheet({
   // ancestors happen to share a surface — we key by id but display by surface.
   const ancestorOptions = useMemo(() => ancestors ?? [], [ancestors]);
 
+  // Built-in surfaces + any project-saved custom names, with "Other" last.
+  const surfaceOptions = useMemo(() => {
+    const base = COMMON_SURFACES.filter((s) => s !== OTHER_SENTINEL);
+    const seen = new Set(base.map((s) => s.toLowerCase()));
+    const extras: string[] = [];
+    for (const s of customSurfaces ?? []) {
+      const clean = s.trim();
+      if (!clean || seen.has(clean.toLowerCase())) continue;
+      seen.add(clean.toLowerCase());
+      extras.push(clean);
+    }
+    return [...base, ...extras, OTHER_SENTINEL];
+  }, [customSurfaces]);
+
   useEffect(() => {
     if (open) {
       setReadingA("");
