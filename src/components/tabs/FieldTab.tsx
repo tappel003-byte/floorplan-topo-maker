@@ -17,6 +17,10 @@ import type { FloorSnapshot } from "@/lib/useFloorHistory";
 
 interface Props {
   projectId: string;
+  /** Project-scoped custom flooring surface names typed via "Other". */
+  customSurfaces?: string[];
+  /** Persists a newly typed custom surface name onto the project. */
+  onAddCustomSurface?: (name: string) => void;
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
