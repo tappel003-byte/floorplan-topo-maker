@@ -244,6 +244,23 @@ function ProjectWorkspace() {
     [handleFloorChange],
   );
 
+  /** Persist a newly typed custom surface name onto the project (case-insensitive dedup). */
+  const handleAddCustomSurface = useCallback(
+    async (name: string) => {
+      const clean = name.trim();
+      if (!clean) return;
+      setProject((prev) => {
+        if (!prev) return prev;
+        const existing = prev.customSurfaces ?? [];
+        if (existing.some((s) => s.toLowerCase() === clean.toLowerCase())) return prev;
+        const next = { ...prev, customSurfaces: [...existing, clean] };
+        void saveProject(next);
+        return next;
+      });
+    },
+    [],
+  );
+
 
 
 
