@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { deletePoint, getProject, listFloors, listPoints, savePoint, saveFloor } from "@/lib/db";
+import { deletePoint, getProject, listFloors, listPoints, savePoint, saveFloor, saveProject } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { SetupTab } from "@/components/tabs/SetupTab";
