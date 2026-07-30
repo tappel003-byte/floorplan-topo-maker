@@ -120,6 +120,8 @@ export function AddTransitionSheet({
 
   function submit() {
     if (!valid || !surfacesReady) return;
+    if (isOtherA) onAddCustomSurface?.(effectiveA);
+    if (isOtherB) onAddCustomSurface?.(effectiveB);
     onSave({
       surfaceA: effectiveA,
       surfaceB: effectiveB,
