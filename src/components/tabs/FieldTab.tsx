@@ -1313,6 +1313,8 @@ export function FieldTab({
         open={addingTransition && !!pending}
         onClose={() => setAddingTransition(false)}
         onSave={handleAddTransition}
+        customSurfaces={customSurfaces}
+        onAddCustomSurface={onAddCustomSurface}
         ancestors={(() => {
           if (isBasePointCapture || !activeTransition) return undefined;
           const byId = new Map(transitions.map((t) => [t.id, t]));
