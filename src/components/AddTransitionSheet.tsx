@@ -207,7 +207,7 @@ export function AddTransitionSheet({
                   }}
                   className="h-10 rounded-md border px-2 bg-background text-sm"
                 >
-                  {COMMON_SURFACES.map((s) => (
+                  {surfaceOptions.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -241,7 +241,7 @@ export function AddTransitionSheet({
               }}
               className="h-10 rounded-md border px-2 bg-background text-sm"
             >
-              {COMMON_SURFACES.map((s) => (
+              {surfaceOptions.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
