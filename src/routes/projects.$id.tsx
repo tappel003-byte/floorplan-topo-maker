@@ -336,6 +336,8 @@ function ProjectWorkspace() {
         {mode === "field" && (
           <FieldTab
             projectId={project.id}
+            customSurfaces={project.customSurfaces}
+            onAddCustomSurface={handleAddCustomSurface}
             floor={activeFloor}
             points={points}
             onPointsChange={setPoints}
