@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { deletePoint, getProject, listFloors, listPoints, savePoint, saveFloor, saveProject } from "@/lib/db";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
@@ -18,6 +18,10 @@ import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/us
 import { withCorrectedValues, migrateSurfaceName, transitionGroupKey } from "@/lib/transitions";
 import { computeExclusionMap, pointInPolygon } from "@/lib/exclusions";
 
+
+const ThreeDTab = lazy(() =>
+  import("@/components/ThreeDTab").then((m) => ({ default: m.ThreeDTab })),
+);
 
 
 type Mode = "setup" | "field" | "review" | "topo" | "export";
@@ -233,6 +237,7 @@ function ProjectWorkspace() {
 
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
+  const [threeDOpen, setThreeDOpen] = useState(false);
   const handleFloorChange = useCallback((f: Floor) => {
     setFloors((prev) => prev.map((p) => (p.id === f.id ? f : p)));
   }, []);
@@ -291,6 +296,7 @@ function ProjectWorkspace() {
         onOpenReview={() => setMode("review")}
         onOpenExport={() => setMode("export")}
         onOpenTransitions={() => setTransitionsSheetOpen(true)}
+        onOpen3D={() => setThreeDOpen(true)}
         
         undoEnabled={undoActive && history.canUndo}
         redoEnabled={undoActive && history.canRedo}
@@ -463,6 +469,22 @@ function ProjectWorkspace() {
         onClose={() => setTransitionsSheetOpen(false)}
         onFloorChange={handleFloorAveragesChange}
       />
+      {threeDOpen && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-[60] bg-neutral-950 text-white/60 flex items-center justify-center text-sm">
+              Loading 3D…
+            </div>
+          }
+        >
+          <ThreeDTab
+            floor={activeFloor}
+            points={correctedPoints}
+            settings={settings}
+            onClose={() => setThreeDOpen(false)}
+          />
+        </Suspense>
+      )}
 
     </div>
   );

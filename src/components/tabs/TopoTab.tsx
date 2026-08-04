@@ -1505,7 +1505,7 @@ function PalettePicker({
   );
 }
 
-function paletteColor(input: number, palette: RenderSettings["palette"], reverse: boolean) {
+export function paletteColor(input: number, palette: RenderSettings["palette"], reverse: boolean) {
   const t = reverse ? 1 - input : input;
   const stops: Record<RenderSettings["palette"], Array<[number, number, number]>> = {
     brown: [
