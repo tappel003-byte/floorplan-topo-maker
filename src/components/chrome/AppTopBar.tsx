@@ -9,6 +9,7 @@ type Props = {
   onOpenReview: () => void;
   onOpenExport: () => void;
   onOpenTransitions?: () => void;
+  onOpen3D?: () => void;
   
   undoEnabled?: boolean;
   redoEnabled?: boolean;
