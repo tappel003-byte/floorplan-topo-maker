@@ -37,6 +37,7 @@ export function AppTopBar({
 
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -72,6 +73,18 @@ export function AppTopBar({
           <span className="font-medium">{projectName}</span>
           <span className="text-muted-foreground"> · {floorName}</span>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setJustSaved(true);
+            window.setTimeout(() => setJustSaved(false), 1500);
+          }}
+          className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground hover:text-foreground hover:bg-accent text-base"
+          aria-label="Save"
+          title="Save"
+        >
+          {justSaved ? "✅" : "💾"}
+        </button>
         <button
           type="button"
           onClick={() => undoEnabled && fire("app:undo")}
