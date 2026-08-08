@@ -37,6 +37,7 @@ export function AppTopBar({
 
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
