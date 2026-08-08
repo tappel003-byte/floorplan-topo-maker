@@ -75,6 +75,18 @@ export function AppTopBar({
         </div>
         <button
           type="button"
+          onClick={() => {
+            setJustSaved(true);
+            window.setTimeout(() => setJustSaved(false), 1500);
+          }}
+          className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground hover:text-foreground hover:bg-accent text-base"
+          aria-label="Save"
+          title="Save"
+        >
+          {justSaved ? "✅" : "💾"}
+        </button>
+        <button
+          type="button"
           onClick={() => undoEnabled && fire("app:undo")}
           disabled={!undoEnabled}
           className="inline-flex items-center justify-center h-8 w-8 rounded text-muted-foreground enabled:hover:text-foreground enabled:hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
