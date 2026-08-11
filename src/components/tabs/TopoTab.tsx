@@ -110,7 +110,11 @@ export function TopoTab({
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [legendSelected, setLegendSelected] = useState(false);
+  // Live canvas zoom/fit scale (canvas px per image px). Used so point labels
+  // and the H/L pin keep a constant on-screen size at any zoom.
+  const [viewScale, setViewScale] = useState(1);
   const resolved = resolveSettings(settings);
+
 
   // Persist legend scale/position across sessions (localStorage). Defaults: 1.5×.
   const LEGEND_STORAGE_KEY = "topo.legend.v1";
