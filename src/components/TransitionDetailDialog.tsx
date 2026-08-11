@@ -43,6 +43,7 @@ export function TransitionDetailDialog({
         transition.manualDeltaOverride !== undefined ? transition.manualDeltaOverride : null,
       );
       setMinimized(false);
+      setConfirmDelete(false);
     }
   }, [open, transition]);
 
