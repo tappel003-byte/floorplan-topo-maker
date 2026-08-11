@@ -240,10 +240,13 @@ export function TopoTab({
     | { kind: "pin-high" | "pin-low"; point: SurveyPoint; dx: number; dy: number };
 
   function hitDraggable(x: number, y: number): Hit | null {
+    // Live view draws labels/pins at a constant screen size, so hit boxes must
+    // be measured in the same (zoom-compensated) image-space size.
+    const k = 1 / (viewScale || 1);
     // Pins first — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
-        const fontPx = resolved.highLowPinSize;
+        const fontPx = resolved.highLowPinSize * k;
         const w = pinWidth(kind === "pin-high" ? "High" : "Low", fontPx);
         const cx = pt.x + dx;
         const top = pt.y + pinTopOffset(fontPx) + dy;
@@ -261,9 +264,10 @@ export function TopoTab({
     // Point-number labels
     if (resolved.showPoints) {
       const dec = resolved.decimalPlaces;
-      const fontPx = resolved.pointLabelFontSize;
+      const fontPx = resolved.pointLabelFontSize * k;
       const weight = resolved.pointLabelWeight;
-      const pad = 4;
+      const pad = 4 * k;
+
       for (const p of visiblePoints) {
         const text = p.value.toFixed(dec);
         const { w, h } = measureLabel(text, fontPx, weight);
