@@ -1244,6 +1244,12 @@ function renderTopoTop(
     legendSelected?: boolean;
     pointSize?: number;
     pointColor?: string;
+    /**
+     * Live-canvas zoom/fit scale (canvas px per image px). When supplied, point
+     * labels and the H/L pin are drawn at a constant on-screen size. Omitted
+     * (default 1) = today's exact image-space behavior, used by Export.
+     */
+    screenScale?: number;
   },
 ) {
   const resolved = resolveSettings(settings);
@@ -1253,9 +1259,11 @@ function renderTopoTop(
   const livePinHigh = overlay?.livePinHigh ?? null;
   const livePinLow = overlay?.livePinLow ?? null;
   const highlightPin = overlay?.highlightPin ?? null;
-  const fontPx = resolved.pointLabelFontSize;
+  const k = 1 / (overlay?.screenScale || 1);
+  const fontPx = resolved.pointLabelFontSize * k;
   const weight = resolved.pointLabelWeight;
   const color = resolved.pointLabelColor;
+
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
