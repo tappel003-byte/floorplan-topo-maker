@@ -481,7 +481,7 @@ export function TopoTab({
           hidePlan={!resolved.showPlan}
           planOnTop
           refitOnResize={false}
-          onTransform={(t) => { console.log("TOPO_ONTRANSFORM", t.scale); (window as any).__topoScales = [...((window as any).__topoScales||[]), t.scale]; setViewScale(t.scale); }}
+          onTransform={(t) => setViewScale(t.scale)}
 
           onImagePointerDown={(x, y) => {
             // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
