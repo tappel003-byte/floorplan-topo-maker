@@ -31,6 +31,7 @@ export function TransitionDetailDialog({
   const [readingB, setReadingB] = useState("");
   const [overrideDelta, setOverrideDelta] = useState<number | null>(null);
   const [minimized, setMinimized] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (open && transition) {
