@@ -111,7 +111,7 @@ export function AddTransitionSheet({
   const aRaw = parseFloat(readingA);
   const b = parseFloat(readingB);
   const valid = isFinite(aRaw) && isFinite(b);
-  const aBase = valid ? aRaw + parentDelta : 0;
+  const aBase = valid ? Math.round((aRaw + parentDelta) * 100) / 100 : 0;
   const delta = valid ? aBase - b : 0;
 
   const effectiveA = isOtherA ? otherA.trim() : surfaceA;
