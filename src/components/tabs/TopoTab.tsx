@@ -1295,8 +1295,10 @@ function renderTopoTop(
       const ty = p.y + dy;
       const tw = ctx.measureText(text).width;
       const inverted = highlightId === p.id;
-      const padX = 6;
-      const padY = 3;
+      const padX = 6 * k;
+      const padY = 3 * k;
+      const radius = 3 * k;
+      const strokeW = 1 * k;
       const pillW = tw + padX * 2;
       const pillH = fontPx + padY * 2;
       const cx = tx + tw / 2;
@@ -1305,9 +1307,9 @@ function renderTopoTop(
       if (inverted) {
         // Inverted highlight: dark pill, light text
         ctx.fillStyle = color;
-        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
         ctx.fill();
-        ctx.lineWidth = 1;
+        ctx.lineWidth = strokeW;
         ctx.strokeStyle = color;
         ctx.stroke();
         ctx.fillStyle = "#ffffff";
@@ -1315,15 +1317,16 @@ function renderTopoTop(
       } else {
         if (resolved.pointLabelBackground === "white") {
           ctx.fillStyle = "rgba(255,255,255,0.92)";
-          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
           ctx.fill();
         }
         if (resolved.pointLabelBackground !== "plain") {
-          ctx.lineWidth = 1;
+          ctx.lineWidth = strokeW;
           ctx.strokeStyle = color;
-          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
           ctx.stroke();
         }
+
         ctx.fillStyle = color;
         ctx.fillText(text, cx, cy);
       }
