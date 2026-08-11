@@ -246,22 +246,58 @@ export function TransitionDetailDialog({
         )}
 
         <div className="mt-4 flex items-center justify-between gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDelete}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4 mr-1.5" /> Delete
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={submit} disabled={!valid}>
-              Save
-            </Button>
-          </div>
+          {confirmDelete ? (
+            <div className="flex-1">
+              <p className="mb-2 text-xs text-muted-foreground">
+                Delete this transition?{" "}
+                {downstreamCount} downstream point{downstreamCount === 1 ? "" : "s"} will lose this
+                correction and revert to raw readings. To just change the correction amount, edit the
+                readings above and tap Save instead.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Edit instead
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDelete}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  Delete anyway
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (downstreamCount > 0) {
+                    setConfirmDelete(true);
+                  } else {
+                    onDelete();
+                  }
+                }}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button onClick={submit} disabled={!valid}>
+                  Save
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
       </div>
