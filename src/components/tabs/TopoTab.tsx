@@ -580,6 +580,8 @@ export function TopoTab({
               legendSelected,
               pointSize,
               pointColor,
+              screenScale: viewScale,
+
             });
           }}
         />
