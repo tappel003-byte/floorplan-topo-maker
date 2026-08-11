@@ -110,7 +110,11 @@ export function TopoTab({
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [legendSelected, setLegendSelected] = useState(false);
+  // Live canvas zoom/fit scale (canvas px per image px). Used so point labels
+  // and the H/L pin keep a constant on-screen size at any zoom.
+  const [viewScale, setViewScale] = useState(1);
   const resolved = resolveSettings(settings);
+
 
   // Persist legend scale/position across sessions (localStorage). Defaults: 1.5×.
   const LEGEND_STORAGE_KEY = "topo.legend.v1";
@@ -236,10 +240,13 @@ export function TopoTab({
     | { kind: "pin-high" | "pin-low"; point: SurveyPoint; dx: number; dy: number };
 
   function hitDraggable(x: number, y: number): Hit | null {
+    // Live view draws labels/pins at a constant screen size, so hit boxes must
+    // be measured in the same (zoom-compensated) image-space size.
+    const k = 1 / (viewScale || 1);
     // Pins first — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
-        const fontPx = resolved.highLowPinSize;
+        const fontPx = resolved.highLowPinSize * k;
         const w = pinWidth(kind === "pin-high" ? "High" : "Low", fontPx);
         const cx = pt.x + dx;
         const top = pt.y + pinTopOffset(fontPx) + dy;
@@ -257,9 +264,10 @@ export function TopoTab({
     // Point-number labels
     if (resolved.showPoints) {
       const dec = resolved.decimalPlaces;
-      const fontPx = resolved.pointLabelFontSize;
+      const fontPx = resolved.pointLabelFontSize * k;
       const weight = resolved.pointLabelWeight;
-      const pad = 4;
+      const pad = 4 * k;
+
       for (const p of visiblePoints) {
         const text = p.value.toFixed(dec);
         const { w, h } = measureLabel(text, fontPx, weight);
@@ -473,6 +481,8 @@ export function TopoTab({
           hidePlan={!resolved.showPlan}
           planOnTop
           refitOnResize={false}
+          onTransform={(t) => setViewScale(t.scale)}
+
           onImagePointerDown={(x, y) => {
             // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
@@ -570,6 +580,8 @@ export function TopoTab({
               legendSelected,
               pointSize,
               pointColor,
+              screenScale: viewScale,
+
             });
           }}
         />
@@ -1232,6 +1244,12 @@ function renderTopoTop(
     legendSelected?: boolean;
     pointSize?: number;
     pointColor?: string;
+    /**
+     * Live-canvas zoom/fit scale (canvas px per image px). When supplied, point
+     * labels and the H/L pin are drawn at a constant on-screen size. Omitted
+     * (default 1) = today's exact image-space behavior, used by Export.
+     */
+    screenScale?: number;
   },
 ) {
   const resolved = resolveSettings(settings);
@@ -1241,9 +1259,11 @@ function renderTopoTop(
   const livePinHigh = overlay?.livePinHigh ?? null;
   const livePinLow = overlay?.livePinLow ?? null;
   const highlightPin = overlay?.highlightPin ?? null;
-  const fontPx = resolved.pointLabelFontSize;
+  const k = 1 / (overlay?.screenScale || 1);
+  const fontPx = resolved.pointLabelFontSize * k;
   const weight = resolved.pointLabelWeight;
   const color = resolved.pointLabelColor;
+
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
@@ -1275,8 +1295,10 @@ function renderTopoTop(
       const ty = p.y + dy;
       const tw = ctx.measureText(text).width;
       const inverted = highlightId === p.id;
-      const padX = 6;
-      const padY = 3;
+      const padX = 6 * k;
+      const padY = 3 * k;
+      const radius = 3 * k;
+      const strokeW = 1 * k;
       const pillW = tw + padX * 2;
       const pillH = fontPx + padY * 2;
       const cx = tx + tw / 2;
@@ -1285,9 +1307,9 @@ function renderTopoTop(
       if (inverted) {
         // Inverted highlight: dark pill, light text
         ctx.fillStyle = color;
-        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
         ctx.fill();
-        ctx.lineWidth = 1;
+        ctx.lineWidth = strokeW;
         ctx.strokeStyle = color;
         ctx.stroke();
         ctx.fillStyle = "#ffffff";
@@ -1295,15 +1317,16 @@ function renderTopoTop(
       } else {
         if (resolved.pointLabelBackground === "white") {
           ctx.fillStyle = "rgba(255,255,255,0.92)";
-          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
           ctx.fill();
         }
         if (resolved.pointLabelBackground !== "plain") {
-          ctx.lineWidth = 1;
+          ctx.lineWidth = strokeW;
           ctx.strokeStyle = color;
-          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
           ctx.stroke();
         }
+
         ctx.fillStyle = color;
         ctx.fillText(text, cx, cy);
       }
@@ -1345,8 +1368,8 @@ function renderTopoTop(
       const hDy = livePinHigh ? livePinHigh.dy : (floor.highPinDy ?? 0);
       const lDx = livePinLow ? livePinLow.dx : (floor.lowPinDx ?? 0);
       const lDy = livePinLow ? livePinLow.dy : (floor.lowPinDy ?? 0);
-      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", resolved.highLowPinSize, highlightPin === "pin-high");
-      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", resolved.highLowPinSize, highlightPin === "pin-low");
+      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", resolved.highLowPinSize * k, highlightPin === "pin-high");
+      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", resolved.highLowPinSize * k, highlightPin === "pin-low");
     }
   }
 }
