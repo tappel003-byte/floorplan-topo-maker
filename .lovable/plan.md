@@ -32,4 +32,4 @@ The white box padding is generous (6px each side). Trimming it and lightening th
 - `renderTopoTop` in `src/components/tabs/TopoTab.tsx` and the point-label block in `src/components/tabs/FieldTab.tsx` both draw labels inside the canvas world transform. Divide font size, padding and corner radius by the current canvas scale so they resolve to fixed device pixels; the anchor point stays in world space so labels stay pinned to their dots.
 - Declutter: single greedy pass per frame over the label rects (already computed via `measureText`) with an axis-aligned overlap test against accepted rects; skipped labels draw the dot only. Sort by priority before the pass so High/Low/selected are accepted first.
 - Hit-testing for label dragging must use the same scale-corrected rects so dragging still lines up, and must skip suppressed labels.
-- Export/PDF rendering renders at its own scale, so it picks up the same logic without special-casing.
+- Scope is the on-screen Data and Topo views only. The Export screen is out of scope for this change and is left exactly as it is.
