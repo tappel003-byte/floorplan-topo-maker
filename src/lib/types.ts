@@ -191,6 +191,7 @@ export interface RenderSettings {
   legendY: number;
   legendScale: number;
   showHighLow: boolean;
+  declutterLabels: boolean;
   exaggeration: number;
 }
 
@@ -223,5 +224,6 @@ export const defaultRenderSettings: RenderSettings = {
   legendY: 24,
   legendScale: 1,
   showHighLow: true,
+  declutterLabels: true,
   exaggeration: 1,
 };

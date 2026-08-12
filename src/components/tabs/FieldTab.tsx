@@ -432,14 +432,14 @@ export function FieldTab({
     for (const p of points) {
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
-    const fontPx = labelFontSize;
+    const fontPx = labelFontSize / s;
     const pad = 4 / s;
     for (const p of points) {
       const text = p.value.toFixed(2);
       const w = text.length * fontPx * 0.62;
-      const h = fontPx + 2;
-      const lx = p.x + pointSize + 4;
-      const ly = p.y + pointSize + 3;
+      const h = fontPx + 2 / s;
+      const lx = p.x + pointSize + 4 / s;
+      const ly = p.y + pointSize + 3 / s;
       if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
         return { point: p, on: "label" };
       }
@@ -1013,6 +1013,48 @@ export function FieldTab({
           for (const p of points) {
             if (p.transitionId && highlightIds.has(p.transitionId)) highlightPointIds.add(p.id);
           }
+          // Labels are drawn at a screen-constant size (divide by the canvas
+          // zoom) so they stay readable on desktop, and a decluttering pass
+          // hides labels that would collide. Dots always draw.
+          const s = scaleRef.current || 1;
+          const k = 1 / s;
+          const lblFontPx = labelFontSize * k;
+          const lblPadX = 3 * k;
+          const lblPadY = 2 * k;
+          const labelTextFor = (p: SurveyPoint) => {
+            const lt = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
+            return lt && !p.isTransitionAnchor
+              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(lt, floor.transitionGroupAverages))}`
+              : p.value.toFixed(2);
+          };
+          const labelRectFor = (p: SurveyPoint) => {
+            ctx.font = `bold ${lblFontPx}px sans-serif`;
+            const w = ctx.measureText(labelTextFor(p)).width + lblPadX * 2;
+            const h = lblFontPx + lblPadY * 2;
+            const halo = p.isTransitionAnchor
+              ? Math.max(Math.max(pointSize, 2) + 3, 6)
+              : Math.max(pointSize, 2);
+            return { x: p.x + halo + 4 * k - lblPadX, y: p.y + halo + 3 * k - lblPadY, w, h };
+          };
+          const labelPriority = (p: SurveyPoint) =>
+            selectedIds.has(p.id) ? 0 : highlightPointIds.has(p.id) ? 1 : p.isTransitionAnchor ? 2 : 3;
+          const visibleLabelIds = new Set<string>();
+          {
+            const placed: { x: number; y: number; w: number; h: number }[] = [];
+            const ordered = [...points].sort((a, b) => labelPriority(a) - labelPriority(b));
+            for (const p of ordered) {
+              const r = labelRectFor(p);
+              const hit = placed.some(
+                (q) =>
+                  r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y,
+              );
+              if (!hit) {
+                placed.push(r);
+                visibleLabelIds.add(p.id);
+              }
+            }
+          }
+
           for (const p of points) {
             const isAnchor = !!p.isTransitionAnchor;
             const linkedT = p.transitionId
@@ -1073,38 +1115,40 @@ export function FieldTab({
 
 
             // Label — anchors show only the raw reading, downstream points show `raw+delta`.
-            const label = isDownstream
-              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!, floor.transitionGroupAverages))}`
-              : p.value.toFixed(2);
-            const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
-            const lx = p.x + markerHalo + 4;
-            const ly = p.y + markerHalo + 3;
-            ctx.font = `bold ${labelFontSize}px sans-serif`;
-            const tm = ctx.measureText(label);
-            const padX = 3;
-            const padY = 2;
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, labelFontSize + padY * 2, 4);
-            ctx.fill();
+            if (visibleLabelIds.has(p.id)) {
+              const label = isDownstream
+                ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!, floor.transitionGroupAverages))}`
+                : p.value.toFixed(2);
+              const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
+              const lx = p.x + markerHalo + 4 * k;
+              const ly = p.y + markerHalo + 3 * k;
+              ctx.font = `bold ${lblFontPx}px sans-serif`;
+              const tm = ctx.measureText(label);
+              const padX = lblPadX;
+              const padY = lblPadY;
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, lblFontPx + padY * 2, 3 * k);
+              ctx.fill();
 
-            ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
-            ctx.lineWidth = isHighlighted ? 1.5 : 1;
-            ctx.stroke();
+              ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
+              ctx.lineWidth = (isHighlighted ? 1.5 : 1) * k;
+              ctx.stroke();
 
-            ctx.fillStyle = "#111827";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(label, lx + tm.width / 2, ly - padY + (labelFontSize + padY * 2) / 2);
+              ctx.fillStyle = "#111827";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(label, lx + tm.width / 2, ly - padY + (lblFontPx + padY * 2) / 2);
 
-            // Zone tag for excluded points — small muted label below the pin
-            const zone = zoneOfXY(p.x, p.y, floor.exclusions);
-            if (zone && zone.label) {
-              ctx.font = `${Math.max(9, labelFontSize - 2)}px sans-serif`;
-              ctx.fillStyle = "rgba(75,85,99,0.9)";
-              ctx.textAlign = "left";
-              ctx.textBaseline = "top";
-              ctx.fillText(zone.label, lx, ly + labelFontSize + padY * 2 + 2);
+              // Zone tag for excluded points — small muted label below the pin
+              const zone = zoneOfXY(p.x, p.y, floor.exclusions);
+              if (zone && zone.label) {
+                ctx.font = `${Math.max(9, labelFontSize - 2) * k}px sans-serif`;
+                ctx.fillStyle = "rgba(75,85,99,0.9)";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "top";
+                ctx.fillText(zone.label, lx, ly + lblFontPx + padY * 2 + 2 * k);
+              }
             }
           }
 

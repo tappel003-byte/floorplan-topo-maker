@@ -84,10 +84,11 @@ function pinWidth(text: string, fontPx: number) {
 }
 
 // Where the label sits (top-left corner) for a given point in image coords.
-function labelAnchor(p: SurveyPoint) {
+// `k` = 1 / canvas zoom, so the default offset stays screen-constant.
+function labelAnchor(p: SurveyPoint, k = 1) {
   return {
-    x: p.x + (p.labelDx ?? DEFAULT_LABEL_DX),
-    y: p.y + (p.labelDy ?? DEFAULT_LABEL_DY),
+    x: p.x + (p.labelDx ?? DEFAULT_LABEL_DX * k),
+    y: p.y + (p.labelDy ?? DEFAULT_LABEL_DY * k),
   };
 }
 
@@ -110,6 +111,8 @@ export function TopoTab({
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [legendSelected, setLegendSelected] = useState(false);
+  // Current canvas zoom — labels are drawn at a screen-constant size.
+  const [viewScale, setViewScale] = useState(1);
   const resolved = resolveSettings(settings);
 
   // Persist legend scale/position across sessions (localStorage). Defaults: 1.5×.
@@ -256,14 +259,15 @@ export function TopoTab({
     }
     // Point-number labels
     if (resolved.showPoints) {
+      const k = 1 / (viewScale || 1);
       const dec = resolved.decimalPlaces;
-      const fontPx = resolved.pointLabelFontSize;
+      const fontPx = resolved.pointLabelFontSize * k;
       const weight = resolved.pointLabelWeight;
-      const pad = 4;
+      const pad = 4 * k;
       for (const p of visiblePoints) {
         const text = p.value.toFixed(dec);
         const { w, h } = measureLabel(text, fontPx, weight);
-        const a = labelAnchor(p);
+        const a = labelAnchor(p, k);
         if (x >= a.x - pad && x <= a.x + w + pad && y >= a.y - pad && y <= a.y + h + pad) {
           return { kind: "label", point: p };
         }
@@ -473,6 +477,7 @@ export function TopoTab({
           hidePlan={!resolved.showPlan}
           planOnTop
           refitOnResize={false}
+          onTransform={(t) => setViewScale((s) => (Math.abs(s - t.scale) > 1e-4 ? t.scale : s))}
           onImagePointerDown={(x, y) => {
             // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
@@ -570,6 +575,7 @@ export function TopoTab({
               legendSelected,
               pointSize,
               pointColor,
+              viewScale,
             });
           }}
         />
@@ -730,6 +736,11 @@ export function TopoTab({
                 label="High / low"
                 checked={resolved.showHighLow}
                 onChange={(v) => update({ showHighLow: v })}
+              />
+              <SwitchRow
+                label="Declutter"
+                checked={resolved.declutterLabels !== false}
+                onChange={(v) => update({ declutterLabels: v })}
               />
               <div className="col-span-2 flex items-center justify-between gap-2">
                 <Label className="text-xs">Label bg</Label>
@@ -1232,6 +1243,7 @@ function renderTopoTop(
     legendSelected?: boolean;
     pointSize?: number;
     pointColor?: string;
+    viewScale?: number;
   },
 ) {
   const resolved = resolveSettings(settings);
@@ -1241,7 +1253,10 @@ function renderTopoTop(
   const livePinHigh = overlay?.livePinHigh ?? null;
   const livePinLow = overlay?.livePinLow ?? null;
   const highlightPin = overlay?.highlightPin ?? null;
-  const fontPx = resolved.pointLabelFontSize;
+  // Screen-constant label sizing: divide everything by the canvas zoom so the
+  // pill stays the same physical size no matter how far out the plan is zoomed.
+  const k = 1 / (overlay?.viewScale || 1);
+  const fontPx = resolved.pointLabelFontSize * k;
   const weight = resolved.pointLabelWeight;
   const color = resolved.pointLabelColor;
 
@@ -1249,6 +1264,41 @@ function renderTopoTop(
     ctx.globalAlpha = resolved.pointsOpacity;
     const dotR = Math.max(1, overlay?.pointSize ?? 6);
     const dotColor = overlay?.pointColor ?? "#dc2626";
+    const padX = 4 * k;
+    const padY = 2.5 * k;
+
+    // Decluttering: figure out which labels can be drawn without colliding.
+    // Dots always draw. Highlighted / dragged labels win ties.
+    ctx.font = `${weight} ${fontPx}px sans-serif`;
+    const rectFor = (p: SurveyPoint) => {
+      const isLive = live && live.id === p.id;
+      const dx = isLive ? live!.dx : (p.labelDx ?? DEFAULT_LABEL_DX * k);
+      const dy = isLive ? live!.dy : (p.labelDy ?? DEFAULT_LABEL_DY * k);
+      const w = ctx.measureText(p.value.toFixed(resolved.decimalPlaces)).width + padX * 2;
+      return { x: p.x + dx - padX, y: p.y + dy - padY, w, h: fontPx + padY * 2 };
+    };
+    const visibleLabelIds = new Set<string>();
+    if (resolved.declutterLabels === false) {
+      for (const p of points) visibleLabelIds.add(p.id);
+    } else {
+      const placed: { x: number; y: number; w: number; h: number }[] = [];
+      const ordered = [...points].sort((a, b) => {
+        const pr = (p: SurveyPoint) =>
+          highlightId === p.id ? 0 : p.labelDx !== undefined || p.labelDy !== undefined ? 1 : 2;
+        return pr(a) - pr(b);
+      });
+      for (const p of ordered) {
+        const r = rectFor(p);
+        const hit = placed.some(
+          (q) => r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y,
+        );
+        if (!hit) {
+          placed.push(r);
+          visibleLabelIds.add(p.id);
+        }
+      }
+    }
+
     for (const p of points) {
       // dot — matches data screen: solid colored fill, no white ring.
       ctx.beginPath();
@@ -1264,30 +1314,30 @@ function renderTopoTop(
       }
 
       // label
+      if (!visibleLabelIds.has(p.id)) continue;
       const text = p.value.toFixed(resolved.decimalPlaces);
       ctx.font = `${weight} ${fontPx}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const isLive = live && live.id === p.id;
-      const dx = isLive ? live!.dx : (p.labelDx ?? DEFAULT_LABEL_DX);
-      const dy = isLive ? live!.dy : (p.labelDy ?? DEFAULT_LABEL_DY);
+      const dx = isLive ? live!.dx : (p.labelDx ?? DEFAULT_LABEL_DX * k);
+      const dy = isLive ? live!.dy : (p.labelDy ?? DEFAULT_LABEL_DY * k);
       const tx = p.x + dx;
       const ty = p.y + dy;
       const tw = ctx.measureText(text).width;
       const inverted = highlightId === p.id;
-      const padX = 6;
-      const padY = 3;
       const pillW = tw + padX * 2;
       const pillH = fontPx + padY * 2;
+      const radius = 2.5 * k;
       const cx = tx + tw / 2;
       const cy = ty + fontPx / 2;
 
       if (inverted) {
         // Inverted highlight: dark pill, light text
         ctx.fillStyle = color;
-        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+        roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
         ctx.fill();
-        ctx.lineWidth = 1;
+        ctx.lineWidth = k;
         ctx.strokeStyle = color;
         ctx.stroke();
         ctx.fillStyle = "#ffffff";
@@ -1295,13 +1345,13 @@ function renderTopoTop(
       } else {
         if (resolved.pointLabelBackground === "white") {
           ctx.fillStyle = "rgba(255,255,255,0.92)";
-          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
           ctx.fill();
         }
         if (resolved.pointLabelBackground !== "plain") {
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 0.8 * k;
           ctx.strokeStyle = color;
-          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, 3);
+          roundRectPath(ctx, tx - padX, ty - padY, pillW, pillH, radius);
           ctx.stroke();
         }
         ctx.fillStyle = color;
