@@ -737,6 +737,11 @@ export function TopoTab({
                 checked={resolved.showHighLow}
                 onChange={(v) => update({ showHighLow: v })}
               />
+              <SwitchRow
+                label="Declutter"
+                checked={resolved.declutterLabels !== false}
+                onChange={(v) => update({ declutterLabels: v })}
+              />
               <div className="col-span-2 flex items-center justify-between gap-2">
                 <Label className="text-xs">Label bg</Label>
                 <div className="inline-flex rounded-md border overflow-hidden">
