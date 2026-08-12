@@ -1115,38 +1115,40 @@ export function FieldTab({
 
 
             // Label — anchors show only the raw reading, downstream points show `raw+delta`.
-            const label = isDownstream
-              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!, floor.transitionGroupAverages))}`
-              : p.value.toFixed(2);
-            const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
-            const lx = p.x + markerHalo + 4;
-            const ly = p.y + markerHalo + 3;
-            ctx.font = `bold ${labelFontSize}px sans-serif`;
-            const tm = ctx.measureText(label);
-            const padX = 3;
-            const padY = 2;
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, labelFontSize + padY * 2, 4);
-            ctx.fill();
+            if (visibleLabelIds.has(p.id)) {
+              const label = isDownstream
+                ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(linkedT!, floor.transitionGroupAverages))}`
+                : p.value.toFixed(2);
+              const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
+              const lx = p.x + markerHalo + 4 * k;
+              const ly = p.y + markerHalo + 3 * k;
+              ctx.font = `bold ${lblFontPx}px sans-serif`;
+              const tm = ctx.measureText(label);
+              const padX = lblPadX;
+              const padY = lblPadY;
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.roundRect(lx - padX, ly - padY, tm.width + padX * 2, lblFontPx + padY * 2, 3 * k);
+              ctx.fill();
 
-            ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
-            ctx.lineWidth = isHighlighted ? 1.5 : 1;
-            ctx.stroke();
+              ctx.strokeStyle = isHighlighted ? TRANSITION_COLOR : "#111827";
+              ctx.lineWidth = (isHighlighted ? 1.5 : 1) * k;
+              ctx.stroke();
 
-            ctx.fillStyle = "#111827";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(label, lx + tm.width / 2, ly - padY + (labelFontSize + padY * 2) / 2);
+              ctx.fillStyle = "#111827";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(label, lx + tm.width / 2, ly - padY + (lblFontPx + padY * 2) / 2);
 
-            // Zone tag for excluded points — small muted label below the pin
-            const zone = zoneOfXY(p.x, p.y, floor.exclusions);
-            if (zone && zone.label) {
-              ctx.font = `${Math.max(9, labelFontSize - 2)}px sans-serif`;
-              ctx.fillStyle = "rgba(75,85,99,0.9)";
-              ctx.textAlign = "left";
-              ctx.textBaseline = "top";
-              ctx.fillText(zone.label, lx, ly + labelFontSize + padY * 2 + 2);
+              // Zone tag for excluded points — small muted label below the pin
+              const zone = zoneOfXY(p.x, p.y, floor.exclusions);
+              if (zone && zone.label) {
+                ctx.font = `${Math.max(9, labelFontSize - 2) * k}px sans-serif`;
+                ctx.fillStyle = "rgba(75,85,99,0.9)";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "top";
+                ctx.fillText(zone.label, lx, ly + lblFontPx + padY * 2 + 2 * k);
+              }
             }
           }
 
