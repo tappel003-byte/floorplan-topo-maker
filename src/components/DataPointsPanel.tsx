@@ -55,16 +55,17 @@ function loadState(projectId: string): PanelState {
     if (raw)
       return {
         collapsed: true,
-        hidden: false,
+        hidden: true,
         x: 8,
         y: 52,
         sortMode: "index",
         ...JSON.parse(raw),
+        hidden: true,
       };
   } catch {
     /* ignore */
   }
-  return { x: 8, y: 52, collapsed: true, hidden: false, sortMode: "index" };
+  return { x: 8, y: 52, collapsed: true, hidden: true, sortMode: "index" };
 }
 
 export function DataPointsPanel({
