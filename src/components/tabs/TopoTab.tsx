@@ -111,6 +111,8 @@ export function TopoTab({
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [legendSelected, setLegendSelected] = useState(false);
+  // Current canvas zoom — labels are drawn at a screen-constant size.
+  const [viewScale, setViewScale] = useState(1);
   const resolved = resolveSettings(settings);
 
   // Persist legend scale/position across sessions (localStorage). Defaults: 1.5×.
