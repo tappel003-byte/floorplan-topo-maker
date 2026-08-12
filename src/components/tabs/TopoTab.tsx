@@ -706,6 +706,29 @@ export function TopoTab({
                 checked={resolved.declutterLabels !== false}
                 onChange={(v) => update({ declutterLabels: v })}
               />
+              <StepperControl
+                label="Legend size"
+                value={Math.round((resolved.legendScale ?? 1) * 10) / 10}
+                min={0.4}
+                max={4}
+                step={0.1}
+                format={(v) => `${v.toFixed(1)}×`}
+                onChange={(v) =>
+                  update({ legendScale: Math.max(0.4, Math.min(4, Math.round(v * 10) / 10)) })
+                }
+              />
+              <StepperControl
+                label="Stats pill size"
+                value={statsChipSize}
+                min={STATS_CHIP_MIN}
+                max={STATS_CHIP_MAX}
+                step={2}
+                onChange={(v) => {
+                  const n = Math.max(STATS_CHIP_MIN, Math.min(STATS_CHIP_MAX, Math.round(v)));
+                  setStatsChipSizeState(n);
+                  setStatsChipSize(n);
+                }}
+              />
               <div className="col-span-2 flex items-center justify-between gap-2">
                 <Label className="text-xs">Label bg</Label>
                 <div className="inline-flex rounded-md border overflow-hidden">
