@@ -84,10 +84,11 @@ function pinWidth(text: string, fontPx: number) {
 }
 
 // Where the label sits (top-left corner) for a given point in image coords.
-function labelAnchor(p: SurveyPoint) {
+// `k` = 1 / canvas zoom, so the default offset stays screen-constant.
+function labelAnchor(p: SurveyPoint, k = 1) {
   return {
-    x: p.x + (p.labelDx ?? DEFAULT_LABEL_DX),
-    y: p.y + (p.labelDy ?? DEFAULT_LABEL_DY),
+    x: p.x + (p.labelDx ?? DEFAULT_LABEL_DX * k),
+    y: p.y + (p.labelDy ?? DEFAULT_LABEL_DY * k),
   };
 }
 
