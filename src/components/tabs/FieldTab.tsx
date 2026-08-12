@@ -1013,6 +1013,48 @@ export function FieldTab({
           for (const p of points) {
             if (p.transitionId && highlightIds.has(p.transitionId)) highlightPointIds.add(p.id);
           }
+          // Labels are drawn at a screen-constant size (divide by the canvas
+          // zoom) so they stay readable on desktop, and a decluttering pass
+          // hides labels that would collide. Dots always draw.
+          const s = scaleRef.current || 1;
+          const k = 1 / s;
+          const lblFontPx = labelFontSize * k;
+          const lblPadX = 3 * k;
+          const lblPadY = 2 * k;
+          const labelTextFor = (p: SurveyPoint) => {
+            const lt = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
+            return lt && !p.isTransitionAnchor
+              ? `${p.value.toFixed(2)}${formatDelta(transitionDelta(lt, floor.transitionGroupAverages))}`
+              : p.value.toFixed(2);
+          };
+          const labelRectFor = (p: SurveyPoint) => {
+            ctx.font = `bold ${lblFontPx}px sans-serif`;
+            const w = ctx.measureText(labelTextFor(p)).width + lblPadX * 2;
+            const h = lblFontPx + lblPadY * 2;
+            const halo = p.isTransitionAnchor
+              ? Math.max(Math.max(pointSize, 2) + 3, 6)
+              : Math.max(pointSize, 2);
+            return { x: p.x + halo + 4 * k - lblPadX, y: p.y + halo + 3 * k - lblPadY, w, h };
+          };
+          const labelPriority = (p: SurveyPoint) =>
+            selectedIds.has(p.id) ? 0 : highlightPointIds.has(p.id) ? 1 : p.isTransitionAnchor ? 2 : 3;
+          const visibleLabelIds = new Set<string>();
+          {
+            const placed: { x: number; y: number; w: number; h: number }[] = [];
+            const ordered = [...points].sort((a, b) => labelPriority(a) - labelPriority(b));
+            for (const p of ordered) {
+              const r = labelRectFor(p);
+              const hit = placed.some(
+                (q) =>
+                  r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y,
+              );
+              if (!hit) {
+                placed.push(r);
+                visibleLabelIds.add(p.id);
+              }
+            }
+          }
+
           for (const p of points) {
             const isAnchor = !!p.isTransitionAnchor;
             const linkedT = p.transitionId
