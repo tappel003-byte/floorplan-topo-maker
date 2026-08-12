@@ -257,14 +257,15 @@ export function TopoTab({
     }
     // Point-number labels
     if (resolved.showPoints) {
+      const k = 1 / (viewScale || 1);
       const dec = resolved.decimalPlaces;
-      const fontPx = resolved.pointLabelFontSize;
+      const fontPx = resolved.pointLabelFontSize * k;
       const weight = resolved.pointLabelWeight;
-      const pad = 4;
+      const pad = 4 * k;
       for (const p of visiblePoints) {
         const text = p.value.toFixed(dec);
         const { w, h } = measureLabel(text, fontPx, weight);
-        const a = labelAnchor(p);
+        const a = labelAnchor(p, k);
         if (x >= a.x - pad && x <= a.x + w + pad && y >= a.y - pad && y <= a.y + h + pad) {
           return { kind: "label", point: p };
         }
