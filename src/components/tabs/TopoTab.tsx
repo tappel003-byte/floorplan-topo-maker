@@ -3,6 +3,13 @@ import { PlanCanvas } from "../PlanCanvas";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import {
+  autoStatsChipSize,
+  getStatsChipSize,
+  setStatsChipSize,
+  STATS_CHIP_MAX,
+  STATS_CHIP_MIN,
+} from "@/components/chrome/StatsChip";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal, Minus, Plus } from "lucide-react";
@@ -109,6 +116,11 @@ export function TopoTab({
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
   const [openCorner, setOpenCorner] = useState<null | "contours" | "palette" | "labels">(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
+  // Stats pill (High/Low/Δ chip) size — persisted in localStorage, read by StatsChip.
+  const [statsChipSize, setStatsChipSizeState] = useState(28);
+  useEffect(() => {
+    setStatsChipSizeState(getStatsChipSize() ?? autoStatsChipSize());
+  }, []);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
   // Current canvas zoom — labels are drawn at a screen-constant size.
   const [viewScale, setViewScale] = useState(1);
@@ -1004,6 +1016,7 @@ function StepperControl({
   min,
   max,
   step = 1,
+  format,
   onChange,
 }: {
   label: string;
@@ -1011,9 +1024,10 @@ function StepperControl({
   min: number;
   max: number;
   step?: number;
+  format?: (v: number) => string;
   onChange: (v: number) => void;
 }) {
-  const display = `${value}px`;
+  const display = format ? format(value) : `${value}px`;
   return (
     <div>
       <Label className="text-xs">{label}</Label>
