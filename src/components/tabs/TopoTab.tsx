@@ -3,6 +3,13 @@ import { PlanCanvas } from "../PlanCanvas";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import {
+  autoStatsChipSize,
+  getStatsChipSize,
+  setStatsChipSize,
+  STATS_CHIP_MAX,
+  STATS_CHIP_MIN,
+} from "@/components/chrome/StatsChip";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal, Minus, Plus } from "lucide-react";
@@ -109,8 +116,12 @@ export function TopoTab({
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
   const [openCorner, setOpenCorner] = useState<null | "contours" | "palette" | "labels">(null);
   const [warningDismissed, setWarningDismissed] = useState(false);
+  // Stats pill (High/Low/Δ chip) size — persisted in localStorage, read by StatsChip.
+  const [statsChipSize, setStatsChipSizeState] = useState(28);
+  useEffect(() => {
+    setStatsChipSizeState(getStatsChipSize() ?? autoStatsChipSize());
+  }, []);
   const [legendDrag, setLegendDrag] = useState<{ dx: number; dy: number } | null>(null);
-  const [legendSelected, setLegendSelected] = useState(false);
   // Current canvas zoom — labels are drawn at a screen-constant size.
   const [viewScale, setViewScale] = useState(1);
   const resolved = resolveSettings(settings);
@@ -437,37 +448,6 @@ export function TopoTab({
         </div>
       )}
 
-      {/* Legend size (appears when the legend is tapped) */}
-      {legendSelected &&
-        resolved.showLegend &&
-        gridAndContours?.grid &&
-        resolved.mode !== "points-only" && (
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-background/95 backdrop-blur border shadow-md px-3 py-2 w-56 flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Legend size</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {(resolved.legendScale ?? 1).toFixed(2)}×
-                </span>
-                <button
-                  onClick={() => setLegendSelected(false)}
-                  aria-label="Close"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-            <Slider
-              min={0.4}
-              max={4}
-              step={0.05}
-              value={[resolved.legendScale ?? 1]}
-              onValueChange={([v]) => update({ legendScale: v })}
-            />
-            <p className="text-[10px] text-muted-foreground">Drag the legend to move it.</p>
-          </div>
-        )}
 
       <div className="flex-1 relative min-h-0 flex flex-col">
         <PlanCanvas
@@ -479,18 +459,15 @@ export function TopoTab({
           refitOnResize={false}
           onTransform={(t) => setViewScale((s) => (Math.abs(s - t.scale) > 1e-4 ? t.scale : s))}
           onImagePointerDown={(x, y) => {
-            // Legend tap: select + start drag. No corner-resize; size is edited via the floating slider.
+            // Legend tap: start drag only. Size is edited in Labels & layers.
             if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
               const box = legendBox(resolved);
               const inBox = x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
               if (inBox) {
-                setLegendSelected(true);
                 setLegendDrag({ dx: x - box.x, dy: y - box.y });
                 return true;
               }
             }
-            // Tap elsewhere on the canvas deselects the legend.
-            if (legendSelected) setLegendSelected(false);
             // Long-press on a label or a H/L pin to pick it up
             const hit = hitDraggable(x, y);
             if (hit) {
@@ -572,7 +549,6 @@ export function TopoTab({
               livePinHigh: activePinHigh,
               livePinLow: activePinLow,
               highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
-              legendSelected,
               pointSize,
               pointColor,
               viewScale,
@@ -741,6 +717,29 @@ export function TopoTab({
                 label="Declutter"
                 checked={resolved.declutterLabels !== false}
                 onChange={(v) => update({ declutterLabels: v })}
+              />
+              <StepperControl
+                label="Legend size"
+                value={Math.round((resolved.legendScale ?? 1) * 10) / 10}
+                min={0.4}
+                max={4}
+                step={0.1}
+                format={(v) => `${v.toFixed(1)}×`}
+                onChange={(v) =>
+                  update({ legendScale: Math.max(0.4, Math.min(4, Math.round(v * 10) / 10)) })
+                }
+              />
+              <StepperControl
+                label="Stats pill size"
+                value={statsChipSize}
+                min={STATS_CHIP_MIN}
+                max={STATS_CHIP_MAX}
+                step={2}
+                onChange={(v) => {
+                  const n = Math.max(STATS_CHIP_MIN, Math.min(STATS_CHIP_MAX, Math.round(v)));
+                  setStatsChipSizeState(n);
+                  setStatsChipSize(n);
+                }}
               />
               <div className="col-span-2 flex items-center justify-between gap-2">
                 <Label className="text-xs">Label bg</Label>
@@ -1017,6 +1016,7 @@ function StepperControl({
   min,
   max,
   step = 1,
+  format,
   onChange,
 }: {
   label: string;
@@ -1024,9 +1024,10 @@ function StepperControl({
   min: number;
   max: number;
   step?: number;
+  format?: (v: number) => string;
   onChange: (v: number) => void;
 }) {
-  const display = `${value}px`;
+  const display = format ? format(value) : `${value}px`;
   return (
     <div>
       <Label className="text-xs">{label}</Label>
@@ -1240,7 +1241,6 @@ function renderTopoTop(
     livePinHigh?: { dx: number; dy: number } | null;
     livePinLow?: { dx: number; dy: number } | null;
     highlightPin?: "pin-high" | "pin-low" | null;
-    legendSelected?: boolean;
     pointSize?: number;
     pointColor?: string;
     viewScale?: number;
@@ -1378,7 +1378,7 @@ function renderTopoTop(
         resolved,
         g,
         gridAndContours?.contours ?? null,
-        overlay?.legendSelected ?? false,
+        false,
       );
     // High/Low pins are scoped to the drawn boundary — out-of-boundary
     // reference readings (patio, garage) still draw as dots/labels above,
