@@ -575,6 +575,7 @@ export function TopoTab({
               legendSelected,
               pointSize,
               pointColor,
+              viewScale,
             });
           }}
         />
