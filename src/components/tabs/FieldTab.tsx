@@ -432,14 +432,14 @@ export function FieldTab({
     for (const p of points) {
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
-    const fontPx = labelFontSize;
+    const fontPx = labelFontSize / s;
     const pad = 4 / s;
     for (const p of points) {
       const text = p.value.toFixed(2);
       const w = text.length * fontPx * 0.62;
-      const h = fontPx + 2;
-      const lx = p.x + pointSize + 4;
-      const ly = p.y + pointSize + 3;
+      const h = fontPx + 2 / s;
+      const lx = p.x + pointSize + 4 / s;
+      const ly = p.y + pointSize + 3 / s;
       if (x >= lx - pad && x <= lx + w + pad && y >= ly - pad && y <= ly + h + pad) {
         return { point: p, on: "label" };
       }
