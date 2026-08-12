@@ -50,22 +50,17 @@ function nextSortMode(m: SortMode): SortMode {
 }
 
 function loadState(projectId: string): PanelState {
+  const defaults: PanelState = { x: 8, y: 52, collapsed: true, hidden: true, sortMode: "index" };
   try {
     const raw = localStorage.getItem(`dpp:${projectId}`);
-    if (raw)
-      return {
-        collapsed: true,
-        hidden: true,
-        x: 8,
-        y: 52,
-        sortMode: "index",
-        ...JSON.parse(raw),
-        hidden: true,
-      };
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<PanelState>;
+      return { ...defaults, ...parsed, hidden: true };
+    }
   } catch {
     /* ignore */
   }
-  return { x: 8, y: 52, collapsed: true, hidden: true, sortMode: "index" };
+  return defaults;
 }
 
 export function DataPointsPanel({
