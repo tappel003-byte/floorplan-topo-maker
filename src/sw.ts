@@ -51,6 +51,23 @@ setCatchHandler(async ({ request }) => {
     const cache = await caches.open("html-navigations");
     const cached = await cache.match("/");
     if (cached) return cached;
+
+    // Defensive fallback: some Workbox precache manifests are stored under
+    // a "precache" or "workbox-" cache name rather than our custom navigations
+    // cache. Do a single "/" lookup there before giving up.
+    try {
+      const names = await caches.keys();
+      for (const name of names) {
+        const lower = name.toLowerCase();
+        if (lower.includes("precache") || name.startsWith("workbox-")) {
+          const fallbackCache = await caches.open(name);
+          const fallback = await fallbackCache.match("/");
+          if (fallback) return fallback;
+        }
+      }
+    } catch {
+      // Ignore and fall through to Response.error().
+    }
   }
   return Response.error();
 });
