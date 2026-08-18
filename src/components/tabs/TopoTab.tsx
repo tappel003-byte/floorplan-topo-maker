@@ -1473,7 +1473,7 @@ const PRIMARY_PALETTES: RenderSettings["palette"][] = [
   "brown",
   "rainbow",
   "blue-red",
-  "gray",
+  "topographic",
 ];
 const EXTRA_PALETTES: RenderSettings["palette"][] = [
   "red-yellow-green",
@@ -1481,7 +1481,7 @@ const EXTRA_PALETTES: RenderSettings["palette"][] = [
   "sunset",
   "forest",
   "viridis",
-  "topographic",
+  "gray",
   "gray-amber",
   "nm-sunset",
   "mountain",
@@ -1559,7 +1559,7 @@ export function paletteColor(input: number, palette: RenderSettings["palette"], 
   const t = reverse ? 1 - input : input;
   const stops: Record<RenderSettings["palette"], Array<[number, number, number]>> = {
     brown: [
-      [92, 60, 35],
+      [130, 90, 55],
       [149, 99, 50],
       [201, 153, 83],
       [239, 213, 146],
