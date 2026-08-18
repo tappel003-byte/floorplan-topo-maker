@@ -270,7 +270,7 @@ export function TopoTab({
     }
     // Point-number labels
     if (resolved.showPoints) {
-      const k = 1 / (viewScale || 1);
+      const k = Math.pow(1 / (viewScale || 1), 0.5);
       const dec = resolved.decimalPlaces;
       const fontPx = resolved.pointLabelFontSize * k;
       const weight = resolved.pointLabelWeight;
