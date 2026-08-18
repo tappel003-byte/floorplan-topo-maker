@@ -1559,7 +1559,7 @@ export function paletteColor(input: number, palette: RenderSettings["palette"], 
   const t = reverse ? 1 - input : input;
   const stops: Record<RenderSettings["palette"], Array<[number, number, number]>> = {
     brown: [
-      [92, 60, 35],
+      [130, 90, 55],
       [149, 99, 50],
       [201, 153, 83],
       [239, 213, 146],
