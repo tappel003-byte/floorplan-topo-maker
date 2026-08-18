@@ -1253,16 +1253,16 @@ function renderTopoTop(
   const livePinHigh = overlay?.livePinHigh ?? null;
   const livePinLow = overlay?.livePinLow ?? null;
   const highlightPin = overlay?.highlightPin ?? null;
-  // Screen-constant label sizing: divide everything by the canvas zoom so the
-  // pill stays the same physical size no matter how far out the plan is zoomed.
-  const k = 1 / (overlay?.viewScale || 1);
+  // Screen-constant label sizing: dampen the canvas zoom so the
+  // pill stays readable without fully canceling the zoom distance.
+  const k = Math.pow(1 / (overlay?.viewScale || 1), 0.5);
   const fontPx = resolved.pointLabelFontSize * k;
   const weight = resolved.pointLabelWeight;
   const color = resolved.pointLabelColor;
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
-    const dotR = Math.max(1, overlay?.pointSize ?? 6);
+    const dotR = Math.max(1, fontPx * 0.55);
     const dotColor = overlay?.pointColor ?? "#dc2626";
     const padX = 4 * k;
     const padY = 2.5 * k;
