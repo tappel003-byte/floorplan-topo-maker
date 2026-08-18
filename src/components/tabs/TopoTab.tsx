@@ -1473,7 +1473,7 @@ const PRIMARY_PALETTES: RenderSettings["palette"][] = [
   "brown",
   "rainbow",
   "blue-red",
-  "gray",
+  "topographic",
 ];
 const EXTRA_PALETTES: RenderSettings["palette"][] = [
   "red-yellow-green",
@@ -1481,7 +1481,7 @@ const EXTRA_PALETTES: RenderSettings["palette"][] = [
   "sunset",
   "forest",
   "viridis",
-  "topographic",
+  "gray",
   "gray-amber",
   "nm-sunset",
   "mountain",
