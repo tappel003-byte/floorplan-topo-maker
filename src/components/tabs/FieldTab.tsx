@@ -1017,10 +1017,12 @@ export function FieldTab({
           // zoom) so they stay readable on desktop, and a decluttering pass
           // hides labels that would collide. Dots always draw.
           const s = scaleRef.current || 1;
-          const k = 1 / s;
+          const k = Math.pow(1 / s, 0.5);
           const lblFontPx = labelFontSize * k;
           const lblPadX = 3 * k;
           const lblPadY = 2 * k;
+          const markerROnScreen = Math.min(22, Math.max(6, lblFontPx * s * 0.4));
+          const markerR = markerROnScreen / s;
           const labelTextFor = (p: SurveyPoint) => {
             const lt = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
             return lt && !p.isTransitionAnchor
@@ -1031,9 +1033,7 @@ export function FieldTab({
             ctx.font = `bold ${lblFontPx}px sans-serif`;
             const w = ctx.measureText(labelTextFor(p)).width + lblPadX * 2;
             const h = lblFontPx + lblPadY * 2;
-            const halo = p.isTransitionAnchor
-              ? Math.max(Math.max(pointSize, 2) + 3, 6)
-              : Math.max(pointSize, 2);
+            const halo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
             return { x: p.x + halo + 4 * k - lblPadX, y: p.y + halo + 3 * k - lblPadY, w, h };
           };
           const labelPriority = (p: SurveyPoint) =>
@@ -1068,7 +1068,6 @@ export function FieldTab({
               : p.isBasePoint
                 ? "#16a34a"
                 : pointColor;
-            const markerR = Math.max(pointSize, 2);
 
             // Marker: diamond for anchors, filled circle with white core otherwise.
             if (isAnchor) {
