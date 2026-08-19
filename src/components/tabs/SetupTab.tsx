@@ -10,6 +10,7 @@ import { AddressGpsButtons } from "../AddressGpsButtons";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import { drawExclusionShape } from "@/lib/exclusions";
 import type { Floor, Exclusion, ProjectMeta } from "@/lib/types";
+import { CANVAS_FONT_FAMILY } from "@/lib/utils";
 
 interface Props {
   project: ProjectMeta;
@@ -730,7 +731,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               if (ex.polygon.length > 0 && ex.label) {
                 const cx = ex.polygon.reduce((s, p) => s + p.x, 0) / ex.polygon.length;
                 const cy = ex.polygon.reduce((s, p) => s + p.y, 0) / ex.polygon.length;
-                ctx.font = "bold 12px sans-serif";
+                ctx.font = `bold 12px ${CANVAS_FONT_FAMILY}`;
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 const tw = ctx.measureText(ex.label).width;
@@ -754,7 +755,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               ctx.lineWidth = 2;
               ctx.stroke();
               ctx.fillStyle = "#111827";
-              ctx.font = "bold 10px sans-serif";
+              ctx.font = `bold 10px ${CANVAS_FONT_FAMILY}`;
               ctx.textAlign = "center";
               ctx.textBaseline = "middle";
               ctx.fillText(String(i + 1), p.x, p.y - 12);

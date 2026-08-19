@@ -7,6 +7,7 @@ import { TOPO_GRID_TARGET_COLS, buildGrid, computeContours } from "@/lib/topo";
 import { zoneOfXY } from "@/lib/exclusions";
 import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
+import { CANVAS_FONT_FAMILY } from "@/lib/utils";
 
 interface Props {
   project: ProjectMeta;
@@ -261,9 +262,9 @@ function drawTitleBlock(
   ctx.fillStyle = "#111";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.font = "bold 14px sans-serif";
+  ctx.font = `bold 14px ${CANVAS_FONT_FAMILY}`;
   ctx.fillText(project.name, x + 10, y + 8);
-  ctx.font = "11px sans-serif";
+  ctx.font = `11px ${CANVAS_FONT_FAMILY}`;
   ctx.fillText(project.address, x + 10, y + 26);
   ctx.fillText(`${floor.name} · ${points.length} points`, x + 10, y + 40);
   ctx.fillText(`Inspected: ${project.inspectionDate}`, x + 10, y + 54);
