@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { useAppBottomOffset } from "@/hooks/useAppBottomOffset";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 // UpdateBanner intentionally not mounted — silent auto-update handles this.
 // File kept in place so it can be re-enabled later without a rewrite.
@@ -127,6 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useAppBottomOffset();
 
   return (
     <QueryClientProvider client={queryClient}>
