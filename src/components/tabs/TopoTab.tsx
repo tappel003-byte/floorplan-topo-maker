@@ -13,6 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal, Minus, Plus } from "lucide-react";
+import { CANVAS_FONT_FAMILY } from "@/lib/utils";
 import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { TopoDiagnosticPanel } from "../TopoDiagnosticPanel";
@@ -81,7 +82,7 @@ function measureLabel(text: string, fontPx: number, weight: string) {
     measureCtx = c.getContext("2d");
   }
   if (!measureCtx) return { w: text.length * fontPx * 0.6, h: fontPx };
-  measureCtx.font = `${weight} ${fontPx}px sans-serif`;
+  measureCtx.font = `${weight} ${fontPx}px ${CANVAS_FONT_FAMILY}`;
   return { w: measureCtx.measureText(text).width, h: fontPx };
 }
 
@@ -394,7 +395,7 @@ export function TopoTab({
           type="button"
           onClick={() => setOpenCorner("labels")}
           aria-label="Labels & layers"
-          className="fixed z-30 h-9 w-9 rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md flex items-center justify-center text-gray-700 hover:bg-gray-50 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-[calc(env(safe-area-inset-right)+0.75rem)]"
+          className="fixed z-30 h-9 w-9 rounded-full bg-card/95 backdrop-blur border border-border shadow-md flex items-center justify-center text-foreground hover:bg-secondary bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-[calc(env(safe-area-inset-right)+0.75rem)]"
         >
           <Tag className="h-4 w-4" />
         </button>
@@ -408,7 +409,7 @@ export function TopoTab({
           "fixed z-30 h-9 min-w-9 px-2 rounded-full backdrop-blur border shadow-md flex items-center justify-center gap-1 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-[calc(env(safe-area-inset-right)+3.5rem)] " +
           (diagOpen || excludedIds.size > 0
             ? "bg-amber-100 border-amber-300 text-amber-900"
-            : "bg-white/95 border-gray-300 text-gray-700 hover:bg-gray-50")
+            : "bg-card/95 border-border text-foreground hover:bg-secondary")
         }
       >
         <SlidersHorizontal className="h-4 w-4" />
@@ -1202,7 +1203,7 @@ function renderTopoBaseLayer(
           // contour-bw
           const step = Math.max(0.01, resolved.contourStep);
           const isMajor = Math.abs(c.value / (step * 5) - Math.round(c.value / (step * 5))) < 0.03;
-          ctx.strokeStyle = "#17130e";
+          ctx.strokeStyle = "#1a1a1a";
           ctx.lineWidth = (isMajor ? resolved.lineThickness * 2 : resolved.lineThickness) / g.step;
           ctx.globalAlpha = resolved.contourOpacity;
           ctx.stroke();
@@ -1271,7 +1272,7 @@ function renderTopoTop(
 
     // Decluttering: figure out which labels can be drawn without colliding.
     // Dots always draw. Highlighted / dragged labels win ties.
-    ctx.font = `${weight} ${fontPx}px sans-serif`;
+    ctx.font = `${weight} ${fontPx}px ${CANVAS_FONT_FAMILY}`;
     const rectFor = (p: SurveyPoint) => {
       const isLive = live && live.id === p.id;
       const dx = isLive ? live!.dx : (p.labelDx ?? DEFAULT_LABEL_DX * k);
@@ -1310,7 +1311,7 @@ function renderTopoTop(
       if (highlightId === p.id) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, dotR + 6, 0, Math.PI * 2);
-        ctx.strokeStyle = "hsl(var(--primary))";
+        ctx.strokeStyle = "#c14a2b";
         ctx.lineWidth = 2.5;
         ctx.stroke();
       }
@@ -1318,7 +1319,7 @@ function renderTopoTop(
       // label
       if (!visibleLabelIds.has(p.id)) continue;
       const text = p.value.toFixed(resolved.decimalPlaces);
-      ctx.font = `${weight} ${fontPx}px sans-serif`;
+      ctx.font = `${weight} ${fontPx}px ${CANVAS_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const isLive = live && live.id === p.id;
@@ -1366,7 +1367,7 @@ function renderTopoTop(
     if (sel) {
       ctx.beginPath();
       ctx.arc(sel.x, sel.y, 12, 0, Math.PI * 2);
-      ctx.strokeStyle = "hsl(var(--primary))";
+      ctx.strokeStyle = "#c14a2b";
       ctx.lineWidth = 2.5;
       ctx.stroke();
     }
@@ -1416,13 +1417,13 @@ function drawPin(
   const topOffset = pinTopOffset(fontPx);
   const pad = pinPadding(fontPx);
   const radius = pinCornerRadius(fontPx);
-  ctx.font = `bold ${fontPx}px sans-serif`;
+  ctx.font = `bold ${fontPx}px ${CANVAS_FONT_FAMILY}`;
   const w = Math.max(pinMinWidth(fontPx), ctx.measureText(letter).width + pad * 2);
   ctx.beginPath();
   roundRectPath(ctx, x - w / 2, y + topOffset, w, pinH, radius);
   ctx.fillStyle = color;
   ctx.fill();
-  ctx.strokeStyle = highlighted ? "#17130e" : "#fff";
+  ctx.strokeStyle = highlighted ? "#1a1a1a" : "#fff";
   ctx.lineWidth = pinStrokeWidth(fontPx, highlighted);
   ctx.stroke();
   ctx.fillStyle = "#fff";
@@ -1715,11 +1716,11 @@ function drawLegend(
     ctx.fillStyle = paletteColor(t, settings.palette, settings.reversePalette);
     ctx.fillRect(barX, yTop, barW, yBot - yTop + 0.5);
   }
-  ctx.strokeStyle = "#17130e";
+  ctx.strokeStyle = "#1a1a1a";
   ctx.strokeRect(barX, barY, barW, barH);
 
-  ctx.fillStyle = "#17130e";
-  ctx.font = `bold ${10 * s}px sans-serif`;
+  ctx.fillStyle = "#1a1a1a";
+  ctx.font = `bold ${10 * s}px ${CANVAS_FONT_FAMILY}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   const labels: number[] = [];
@@ -1742,13 +1743,13 @@ function drawLegend(
   }
 
   ctx.fillStyle = "rgba(23,19,14,0.7)";
-  ctx.font = `bold ${9 * s}px sans-serif`;
+  ctx.font = `bold ${9 * s}px ${CANVAS_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.fillText("ELEV.", box.x + box.w / 2, box.y + box.h - 12 * s);
 
   // Selection outline (indicates the legend is tappable / size slider is open)
   if (selected) {
-    ctx.strokeStyle = "hsl(var(--primary))";
+    ctx.strokeStyle = "#c14a2b";
     ctx.lineWidth = 2;
     roundRectPath(ctx, box.x - 2, box.y - 2, box.w + 4, box.h + 4, 8 * s);
     ctx.stroke();

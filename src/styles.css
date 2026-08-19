@@ -66,8 +66,8 @@
   --popover: oklch(0.985 0.014 85);
   --popover-foreground: oklch(0.191 0 0);
 
-  --primary: oklch(0.555 0.115 45);              /* burnt sienna — warmer, less red */
-  --primary-foreground: oklch(0.985 0.014 85);
+  --primary: #c14a2b;
+  --primary-foreground: #fffaf0;
 
   /* Muted olive-brown for toggle "on" — recedes so 9 stacked switches don't scream */
   --toggle-on: oklch(0.470 0.045 75);
@@ -119,10 +119,12 @@
 
   html {
     font-size: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: inherit;
   }
 }

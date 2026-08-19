@@ -216,7 +216,7 @@ export const defaultRenderSettings: RenderSettings = {
   pointsOpacity: 1,
   pointLabelBackground: "white",
   pointLabelFontSize: 11,
-  pointLabelColor: "#17130e",
+  pointLabelColor: "#1a1a1a",
   pointLabelWeight: "bold",
   highLowPinSize: 11,
   showLegend: true,

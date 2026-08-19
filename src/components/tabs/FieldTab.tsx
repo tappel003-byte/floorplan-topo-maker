@@ -13,6 +13,7 @@ import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/li
 import { transitionDelta, formatDelta, getChainBaselineSurface } from "@/lib/transitions";
 import { drawExclusionShape, zoneOfXY } from "@/lib/exclusions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
+import { CANVAS_FONT_FAMILY } from "@/lib/utils";
 
 
 interface Props {
@@ -550,7 +551,7 @@ export function FieldTab({
       )}
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
-      <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
+      <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-card/95 backdrop-blur shadow-md border border-border overflow-hidden text-xs font-medium">
         <button
           onClick={() => {
             setNoteMode((v) => !v);
@@ -558,7 +559,7 @@ export function FieldTab({
             setNotesListOpen(false);
           }}
           className={`px-3 py-2 flex items-center gap-1.5 transition-colors ${
-            noteMode ? "bg-orange-500 text-white" : "text-gray-700 hover:bg-gray-50"
+            noteMode ? "bg-orange-500 text-white" : "text-foreground hover:bg-secondary"
           }`}
           aria-pressed={noteMode}
           aria-label="Toggle note mode"
@@ -571,8 +572,8 @@ export function FieldTab({
             setNotesListOpen((v) => !v);
             setEditingNoteId(null);
           }}
-          className={`px-3 py-2 flex items-center gap-1.5 border-l border-gray-200 transition-colors ${
-            notesListOpen ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+          className={`px-3 py-2 flex items-center gap-1.5 border-l border-border transition-colors ${
+            notesListOpen ? "bg-secondary text-foreground" : "text-foreground hover:bg-secondary"
           }`}
           aria-expanded={notesListOpen}
           aria-label="Show all notes"
@@ -1033,7 +1034,7 @@ export function FieldTab({
               : p.value.toFixed(2);
           };
           const labelRectFor = (p: SurveyPoint) => {
-            ctx.font = `bold ${lblFontPx}px sans-serif`;
+            ctx.font = `bold ${lblFontPx}px ${CANVAS_FONT_FAMILY}`;
             const w = ctx.measureText(labelTextFor(p)).width + lblPadX * 2;
             const h = lblFontPx + lblPadY * 2;
             const halo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
@@ -1124,7 +1125,7 @@ export function FieldTab({
               const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
               const lx = p.x + markerHalo + 4 * k;
               const ly = p.y + markerHalo + 3 * k;
-              ctx.font = `bold ${lblFontPx}px sans-serif`;
+              ctx.font = `bold ${lblFontPx}px ${CANVAS_FONT_FAMILY}`;
               const tm = ctx.measureText(label);
               const padX = lblPadX;
               const padY = lblPadY;
@@ -1145,7 +1146,7 @@ export function FieldTab({
               // Zone tag for excluded points — small muted label below the pin
               const zone = zoneOfXY(p.x, p.y, floor.exclusions);
               if (zone && zone.label) {
-                ctx.font = `${Math.max(9, labelFontSize - 2) * k}px sans-serif`;
+                ctx.font = `${Math.max(9, labelFontSize - 2) * k}px ${CANVAS_FONT_FAMILY}`;
                 ctx.fillStyle = "rgba(75,85,99,0.9)";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "top";
@@ -1169,7 +1170,7 @@ export function FieldTab({
             ctx.strokeStyle = "#ffffff";
             ctx.stroke();
             ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 11px sans-serif";
+            ctx.font = "bold 11px ${CANVAS_FONT_FAMILY}";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(String(i + 1), n.x, n.y + 0.5);
