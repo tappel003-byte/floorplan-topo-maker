@@ -492,7 +492,7 @@ export function ProjectList() {
           setTrashOpen(true);
         }}
         aria-label={trashed.length > 0 ? `Trash (${trashed.length})` : "Trash"}
-        className={`fixed right-[18px] bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${
+        className={`fixed right-[18px] bottom-[18px] z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${
           trashed.length === 0 ? "cursor-default opacity-[0.35]" : "cursor-pointer opacity-100"
         }`}
       >
