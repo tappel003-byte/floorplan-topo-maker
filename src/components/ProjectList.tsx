@@ -496,7 +496,7 @@ export function ProjectList() {
           trashed.length === 0 ? "cursor-default opacity-[0.35]" : "cursor-pointer opacity-100"
         }`}
       >
-        <Trash2 className="h-6 w-6" aria-hidden />
+        <span className="text-[24px] leading-none" aria-hidden>🗑</span>
         {trashed.length > 0 && (
           <span className="absolute -top-1 -right-1 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[11px] font-bold">
             {trashed.length}
