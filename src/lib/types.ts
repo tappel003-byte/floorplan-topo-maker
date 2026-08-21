@@ -2,13 +2,24 @@
 
 export type Mode = "setup" | "field" | "review" | "topo" | "export";
 
+/** Optional GPS fix from Set Base Point. Absent / undefined = never captured. */
+export interface BasePointGps {
+  lat: number;
+  lon: number;
+  /** Horizontal accuracy in meters (±). */
+  accuracyM: number;
+  capturedAt: number;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
   address: string;
   client: string;
+  /** Legacy field — no longer shown in Setup; kept for existing project JSON. */
   inspector: string;
   inspectionDate: string; // ISO date
+  /** Legacy field — no longer shown in Setup; kept for existing project JSON. */
   notes: string;
   createdAt: number;
   updatedAt: number;
@@ -23,6 +34,8 @@ export interface ProjectMeta {
   // Custom flooring surface names typed via the "Other" option in the
   // transition picker. Accumulates for the life of the project.
   customSurfaces?: string[];
+  /** GPS captured at Set Base Point (optional; never blocks Continue). */
+  basePointGps?: BasePointGps;
 }
 
 

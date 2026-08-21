@@ -266,6 +266,18 @@ function ProjectWorkspace() {
     [],
   );
 
+  const handleBasePointGps = useCallback(
+    (gps: NonNullable<ProjectMeta["basePointGps"]>) => {
+      setProject((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, basePointGps: gps, updatedAt: Date.now() };
+        void saveProject(next);
+        return next;
+      });
+    },
+    [],
+  );
+
 
 
 
@@ -344,6 +356,8 @@ function ProjectWorkspace() {
             projectId={project.id}
             customSurfaces={project.customSurfaces}
             onAddCustomSurface={handleAddCustomSurface}
+            basePointGps={project.basePointGps}
+            onBasePointGps={handleBasePointGps}
             floor={activeFloor}
             points={points}
             onPointsChange={setPoints}

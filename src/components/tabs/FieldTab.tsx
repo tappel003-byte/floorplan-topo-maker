@@ -8,12 +8,13 @@ import { TransitionDetailDialog } from "../TransitionDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
 
-import type { Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
+import type { BasePointGps, Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
 import { transitionDelta, formatDelta, getChainBaselineSurface } from "@/lib/transitions";
 import { drawExclusionShape, zoneOfXY } from "@/lib/exclusions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
 import { CANVAS_FONT_FAMILY } from "@/lib/utils";
+import { geoError, getPos } from "@/components/AddressGpsButtons";
 
 
 interface Props {
@@ -22,6 +23,10 @@ interface Props {
   customSurfaces?: string[];
   /** Persists a newly typed custom surface name onto the project. */
   onAddCustomSurface?: (name: string) => void;
+  /** Optional GPS already stored on the project (Set Base Point). */
+  basePointGps?: BasePointGps;
+  /** Persist a new Base Point GPS fix onto the project (does not block Continue). */
+  onBasePointGps?: (gps: BasePointGps) => void;
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
@@ -73,6 +78,8 @@ export function FieldTab({
   projectId,
   customSurfaces,
   onAddCustomSurface,
+  basePointGps,
+  onBasePointGps,
   floor,
   points,
   onPointsChange,
@@ -90,6 +97,8 @@ export function FieldTab({
   const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
+  const [gpsBusy, setGpsBusy] = useState(false);
+  const [gpsMsg, setGpsMsg] = useState<string | null>(null);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [dragging, setDragging] = useState<DragState | null>(null);
@@ -1402,21 +1411,68 @@ export function FieldTab({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-background rounded-xl shadow-2xl max-w-sm w-full p-5">
             <h3 className="text-lg font-semibold mb-1">Set Base Point</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-3">
               This is your first point. It becomes <span className="font-mono">BP1</span>, the
               reference elevation. Default is 9.0". Tap Continue to enter its value.
             </p>
+            <div className="mb-4 space-y-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={gpsBusy}
+                onClick={async () => {
+                  setGpsBusy(true);
+                  setGpsMsg(null);
+                  try {
+                    const pos = await getPos();
+                    const fix: BasePointGps = {
+                      lat: pos.coords.latitude,
+                      lon: pos.coords.longitude,
+                      accuracyM: pos.coords.accuracy,
+                      capturedAt: Date.now(),
+                    };
+                    onBasePointGps?.(fix);
+                    setGpsMsg(null);
+                  } catch (e) {
+                    setGpsMsg(geoError(e));
+                  } finally {
+                    setGpsBusy(false);
+                  }
+                }}
+              >
+                {gpsBusy ? "Locating…" : "📐 GPS coordinates"}
+              </Button>
+              {(basePointGps || gpsMsg) && (
+                <p className="text-xs text-muted-foreground font-mono leading-snug">
+                  {gpsMsg
+                    ? gpsMsg
+                    : basePointGps
+                      ? `${basePointGps.lat.toFixed(5)}, ${basePointGps.lon.toFixed(5)} (±${Math.round(basePointGps.accuracyM)}m)`
+                      : null}
+                </p>
+              )}
+            </div>
             <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
                 onClick={() => {
                   setPending(null);
                   setBpPromptOpen(false);
+                  setGpsMsg(null);
                 }}
               >
                 Cancel
               </Button>
-              <Button onClick={() => setBpPromptOpen(false)}>Continue</Button>
+              <Button
+                onClick={() => {
+                  setBpPromptOpen(false);
+                  setGpsMsg(null);
+                }}
+              >
+                Continue
+              </Button>
             </div>
           </div>
         </div>

@@ -5,36 +5,37 @@ interface Props {
   onAddress: (addr: string) => void;
 }
 
+function getPos(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) {
+      reject(new Error("GPS not supported on this device"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0,
+    });
+  });
+}
+
+function geoError(e: unknown): string {
+  const err = e as GeolocationPositionError & { message?: string };
+  if (err && typeof err.code === "number") {
+    if (err.code === 1) return "Location permission denied";
+    if (err.code === 2) return "Location unavailable";
+    if (err.code === 3) return "Location request timed out";
+  }
+  return err?.message || "Could not get location";
+}
+
+/** Address Auto-fill only — GPS coordinates live on Set Base Point. */
 export function AddressGpsButtons({ onAddress }: Props) {
-  const [busy, setBusy] = useState<null | "addr" | "coords">(null);
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  function getPos(): Promise<GeolocationPosition> {
-    return new Promise((resolve, reject) => {
-      if (!("geolocation" in navigator)) {
-        reject(new Error("GPS not supported on this device"));
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
-      });
-    });
-  }
-
-  function geoError(e: unknown): string {
-    const err = e as GeolocationPositionError & { message?: string };
-    if (err && typeof err.code === "number") {
-      if (err.code === 1) return "Location permission denied";
-      if (err.code === 2) return "Location unavailable";
-      if (err.code === 3) return "Location request timed out";
-    }
-    return err?.message || "Could not get location";
-  }
-
   async function fillAddress() {
-    setBusy("addr");
+    setBusy(true);
     setMsg(null);
     try {
       const pos = await getPos();
@@ -46,54 +47,55 @@ export function AddressGpsButtons({ onAddress }: Props) {
         const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } });
         if (!res.ok) throw new Error(`Lookup failed (${res.status})`);
         const data = await res.json();
-        const display: string | undefined = data?.display_name;
-        if (display) {
-          onAddress(display);
-          setMsg(null);
-        } else {
-          onAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-          setMsg("No address found — filled coordinates instead");
-        }
+        const a = data?.address ?? {};
+        const house = a.house_number || "";
+        const road = a.road || a.pedestrian || a.footway || "";
+        const city = a.city || a.town || a.village || a.hamlet || a.suburb || "";
+        const state = a.state || "";
+        const parts: string[] = [];
+        const line1 = [house, road].filter(Boolean).join(" ").trim();
+        if (line1) parts.push(line1);
+        if (city) parts.push(city);
+        if (state) parts.push(state);
+        const display =
+          parts.length > 0
+            ? parts.join(", ")
+            : (data?.display_name as string | undefined) ||
+              `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        onAddress(display);
+        setMsg(null);
       } finally {
         clearTimeout(t);
       }
     } catch (e) {
       try {
         const pos = await getPos();
-        const { latitude, longitude, accuracy } = pos.coords;
-        onAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`);
+        const { latitude, longitude } = pos.coords;
+        onAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
         setMsg("Address lookup failed — filled coordinates instead");
       } catch {
         setMsg(geoError(e));
       }
     } finally {
-      setBusy(null);
-    }
-  }
-
-  async function fillCoords() {
-    setBusy("coords");
-    setMsg(null);
-    try {
-      const pos = await getPos();
-      const { latitude, longitude, accuracy } = pos.coords;
-      onAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`);
-    } catch (e) {
-      setMsg(geoError(e));
-    } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <Button type="button" size="sm" variant="outline" onClick={fillAddress} disabled={busy !== null}>
-        {busy === "addr" ? "Locating…" : "Auto-fill address"}
+    <div className="mt-2 space-y-1.5">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="w-full h-9 justify-center text-sm font-normal"
+        onClick={fillAddress}
+        disabled={busy}
+      >
+        {busy ? "Locating…" : "📍 Auto-fill address"}
       </Button>
-      <Button type="button" size="sm" variant="ghost" onClick={fillCoords} disabled={busy !== null}>
-        {busy === "coords" ? "Locating…" : "Use GPS coords only"}
-      </Button>
-      {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
+      {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
     </div>
   );
 }
+
+export { getPos, geoError };
