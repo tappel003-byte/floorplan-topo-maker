@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Plus, Trash2, Upload, Undo2, ArrowRight, ArrowLeft, Ban, Check, X } from "lucide-react";
 import { PlanCanvas } from "../PlanCanvas";
@@ -172,55 +171,45 @@ function DetailsPanel({
 
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-3">
+    <div className="max-w-2xl mx-auto p-4 space-y-2.5">
       <div>
-        <Label className="label-micro">Inspection date</Label>
+        <Label className="label-micro">Survey date</Label>
         <Input
           type="date"
+          className="h-8 text-sm"
           value={local.inspectionDate}
           onChange={(e) => setLocal({ ...local, inspectionDate: e.target.value })}
         />
       </div>
       <div>
         <Label className="label-micro">Project name</Label>
-        <Input value={local.name} onChange={(e) => setLocal({ ...local, name: e.target.value })} />
+        <Input
+          className="h-8 text-sm"
+          value={local.name}
+          onChange={(e) => setLocal({ ...local, name: e.target.value })}
+        />
       </div>
       <div>
         <Label className="label-micro">Address</Label>
         <Input
+          className="h-8 text-sm"
           value={local.address}
           onChange={(e) => setLocal({ ...local, address: e.target.value })}
+          placeholder="Street, City, State — or tap Auto-fill"
         />
         <AddressGpsButtons
           onAddress={(addr) => setLocal((prev) => ({ ...prev, address: addr }))}
         />
       </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="label-micro">Client</Label>
-          <Input
-            value={local.client}
-            onChange={(e) => setLocal({ ...local, client: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label className="label-micro">Inspector</Label>
-          <Input
-            value={local.inspector}
-            onChange={(e) => setLocal({ ...local, inspector: e.target.value })}
-          />
-        </div>
-      </div>
       <div>
-        <Label className="label-micro">Notes</Label>
-        <Textarea
-          rows={3}
-          value={local.notes}
-          onChange={(e) => setLocal({ ...local, notes: e.target.value })}
+        <Label className="label-micro">Client</Label>
+        <Input
+          className="h-8 text-sm"
+          value={local.client}
+          onChange={(e) => setLocal({ ...local, client: e.target.value })}
         />
       </div>
-      <Button onClick={() => void save()} variant={saved ? "secondary" : "default"}>
+      <Button onClick={() => void save()} variant={saved ? "secondary" : "default"} size="sm">
         {saved ? (
           <>
             <Check className="h-4 w-4 mr-1" />

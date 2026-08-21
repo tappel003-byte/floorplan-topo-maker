@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   listProjects,
@@ -282,9 +281,9 @@ export function ProjectList() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <header className="mb-8 flex flex-col items-center gap-4">
+      <header className="mb-6 flex flex-col items-center gap-3">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">Floor Survey</h1>
+          <h1 className="text-[28px] font-bold tracking-tight">Floor Survey</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Topographical mapping for foundation inspection
           </p>
@@ -374,9 +373,9 @@ export function ProjectList() {
           </p>
         </Card>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           {projects.map((p) => (
-            <Card key={p.id} className="flex items-center justify-between p-4">
+            <Card key={p.id} className="flex items-center justify-between px-3.5 py-3">
               <Link to="/projects/$id" params={{ id: p.id }} className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground break-words">
@@ -515,21 +514,25 @@ function NewProjectDialog({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [client, setClient] = useState("");
-  const [inspector, setInspector] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [notes, setNotes] = useState("");
 
   return (
     <DialogContent className="max-w-md">
       <DialogHeader>
         <DialogTitle>New project</DialogTitle>
       </DialogHeader>
-      <div className="grid gap-3">
+      <div className="grid gap-2.5">
         <div>
           <Label htmlFor="np-date" className="label-micro">
-            Inspection date
+            Survey date
           </Label>
-          <Input id="np-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input
+            id="np-date"
+            type="date"
+            className="h-8 text-sm"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor="np-name" className="label-micro">
@@ -537,6 +540,7 @@ function NewProjectDialog({
           </Label>
           <Input
             id="np-name"
+            className="h-8 text-sm"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Smith Residence"
@@ -546,32 +550,24 @@ function NewProjectDialog({
           <Label htmlFor="np-addr" className="label-micro">
             Address
           </Label>
-          <Input id="np-addr" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <Input
+            id="np-addr"
+            className="h-8 text-sm"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Street, City, State — or tap Auto-fill"
+          />
           <AddressGpsButtons onAddress={setAddress} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="np-client" className="label-micro">
-              Client
-            </Label>
-            <Input id="np-client" value={client} onChange={(e) => setClient(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="np-insp" className="label-micro">
-              Inspector
-            </Label>
-            <Input id="np-insp" value={inspector} onChange={(e) => setInspector(e.target.value)} />
-          </div>
-        </div>
         <div>
-          <Label htmlFor="np-notes" className="label-micro">
-            Notes
+          <Label htmlFor="np-client" className="label-micro">
+            Client
           </Label>
-          <Textarea
-            id="np-notes"
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+          <Input
+            id="np-client"
+            className="h-8 text-sm"
+            value={client}
+            onChange={(e) => setClient(e.target.value)}
           />
         </div>
       </div>
@@ -582,9 +578,9 @@ function NewProjectDialog({
               name: name.trim() || "Untitled project",
               address,
               client,
-              inspector,
+              inspector: "",
               inspectionDate: date,
-              notes,
+              notes: "",
             })
           }
         >
