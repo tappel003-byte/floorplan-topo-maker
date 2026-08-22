@@ -100,17 +100,17 @@ export function ProjectList() {
   }, []);
 
   /** Distress Survey-style: empty project + 1st Floor, open immediately — no dialog. */
-  async function startNew() {
+  async function startNew(prefill?: { client?: string; address?: string; name?: string }) {
     const id = uid();
     const now = Date.now();
     const today = new Date().toISOString().slice(0, 10);
     await saveProject({
       id,
-      name: "",
-      address: "",
-      client: "",
+      name: (prefill?.name ?? "").trim(),
+      address: (prefill?.address ?? "").trim(),
+      client: (prefill?.client ?? "").trim(),
       inspector: "",
-      inspectionDate: today,
+      inspectionDate: today, // always today — never Toolbox scheduled date
       notes: "",
       createdAt: now,
       updatedAt: now,
@@ -126,6 +126,27 @@ export function ProjectList() {
     });
     navigate({ to: "/projects/$id", params: { id } });
   }
+
+  // Toolbox door: ?client=&address=&project= (phone optional, ignored).
+  // Open setup with those fields filled — do not land on home, do not skip setup.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const client = params.get("client");
+    const address = params.get("address");
+    const projectName = params.get("project");
+    if (client == null && address == null && projectName == null) return;
+    // Clear query so a refresh doesn't spawn another project.
+    const url = new URL(window.location.href);
+    url.search = "";
+    window.history.replaceState({}, "", url.pathname + url.hash);
+    void startNew({
+      client: client ?? "",
+      address: address ?? "",
+      name: projectName ?? "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleTrash(p: Row) {
     if (!confirm(`Move "${p.name || "Untitled"}" to trash? You can restore it later.`)) return;

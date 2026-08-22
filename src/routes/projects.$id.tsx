@@ -301,21 +301,21 @@ function ProjectWorkspace() {
 
   return (
     <div className="relative flex h-[100svh] min-h-[100svh] flex-col overflow-hidden bg-background">
-      <AppTopBar
-        projectName={project.name}
-        floorName={activeFloor.name}
-        onOpenSetup={() => setMode("setup")}
-        onOpenReview={() => setMode("review")}
-        onOpenExport={() => setMode("export")}
-        onOpenTransitions={() => setTransitionsSheetOpen(true)}
-        onOpen3D={() => setThreeDOpen(true)}
-        
-        undoEnabled={undoActive && history.canUndo}
-        redoEnabled={undoActive && history.canRedo}
-      />
+      {mode !== "setup" && (
+        <AppTopBar
+          projectName={project.name}
+          floorName={activeFloor.name}
+          onOpenSetup={() => setMode("setup")}
+          onOpenReview={() => setMode("review")}
+          onOpenExport={() => setMode("export")}
+          onOpenTransitions={() => setTransitionsSheetOpen(true)}
+          onOpen3D={() => setThreeDOpen(true)}
+          undoEnabled={undoActive && history.canUndo}
+          redoEnabled={undoActive && history.canRedo}
+        />
+      )}
 
-
-      {floors.length > 1 && (
+      {mode !== "setup" && floors.length > 1 && (
         <div
           data-floor-selector
           className="flex items-center gap-2 px-2 h-7 text-xs border-b bg-background/70"
@@ -348,8 +348,8 @@ function ProjectWorkspace() {
             }}
             onActiveFloorChange={setActiveFloorId}
             onStartSurveying={() => setMode("field")}
+            isEditing={points.length > 0}
           />
-
         )}
         {mode === "field" && (
           <FieldTab
