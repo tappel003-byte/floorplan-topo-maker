@@ -1263,8 +1263,8 @@ function renderTopoTop(
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
-    const fontPxOnScreen = fontPx * (overlay?.viewScale || 1);
-    const dotROnScreen = Math.min(22, Math.max(6, fontPxOnScreen * 0.4));
+    const size = Number(overlay?.pointSize);
+    const dotROnScreen = Number.isFinite(size) ? Math.max(0.4, size) : 2;
     const dotR = dotROnScreen / (overlay?.viewScale || 1);
     const dotColor = overlay?.pointColor ?? "#dc2626";
     const padX = 4 * k;
