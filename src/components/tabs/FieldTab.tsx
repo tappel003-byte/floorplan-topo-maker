@@ -445,7 +445,7 @@ export function FieldTab({
     const k = Math.pow(1 / s, 0.5);
     const fontPx = labelFontSize * k;
     const pad = 4 * k;
-    const markerROnScreen = Math.min(22, Math.max(6, fontPx * s * 0.4));
+    const markerROnScreen = Math.max(0.4, pointSize);
     const markerR = markerROnScreen / s;
     for (const p of points) {
       const text = p.value.toFixed(2);
@@ -1034,7 +1034,7 @@ export function FieldTab({
           const lblFontPx = labelFontSize * k;
           const lblPadX = 3 * k;
           const lblPadY = 2 * k;
-          const markerROnScreen = Math.min(22, Math.max(6, lblFontPx * s * 0.4));
+          const markerROnScreen = Math.max(0.4, pointSize);
           const markerR = markerROnScreen / s;
           const labelTextFor = (p: SurveyPoint) => {
             const lt = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
