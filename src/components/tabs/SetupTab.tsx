@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Plus, Trash2, Upload, Undo2, ArrowRight, ArrowLeft, Ban, Check, X } from "lucide-react";
+import { Plus, Trash2, Undo2, ArrowRight, ArrowLeft, Ban, Check, X } from "lucide-react";
 import { PlanCanvas } from "../PlanCanvas";
 import { AddressGpsButtons } from "../AddressGpsButtons";
+import { SetSquareIcon } from "../SetSquareIcon";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import { drawExclusionShape } from "@/lib/exclusions";
 import type { Floor, Exclusion, ProjectMeta } from "@/lib/types";
@@ -170,32 +170,18 @@ function DetailsPanel({
   );
 
 
+  const fieldClass =
+    "h-11 w-full rounded-[10px] border border-input bg-card px-3.5 text-base text-foreground";
+
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-2.5">
-      <div>
-        <Label className="label-micro">Survey date</Label>
-        <Input
-          type="date"
-          className="h-8 text-sm"
-          value={local.inspectionDate}
-          onChange={(e) => setLocal({ ...local, inspectionDate: e.target.value })}
-        />
-      </div>
-      <div>
-        <Label className="label-micro">Project name</Label>
-        <Input
-          className="h-8 text-sm"
-          value={local.name}
-          onChange={(e) => setLocal({ ...local, name: e.target.value })}
-        />
-      </div>
+    <div className="mx-auto max-w-lg space-y-5 px-[18px] py-[18px]">
       <div>
         <Label className="label-micro">Address</Label>
         <Input
-          className="h-8 text-sm"
+          className={fieldClass}
           value={local.address}
           onChange={(e) => setLocal({ ...local, address: e.target.value })}
-          placeholder="Street, City, State — or tap Auto-fill"
+          placeholder="Street, City, State — or tap a button below"
         />
         <AddressGpsButtons
           onAddress={(addr) => setLocal((prev) => ({ ...prev, address: addr }))}
@@ -204,21 +190,35 @@ function DetailsPanel({
       <div>
         <Label className="label-micro">Client</Label>
         <Input
-          className="h-8 text-sm"
+          className={fieldClass}
           value={local.client}
           onChange={(e) => setLocal({ ...local, client: e.target.value })}
         />
       </div>
-      <Button onClick={() => void save()} variant={saved ? "secondary" : "default"} size="sm">
-        {saved ? (
-          <>
-            <Check className="h-4 w-4 mr-1" />
-            Saved
-          </>
-        ) : (
-          "Save details"
-        )}
-      </Button>
+      <div>
+        <Label className="label-micro">Survey date</Label>
+        <Input
+          type="date"
+          className={fieldClass}
+          value={local.inspectionDate}
+          onChange={(e) => setLocal({ ...local, inspectionDate: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label className="label-micro">Project name</Label>
+        <Input
+          className={fieldClass}
+          value={local.name}
+          onChange={(e) => setLocal({ ...local, name: e.target.value })}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => void save()}
+        className="w-full rounded-xl bg-foreground py-[15px] text-base font-semibold text-background"
+      >
+        {saved ? "Saved" : "Save Setup"}
+      </button>
     </div>
   );
 }
@@ -294,36 +294,79 @@ function PlanPanel({
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <Card className="p-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-medium">Floors</div>
-          <Button size="sm" variant="outline" onClick={addFloor}>
-            <Plus className="h-4 w-4 mr-1" /> Add floor
-          </Button>
+    <div className="mx-auto max-w-lg space-y-5 px-[18px] py-[18px]">
+      <div>
+        <Label className="label-micro">Floor plan</Label>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+        {activeFloor.planDataUrl ? (
+          <div className="relative rounded-xl border border-border bg-card p-2 text-center">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="absolute right-2 top-2 z-[1] rounded-lg bg-foreground px-3 py-1.5 text-[12px] font-semibold text-background"
+            >
+              Change
+            </button>
+            <img
+              src={activeFloor.planDataUrl}
+              alt={`${activeFloor.name} plan`}
+              className="mx-auto block max-h-[240px] max-w-full rounded-md"
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="w-full rounded-xl border-2 border-dashed border-border bg-card px-[18px] py-[30px] text-center text-[14px] text-muted-foreground active:border-primary active:text-primary"
+          >
+            <SetSquareIcon className="mx-auto mb-2 h-[30px] w-[30px]" />
+            <div className="font-semibold text-foreground">Tap to upload</div>
+            <div className="mt-1 text-[12px]">JPG, PNG or PDF page</div>
+          </button>
+        )}
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          {activeFloor.name}
+          {activeFloor.boundary.length ? ` · ${activeFloor.boundary.length} boundary pts` : ""}
+        </p>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <Label className="label-micro mb-0">Levels</Label>
+          <button
+            type="button"
+            onClick={addFloor}
+            className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2 text-[11px] font-semibold"
+          >
+            + Level
+          </button>
         </div>
         <div className="space-y-2">
           {floors.map((f) => (
             <div
               key={f.id}
               className={
-                "flex items-center justify-between rounded-md border px-3 py-2 cursor-pointer " +
-                (f.id === activeFloor.id ? "bg-secondary border-primary" : "bg-background")
+                "flex items-center justify-between rounded-[10px] border px-3 py-2 " +
+                (f.id === activeFloor.id ? "border-foreground bg-card" : "border-border bg-card")
               }
-              onClick={() => onActiveFloorChange(f.id)}
             >
-              <div>
+              <button
+                type="button"
+                className="min-w-0 flex-1 text-left"
+                onClick={() => onActiveFloorChange(f.id)}
+              >
                 <div className="text-sm font-medium">{f.name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {f.planDataUrl ? "Plan uploaded" : "No plan"} · {f.boundary.length} boundary pts
+                  {f.planDataUrl ? "Plan uploaded" : "No plan"}
+                  {f.boundary.length ? ` · ${f.boundary.length} boundary pts` : ""}
                 </div>
-              </div>
+              </button>
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={(e) => {
                   e.stopPropagation();
-                  removeFloor(f.id);
+                  void removeFloor(f.id);
                 }}
               >
                 <Trash2 className="h-4 w-4" />
@@ -331,19 +374,7 @@ function PlanPanel({
             </div>
           ))}
         </div>
-      </Card>
-
-      <Card className="p-3">
-        <div className="text-sm font-medium mb-1">Plan image · {activeFloor.name}</div>
-        <div className="text-xs text-muted-foreground mb-3">
-          Upload a floor plan for this floor. Any image (photo, PDF export, sketch).
-        </div>
-        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-        <Button onClick={() => fileRef.current?.click()} variant="outline">
-          <Upload className="h-4 w-4 mr-2" />
-          {activeFloor.planDataUrl ? "Replace plan" : "Upload plan"}
-        </Button>
-      </Card>
+      </div>
     </div>
   );
 }
