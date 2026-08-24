@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  Plus,
   Trash2,
+  FileText,
   Download,
+  Upload,
   Copy,
   MoreVertical,
   RotateCcw,
@@ -15,8 +18,10 @@ import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -24,6 +29,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   listProjects,
@@ -38,14 +46,9 @@ import {
   saveFloor,
   markProjectExported,
 } from "@/lib/db";
-import {
-  exportProject,
-  bundleFilename,
-  downloadBundle,
-  importProject,
-  duplicateProject,
-} from "@/lib/bundle";
+import { exportProject, bundleFilename, downloadBundle, importProject, duplicateProject } from "@/lib/bundle";
 import { OfflineModeToggle } from "@/components/OfflineModeToggle";
+import { AddressGpsButtons } from "@/components/AddressGpsButtons";
 import type { ProjectMeta } from "@/lib/types";
 
 interface Row extends ProjectMeta {
@@ -67,12 +70,14 @@ function formatAgo(ts: number): string {
 
 function isUnbackedUp(p: ProjectMeta): boolean {
   if (!p.lastExportedAt) return true;
-  return p.updatedAt > p.lastExportedAt + 1000;
+  return p.updatedAt > p.lastExportedAt + 1000; // small tolerance
 }
+
 
 export function ProjectList() {
   const [projects, setProjects] = useState<Row[]>([]);
   const [trashed, setTrashed] = useState<ProjectMeta[]>([]);
+  const [open, setOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [nagDismissed, setNagDismissed] = useState(false);
@@ -80,6 +85,7 @@ export function ProjectList() {
   const [sharingAll, setSharingAll] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
+
 
   async function refresh() {
     const list = await listProjects();
@@ -96,25 +102,13 @@ export function ProjectList() {
   }
 
   useEffect(() => {
-    void refresh();
+    refresh();
   }, []);
 
-  /** Distress Survey-style: empty project + 1st Floor, open immediately — no dialog. */
-  async function startNew(prefill?: { client?: string; address?: string; name?: string }) {
+  async function handleCreate(data: Omit<ProjectMeta, "id" | "createdAt" | "updatedAt">) {
     const id = uid();
     const now = Date.now();
-    const today = new Date().toISOString().slice(0, 10);
-    await saveProject({
-      id,
-      name: (prefill?.name ?? "").trim(),
-      address: (prefill?.address ?? "").trim(),
-      client: (prefill?.client ?? "").trim(),
-      inspector: "",
-      inspectionDate: today, // always today — never Toolbox scheduled date
-      notes: "",
-      createdAt: now,
-      updatedAt: now,
-    });
+    await saveProject({ ...data, id, createdAt: now, updatedAt: now });
     await saveFloor({
       id: uid(),
       projectId: id,
@@ -124,32 +118,12 @@ export function ProjectList() {
       createdAt: now,
       updatedAt: now,
     });
+    setOpen(false);
     navigate({ to: "/projects/$id", params: { id } });
   }
 
-  // Toolbox door: ?client=&address=&project= (phone optional, ignored).
-  // Open setup with those fields filled — do not land on home, do not skip setup.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const client = params.get("client");
-    const address = params.get("address");
-    const projectName = params.get("project");
-    if (client == null && address == null && projectName == null) return;
-    // Clear query so a refresh doesn't spawn another project.
-    const url = new URL(window.location.href);
-    url.search = "";
-    window.history.replaceState({}, "", url.pathname + url.hash);
-    void startNew({
-      client: client ?? "",
-      address: address ?? "",
-      name: projectName ?? "",
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   async function handleTrash(p: Row) {
-    if (!confirm(`Move "${p.name || "Untitled"}" to trash? You can restore it later.`)) return;
+    if (!confirm(`Move "${p.name}" to trash? You can restore it later.`)) return;
     await trashProject(p.id);
     await refresh();
     toast.success("Moved to trash");
@@ -162,7 +136,7 @@ export function ProjectList() {
   }
 
   async function handleDeleteForever(p: ProjectMeta) {
-    if (!confirm(`Permanently delete "${p.name || "Untitled"}"? This cannot be undone.`)) return;
+    if (!confirm(`Permanently delete "${p.name}"? This cannot be undone.`)) return;
     await deleteProject(p.id);
     await refresh();
     toast.success("Deleted");
@@ -171,7 +145,7 @@ export function ProjectList() {
   async function handleExport(p: Row) {
     try {
       const blob = await exportProject(p.id);
-      downloadBundle(blob, bundleFilename(p.name || "Untitled"));
+      downloadBundle(blob, bundleFilename(p.name));
       await markProjectExported(p.id);
       await refresh();
       toast.success("Project exported");
@@ -193,9 +167,10 @@ export function ProjectList() {
     for (const p of targets) {
       try {
         const blob = await exportProject(p.id);
-        downloadBundle(blob, bundleFilename(p.name || "Untitled"));
+        downloadBundle(blob, bundleFilename(p.name));
         await markProjectExported(p.id);
         ok++;
+        // Small delay so iOS Safari doesn't drop back-to-back downloads.
         await new Promise((r) => setTimeout(r, 400));
       } catch {
         failed++;
@@ -210,23 +185,29 @@ export function ProjectList() {
   async function handleShare(p: Row) {
     try {
       const blob = await exportProject(p.id);
-      const filename = bundleFilename(p.name || "Untitled");
+      const filename = bundleFilename(p.name);
       const file = new File([blob], filename, { type: "application/json" });
+
       const shareable =
         typeof navigator !== "undefined" &&
         !!navigator.share &&
         !!navigator.canShare &&
         navigator.canShare({ files: [file] });
+
       if (shareable) {
-        await navigator.share({ files: [file], title: p.name || "Floor Survey" });
+        await navigator.share({ files: [file], title: p.name });
       } else {
         downloadBundle(blob, filename);
       }
+
       await markProjectExported(p.id);
       await refresh();
       toast.success(shareable ? "Project shared" : "Project exported");
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (err instanceof Error && err.name === "AbortError") {
+        // User cancelled the share sheet.
+        return;
+      }
       toast.error(err instanceof Error ? err.message : "Share failed");
     }
   }
@@ -243,15 +224,15 @@ export function ProjectList() {
       const files: File[] = [];
       for (const p of targets) {
         const blob = await exportProject(p.id);
-        files.push(
-          new File([blob], bundleFilename(p.name || "Untitled"), { type: "application/json" }),
-        );
+        files.push(new File([blob], bundleFilename(p.name), { type: "application/json" }));
       }
+
       const shareable =
         typeof navigator !== "undefined" &&
         !!navigator.share &&
         !!navigator.canShare &&
         navigator.canShare({ files });
+
       if (shareable) {
         await navigator.share({ files, title: "Floor Survey projects" });
       } else {
@@ -260,7 +241,10 @@ export function ProjectList() {
           await new Promise((r) => setTimeout(r, 400));
         }
       }
-      for (const p of targets) await markProjectExported(p.id);
+
+      for (const p of targets) {
+        await markProjectExported(p.id);
+      }
       await refresh();
       toast.success(
         shareable
@@ -297,72 +281,60 @@ export function ProjectList() {
   }
 
   return (
-    <div className="relative mx-auto max-w-lg px-[22px] pb-[88px] pt-8">
-      <header className="mb-8 text-center">
-        <h1 className="text-[28px] font-bold tracking-[-0.02em]">Floor Survey</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Field reporter for foundation elevations
-        </p>
-        <OfflineModeToggle />
-        <button
-          type="button"
-          onClick={() => void startNew()}
-          className="mt-6 flex w-full items-center gap-4 rounded-[14px] border border-border bg-card px-[18px] py-[18px] text-left shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99]"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[#f3d8ce] text-[28px]">
-            🏠
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-base font-semibold">New Survey</span>
-            <span className="block text-xs font-medium text-muted-foreground">
-              Floor level survey · elevations + plan
-            </span>
-          </span>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void handleImportFile(f);
-            e.target.value = "";
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="mt-2 text-[13px] text-muted-foreground underline"
-        >
-          Import a saved file
-        </button>
-      </header>
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <header className="mb-8 flex flex-col items-center gap-4">
+        <div className="text-center">
+          <h1 className="text-3xl font-semibold tracking-tight">Floor Survey</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Topographical mapping for foundation inspection
+          </p>
+          <OfflineModeToggle />
+        </div>
 
-      <div className="mb-2.5 mt-7 flex items-center justify-between px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-        <span>Recent</span>
-        <span>
-          {projects.length} project{projects.length === 1 ? "" : "s"}
-        </span>
-      </div>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImportFile(f);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="outline" size="lg" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" /> Import
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg">
+                <Plus className="mr-2 h-4 w-4" /> New project
+              </Button>
+            </DialogTrigger>
+            <NewProjectDialog onCreate={handleCreate} />
+          </Dialog>
+        </div>
+      </header>
 
       {(() => {
         const unsaved = projects.filter(isUnbackedUp);
         if (nagDismissed || unsaved.length === 0) return null;
         return (
-          <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-3">
             <div className="flex-1">
               <div className="font-medium">
                 {unsaved.length} project{unsaved.length === 1 ? "" : "s"} not exported
               </div>
-              <div className="mt-0.5 text-xs text-amber-800">
+              <div className="text-xs mt-0.5 text-amber-800">
                 Export saves a .json file you can re-import if the app icon is removed.
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 size="sm"
-                onClick={() => void handleExportAll()}
+                variant="default"
+                onClick={handleExportAll}
                 disabled={exportingAll || sharingAll}
               >
                 <Download className="mr-1 h-3.5 w-3.5" />
@@ -371,7 +343,7 @@ export function ProjectList() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => void handleShareAll()}
+                onClick={handleShareAll}
                 disabled={exportingAll || sharingAll}
               >
                 <Share className="mr-1 h-3.5 w-3.5" />
@@ -390,19 +362,24 @@ export function ProjectList() {
         );
       })()}
 
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : projects.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center text-[13px] text-muted-foreground">
-          No files yet. Start one above.
-        </div>
+        <Card className="p-10 text-center">
+          <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h2 className="mt-4 text-lg font-medium">No projects yet</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create a project or import a bundle from another device.
+          </p>
+        </Card>
       ) : (
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {projects.map((p) => (
-            <Card key={p.id} className="flex items-center justify-between px-3.5 py-3">
-              <Link to="/projects/$id" params={{ id: p.id }} className="min-w-0 flex-1">
-                <div className="truncate font-medium">{p.name || "Untitled survey"}</div>
-                <div className="mt-1 break-words text-xs text-muted-foreground">
+            <Card key={p.id} className="flex items-center justify-between p-4">
+              <Link to="/projects/$id" params={{ id: p.id }} className="flex-1 min-w-0">
+                <div className="font-medium truncate">{p.name}</div>
+                <div className="mt-1 text-xs text-muted-foreground break-words">
                   {p.address || "No address"}
                 </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
@@ -410,15 +387,16 @@ export function ProjectList() {
                 </div>
                 <div className="mt-1">
                   {isUnbackedUp(p) ? (
-                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                    <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-medium">
                       {p.lastExportedAt ? "Unsaved changes" : "Not exported"}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
                       Exported {formatAgo(p.lastExportedAt!)}
                     </span>
                   )}
                 </div>
+
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -427,7 +405,7 @@ export function ProjectList() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => void handleDuplicate(p)}>
+                  <DropdownMenuItem onClick={() => handleDuplicate(p)}>
                     <Copy className="mr-2 h-4 w-4" /> Duplicate
                   </DropdownMenuItem>
                   {p.parentProjectId && (
@@ -443,14 +421,14 @@ export function ProjectList() {
                       <ImagePlus className="mr-2 h-4 w-4" /> Replace plan image…
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => void handleExport(p)}>
+                  <DropdownMenuItem onClick={() => handleExport(p)}>
                     <Download className="mr-2 h-4 w-4" /> Export
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void handleShare(p)}>
+                  <DropdownMenuItem onClick={() => handleShare(p)}>
                     <Share className="mr-2 h-4 w-4" /> Share
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => void handleTrash(p)}
+                    onClick={() => handleTrash(p)}
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" /> Move to trash
@@ -468,17 +446,17 @@ export function ProjectList() {
             <DialogTitle>Trash</DialogTitle>
           </DialogHeader>
           {trashed.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Trash is empty.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">Trash is empty.</p>
           ) : (
-            <div className="grid max-h-[60vh] gap-2 overflow-y-auto">
+            <div className="grid gap-2 max-h-[60vh] overflow-y-auto">
               {trashed.map((p) => (
                 <div
                   key={p.id}
                   className="flex items-center justify-between gap-2 rounded-md border p-3"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{p.name || "Untitled"}</div>
-                    <div className="truncate text-xs text-muted-foreground">
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
                       {p.address || "No address"}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -486,14 +464,14 @@ export function ProjectList() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="outline" size="sm" onClick={() => void handleRestore(p)}>
+                    <Button variant="outline" size="sm" onClick={() => handleRestore(p)}>
                       <RotateCcw className="mr-1 h-3.5 w-3.5" /> Restore
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => void handleDeleteForever(p)}
+                      onClick={() => handleDeleteForever(p)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -506,7 +484,6 @@ export function ProjectList() {
       </Dialog>
 
       <button
-        type="button"
         onClick={() => {
           if (trashed.length === 0) {
             toast("Trash is empty");
@@ -515,15 +492,13 @@ export function ProjectList() {
           setTrashOpen(true);
         }}
         aria-label={trashed.length > 0 ? `Trash (${trashed.length})` : "Trash"}
-        className={`fixed right-[18px] bottom-[calc(18px+var(--app-bottom-offset,0px))] z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${
+        className={`fixed right-[18px] bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${
           trashed.length === 0 ? "cursor-default opacity-[0.35]" : "cursor-pointer opacity-100"
         }`}
       >
-        <span className="text-[24px] leading-none" aria-hidden>
-          🗑
-        </span>
+        <span className="text-[24px] leading-none" aria-hidden>🗑</span>
         {trashed.length > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+          <span className="absolute -top-1 -right-1 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold">
             {trashed.length}
           </span>
         )}
@@ -531,3 +506,93 @@ export function ProjectList() {
     </div>
   );
 }
+
+function NewProjectDialog({
+  onCreate,
+}: {
+  onCreate: (p: Omit<ProjectMeta, "id" | "createdAt" | "updatedAt">) => void;
+}) {
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [client, setClient] = useState("");
+  const [inspector, setInspector] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [notes, setNotes] = useState("");
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>New project</DialogTitle>
+      </DialogHeader>
+      <div className="grid gap-3">
+        <div>
+          <Label htmlFor="np-date" className="label-micro">
+            Inspection date
+          </Label>
+          <Input id="np-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="np-name" className="label-micro">
+            Project name
+          </Label>
+          <Input
+            id="np-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Smith Residence"
+          />
+        </div>
+        <div>
+          <Label htmlFor="np-addr" className="label-micro">
+            Address
+          </Label>
+          <Input id="np-addr" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <AddressGpsButtons onAddress={setAddress} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="np-client" className="label-micro">
+              Client
+            </Label>
+            <Input id="np-client" value={client} onChange={(e) => setClient(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="np-insp" className="label-micro">
+              Inspector
+            </Label>
+            <Input id="np-insp" value={inspector} onChange={(e) => setInspector(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="np-notes" className="label-micro">
+            Notes
+          </Label>
+          <Textarea
+            id="np-notes"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          onClick={() =>
+            onCreate({
+              name: name.trim() || "Untitled project",
+              address,
+              client,
+              inspector,
+              inspectionDate: date,
+              notes,
+            })
+          }
+        >
+          Create
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+

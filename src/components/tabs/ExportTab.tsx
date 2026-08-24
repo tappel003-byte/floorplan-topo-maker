@@ -7,7 +7,6 @@ import { TOPO_GRID_TARGET_COLS, buildGrid, computeContours } from "@/lib/topo";
 import { zoneOfXY } from "@/lib/exclusions";
 import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
-import { CANVAS_FONT_FAMILY } from "@/lib/utils";
 
 interface Props {
   project: ProjectMeta;
@@ -105,17 +104,6 @@ export function ExportTab({ project, floor, points, settings }: Props) {
   function downloadCsv() {
     const safe = project.name.replace(/[^a-z0-9-]+/gi, "_");
     const rows: string[] = [];
-    if (project.basePointGps) {
-      const g = project.basePointGps;
-      rows.push(
-        [
-          "# base_point_gps",
-          g.lat.toFixed(6),
-          g.lon.toFixed(6),
-          `±${Math.round(g.accuracyM)}m`,
-        ].join(","),
-      );
-    }
     rows.push(["index", "label", "x", "y", "value", "role", "zone", "notes"].join(","));
     for (const p of points) {
       const role = p.isBasePoint ? "base-point" : "normal";
@@ -262,8 +250,7 @@ function drawTitleBlock(
 ) {
   const pad = 12;
   const boxW = 280;
-  const hasGps = !!project.basePointGps;
-  const boxH = hasGps ? 100 : 88;
+  const boxH = 88;
   const x = w - boxW - pad;
   const y = h - boxH - pad;
   ctx.fillStyle = "rgba(255,255,255,0.95)";
@@ -274,21 +261,11 @@ function drawTitleBlock(
   ctx.fillStyle = "#111";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.font = `bold 14px ${CANVAS_FONT_FAMILY}`;
+  ctx.font = "bold 14px sans-serif";
   ctx.fillText(project.name, x + 10, y + 8);
-  ctx.font = `11px ${CANVAS_FONT_FAMILY}`;
+  ctx.font = "11px sans-serif";
   ctx.fillText(project.address, x + 10, y + 26);
   ctx.fillText(`${floor.name} · ${points.length} points`, x + 10, y + 40);
-  ctx.fillText(`Survey date: ${project.inspectionDate}`, x + 10, y + 54);
-  if (hasGps) {
-    const g = project.basePointGps!;
-    ctx.fillText(
-      `GPS: ${g.lat.toFixed(5)}, ${g.lon.toFixed(5)} (±${Math.round(g.accuracyM)}m)`,
-      x + 10,
-      y + 68,
-    );
-    if (project.client) ctx.fillText(`Client: ${project.client}`, x + 10, y + 82);
-  } else {
-    ctx.fillText(`Client: ${project.client || "—"}`, x + 10, y + 68);
-  }
+  ctx.fillText(`Inspected: ${project.inspectionDate}`, x + 10, y + 54);
+  ctx.fillText(`Inspector: ${project.inspector || "—"}`, x + 10, y + 68);
 }

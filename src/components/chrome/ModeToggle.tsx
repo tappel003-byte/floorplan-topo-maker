@@ -9,7 +9,7 @@ type Mode = "data" | "topo";
 export function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   return (
     <div
-      className="fixed z-10 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-[calc(env(safe-area-inset-left)+0.75rem)] h-9 flex items-stretch rounded-full bg-card/95 backdrop-blur shadow-md border border-border overflow-hidden text-xs font-medium"
+      className="fixed z-10 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-[calc(env(safe-area-inset-left)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium"
       role="tablist"
       aria-label="Mode"
     >
@@ -51,8 +51,8 @@ function Btn({
       onClick={onClick}
       className={
         "px-3 py-2 flex items-center gap-1.5 transition-colors " +
-        (borderLeft ? "border-l border-border " : "") +
-        (active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary")
+        (borderLeft ? "border-l border-gray-200 " : "") +
+        (active ? "bg-primary text-primary-foreground" : "text-gray-700 hover:bg-gray-50")
       }
     >
       {icon}

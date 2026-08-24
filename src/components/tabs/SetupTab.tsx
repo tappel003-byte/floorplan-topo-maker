@@ -1,19 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Undo2, Ban, Check, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Plus, Trash2, Upload, Undo2, ArrowRight, ArrowLeft, Ban, Check, X } from "lucide-react";
 import { PlanCanvas } from "../PlanCanvas";
 import { AddressGpsButtons } from "../AddressGpsButtons";
-import { SetSquareIcon } from "../SetSquareIcon";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import { drawExclusionShape } from "@/lib/exclusions";
 import type { Floor, Exclusion, ProjectMeta } from "@/lib/types";
-import { CANVAS_FONT_FAMILY } from "@/lib/utils";
-
-const INK = "#1a1a1a";
-const PAPER = "#fffaf0";
 
 interface Props {
   project: ProjectMeta;
@@ -23,8 +19,7 @@ interface Props {
   onFloorsChange: (floors: Floor[]) => void;
   onActiveFloorChange: (id: string) => void;
   onStartSurveying?: () => void;
-  /** True when returning to setup from an existing survey (Save Setup vs Start Survey). */
-  isEditing?: boolean;
+
 }
 
 export function SetupTab({
@@ -35,71 +30,54 @@ export function SetupTab({
   onFloorsChange,
   onActiveFloorChange,
   onStartSurveying,
-  isEditing = false,
 }: Props) {
-  const [step, setStep] = useState<"form" | "boundary">("form");
+  const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
   const hasPlan = !!activeFloor?.planDataUrl;
-  const title = project.name.trim() || "New Survey";
-  const primaryLabel = isEditing ? "Save Setup" : "Start Survey";
-  const headerLabel = isEditing ? "Save" : "Start";
 
-  async function persistAndStart() {
-    // DetailsPanel autosaves; ensure latest project snapshot is flushed via onProjectChange path.
-    onStartSurveying?.();
-  }
+  const steps: Array<{ key: "details" | "plan" | "boundary"; label: string }> = [
+    { key: "details", label: "1. Details" },
+    { key: "plan", label: "2. Plan" },
+    { key: "boundary", label: "3. Boundary" },
+  ];
+  const stepIndex = steps.findIndex((s) => s.key === tab);
+  const prevStep = stepIndex > 0 ? steps[stepIndex - 1] : null;
+  const nextStep = stepIndex < steps.length - 1 ? steps[stepIndex + 1] : null;
 
-  function onPrimary() {
-    if (step === "form") {
-      if (!hasPlan) return;
-      if (isEditing) {
-        void persistAndStart();
-        return;
-      }
-      setStep("boundary");
-      return;
-    }
-    void persistAndStart();
-  }
+  // Next / Start conditions
+  const nextDisabled = tab === "plan" && !hasPlan;
+  const startDisabled = !hasPlan;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      {/* DS-style header: ← · title · Start/Save */}
-      <header
-        className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-3"
-        style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
-      >
-        <Link
-          to="/"
-          aria-label="Back"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] text-[22px] text-foreground"
-        >
-          ←
-        </Link>
-        <h1 className="min-w-0 flex-1 truncate text-base font-bold" style={{ color: INK }}>
-          {title}
-        </h1>
-        <button
-          type="button"
-          disabled={step === "form" && !hasPlan}
-          onClick={onPrimary}
-          className="rounded-[10px] px-3.5 py-2.5 text-sm font-bold disabled:opacity-40"
-          style={{ background: INK, color: PAPER }}
-        >
-          {headerLabel}
-        </button>
-      </header>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="shrink-0 border-b flex overflow-x-auto">
+        {steps.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={
+              "px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px " +
+              (tab === key
+                ? "border-primary text-foreground font-medium"
+                : "border-transparent text-muted-foreground")
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-      <div className={step === "boundary" ? "min-h-0 flex-1 overflow-hidden" : "min-h-0 flex-1 overflow-auto"}>
-        {step === "form" ? (
-          <SetupForm
-            project={project}
+      <div className={tab === "boundary" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
+        {tab === "details" && <DetailsPanel project={project} onChange={onProjectChange} />}
+        {tab === "plan" && (
+          <PlanPanel
+            projectId={project.id}
             floors={floors}
             activeFloor={activeFloor}
-            onProjectChange={onProjectChange}
             onFloorsChange={onFloorsChange}
             onActiveFloorChange={onActiveFloorChange}
           />
-        ) : (
+        )}
+        {tab === "boundary" && (
           <BoundaryPanel
             floor={activeFloor}
             onChange={async (f) => {
@@ -110,84 +88,72 @@ export function SetupTab({
         )}
       </div>
 
-      {/* DS-style full-width ink footer */}
-      <div
-        className="shrink-0 border-t border-border bg-card px-[18px] pt-3.5"
-        style={{ paddingBottom: "max(18px, env(safe-area-inset-bottom))" }}
-      >
-        {step === "boundary" && (
-          <button
-            type="button"
-            onClick={() => setStep("form")}
-            className="mb-2 w-full py-2 text-sm font-medium text-muted-foreground"
-          >
-            ← Back to details
-          </button>
+      <div className="shrink-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+        {prevStep ? (
+          <Button variant="ghost" size="sm" onClick={() => setTab(prevStep.key)}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        ) : (
+          <div />
         )}
-        <button
-          type="button"
-          disabled={step === "form" && !hasPlan}
-          onClick={onPrimary}
-          className="w-full rounded-xl py-[15px] text-base font-bold disabled:opacity-40"
-          style={{ background: INK, color: PAPER }}
-        >
-          {step === "form"
-            ? isEditing
-              ? "Save Setup"
-              : hasPlan
-                ? "Start Survey"
-                : "Upload a plan to continue"
-            : primaryLabel}
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          {tab === "plan" && !hasPlan && (
+            <span className="text-xs text-muted-foreground">Upload a plan first</span>
+          )}
+          {tab === "boundary" && !hasPlan && (
+            <span className="text-xs text-muted-foreground">Upload a plan first</span>
+          )}
+          {nextStep ? (
+            <Button
+              onClick={() => setTab(nextStep.key)}
+              disabled={nextDisabled}
+              variant={tab === "details" ? "default" : "default"}
+            >
+              Next: {nextStep.key === "plan" ? "Plan" : "Boundary"}
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            onStartSurveying && (
+              <Button onClick={onStartSurveying} disabled={startDisabled}>
+                Start surveying
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-const fieldClass =
-  "h-11 w-full rounded-[10px] border border-input bg-card px-3.5 text-base text-foreground";
 
-function SetupForm({
+function DetailsPanel({
   project,
-  floors,
-  activeFloor,
-  onProjectChange,
-  onFloorsChange,
-  onActiveFloorChange,
+  onChange,
 }: {
   project: ProjectMeta;
-  floors: Floor[];
-  activeFloor: Floor;
-  onProjectChange: (p: ProjectMeta) => void;
-  onFloorsChange: (f: Floor[]) => void;
-  onActiveFloorChange: (id: string) => void;
+  onChange: (p: ProjectMeta) => void;
 }) {
   const [local, setLocal] = useState(project);
   const [saved, setSaved] = useState(false);
   useEffect(() => setLocal(project), [project.id]);
 
-  // Keep survey date readable — never blank on open; never invent after user clears.
-  useEffect(() => {
-    if (!project.inspectionDate) {
-      const today = new Date().toISOString().slice(0, 10);
-      setLocal((prev) => ({ ...prev, inspectionDate: today }));
-    }
-  }, [project.id, project.inspectionDate]);
-
   const latest = useRef(local);
   latest.current = local;
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const save = useCallback(async () => {
     const snapshot = latest.current;
     await saveProject(snapshot);
-    onProjectChange(snapshot);
+    onChange(snapshot);
     setSaved(true);
     if (savedTimer.current) clearTimeout(savedTimer.current);
     savedTimer.current = setTimeout(() => setSaved(false), 2000);
-  }, [onProjectChange]);
+  }, [onChange]);
 
+  // Autosave a short moment after typing stops, so navigating away never
+  // silently drops an edit. The manual button remains as an explicit action.
   useEffect(() => {
     if (local === project) return;
     const t = setTimeout(() => {
@@ -203,8 +169,90 @@ function SetupForm({
     [],
   );
 
-  async function refreshFloors() {
-    onFloorsChange(await listFloors(project.id));
+
+  return (
+    <div className="max-w-2xl mx-auto p-4 space-y-3">
+      <div>
+        <Label className="label-micro">Inspection date</Label>
+        <Input
+          type="date"
+          value={local.inspectionDate}
+          onChange={(e) => setLocal({ ...local, inspectionDate: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label className="label-micro">Project name</Label>
+        <Input value={local.name} onChange={(e) => setLocal({ ...local, name: e.target.value })} />
+      </div>
+      <div>
+        <Label className="label-micro">Address</Label>
+        <Input
+          value={local.address}
+          onChange={(e) => setLocal({ ...local, address: e.target.value })}
+        />
+        <AddressGpsButtons
+          onAddress={(addr) => setLocal((prev) => ({ ...prev, address: addr }))}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="label-micro">Client</Label>
+          <Input
+            value={local.client}
+            onChange={(e) => setLocal({ ...local, client: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label className="label-micro">Inspector</Label>
+          <Input
+            value={local.inspector}
+            onChange={(e) => setLocal({ ...local, inspector: e.target.value })}
+          />
+        </div>
+      </div>
+      <div>
+        <Label className="label-micro">Notes</Label>
+        <Textarea
+          rows={3}
+          value={local.notes}
+          onChange={(e) => setLocal({ ...local, notes: e.target.value })}
+        />
+      </div>
+      <Button onClick={() => void save()} variant={saved ? "secondary" : "default"}>
+        {saved ? (
+          <>
+            <Check className="h-4 w-4 mr-1" />
+            Saved
+          </>
+        ) : (
+          "Save details"
+        )}
+      </Button>
+    </div>
+  );
+}
+
+
+
+
+function PlanPanel({
+  projectId,
+  floors,
+  activeFloor,
+  onFloorsChange,
+  onActiveFloorChange,
+}: {
+  projectId: string;
+  floors: Floor[];
+  activeFloor: Floor;
+  onFloorsChange: (f: Floor[]) => void;
+  onActiveFloorChange: (id: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  async function refresh() {
+    onFloorsChange(await listFloors(projectId));
   }
 
   async function addFloor() {
@@ -213,21 +261,21 @@ function SetupForm({
     const now = Date.now();
     await saveFloor({
       id: uid(),
-      projectId: project.id,
+      projectId,
       name,
       order: floors.length,
       boundary: [],
       createdAt: now,
       updatedAt: now,
     });
-    await refreshFloors();
+    refresh();
   }
 
   async function removeFloor(id: string) {
     if (floors.length <= 1) return alert("Keep at least one floor.");
     if (!confirm("Delete this floor and its points?")) return;
     await deleteFloor(id);
-    await refreshFloors();
+    refresh();
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -239,6 +287,7 @@ function SetupForm({
       r.onerror = rej;
       r.readAsDataURL(file);
     });
+    // Get image dimensions
     const dims = await new Promise<{ w: number; h: number }>((res) => {
       const img = new Image();
       img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight });
@@ -251,125 +300,40 @@ function SetupForm({
       planHeight: dims.h,
     });
     e.target.value = "";
-    await refreshFloors();
+    refresh();
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-5 px-[18px] py-[18px]">
-      <div>
-        <Label className="label-micro">Address</Label>
-        <Input
-          className={fieldClass}
-          value={local.address}
-          onChange={(e) => setLocal({ ...local, address: e.target.value })}
-          placeholder="Street, City, State — or tap a button below"
-        />
-        <AddressGpsButtons
-          onAddress={(addr) => setLocal((prev) => ({ ...prev, address: addr }))}
-        />
-      </div>
-
-      <div>
-        <Label className="label-micro">Floor plan</Label>
-        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-        {activeFloor.planDataUrl ? (
-          <div className="relative rounded-xl border border-border bg-card p-2 text-center">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="absolute right-2 top-2 z-[1] rounded-lg px-3 py-1.5 text-[12px] font-semibold"
-              style={{ background: INK, color: PAPER }}
-            >
-              Change
-            </button>
-            <img
-              src={activeFloor.planDataUrl}
-              alt={`${activeFloor.name} plan`}
-              className="mx-auto block max-h-[240px] max-w-full rounded-md"
-            />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="w-full rounded-xl border-2 border-dashed border-border bg-card px-[18px] py-[30px] text-center text-[14px] text-muted-foreground active:border-foreground active:text-foreground"
-          >
-            <SetSquareIcon className="mx-auto mb-2 h-[30px] w-[30px]" />
-            <div className="font-semibold text-foreground">Tap to upload</div>
-            <div className="mt-1 text-[12px]">JPG, PNG or PDF page</div>
-          </button>
-        )}
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          {activeFloor.name}
-          {activeFloor.boundary.length ? ` · ${activeFloor.boundary.length} boundary pts` : ""}
-        </p>
-      </div>
-
-      <div>
-        <Label className="label-micro">Client</Label>
-        <Input
-          className={fieldClass}
-          value={local.client}
-          onChange={(e) => setLocal({ ...local, client: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <Label className="label-micro">Survey date</Label>
-        <Input
-          type="date"
-          className={fieldClass}
-          value={local.inspectionDate}
-          onChange={(e) => setLocal({ ...local, inspectionDate: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <Label className="label-micro">Project name</Label>
-        <Input
-          className={fieldClass}
-          value={local.name}
-          onChange={(e) => setLocal({ ...local, name: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <Label className="label-micro mb-0">Levels</Label>
-          <button
-            type="button"
-            onClick={() => void addFloor()}
-            className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2 text-[11px] font-semibold"
-          >
-            + Level
-          </button>
+    <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <Card className="p-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-medium">Floors</div>
+          <Button size="sm" variant="outline" onClick={addFloor}>
+            <Plus className="h-4 w-4 mr-1" /> Add floor
+          </Button>
         </div>
         <div className="space-y-2">
           {floors.map((f) => (
             <div
               key={f.id}
               className={
-                "flex items-center justify-between rounded-[10px] border px-3 py-2 " +
-                (f.id === activeFloor.id ? "border-foreground bg-card" : "border-border bg-card")
+                "flex items-center justify-between rounded-md border px-3 py-2 cursor-pointer " +
+                (f.id === activeFloor.id ? "bg-secondary border-primary" : "bg-background")
               }
+              onClick={() => onActiveFloorChange(f.id)}
             >
-              <button
-                type="button"
-                className="min-w-0 flex-1 text-left"
-                onClick={() => onActiveFloorChange(f.id)}
-              >
+              <div>
                 <div className="text-sm font-medium">{f.name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {f.planDataUrl ? "Plan uploaded" : "No plan"}
-                  {f.boundary.length ? ` · ${f.boundary.length} boundary pts` : ""}
+                  {f.planDataUrl ? "Plan uploaded" : "No plan"} · {f.boundary.length} boundary pts
                 </div>
-              </button>
+              </div>
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={(e) => {
                   e.stopPropagation();
-                  void removeFloor(f.id);
+                  removeFloor(f.id);
                 }}
               >
                 <Trash2 className="h-4 w-4" />
@@ -377,11 +341,19 @@ function SetupForm({
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
-      {saved ? (
-        <p className="text-center text-xs text-muted-foreground">Saved</p>
-      ) : null}
+      <Card className="p-3">
+        <div className="text-sm font-medium mb-1">Plan image · {activeFloor.name}</div>
+        <div className="text-xs text-muted-foreground mb-3">
+          Upload a floor plan for this floor. Any image (photo, PDF export, sketch).
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+        <Button onClick={() => fileRef.current?.click()} variant="outline">
+          <Upload className="h-4 w-4 mr-2" />
+          {activeFloor.planDataUrl ? "Replace plan" : "Upload plan"}
+        </Button>
+      </Card>
     </div>
   );
 }
@@ -758,7 +730,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               if (ex.polygon.length > 0 && ex.label) {
                 const cx = ex.polygon.reduce((s, p) => s + p.x, 0) / ex.polygon.length;
                 const cy = ex.polygon.reduce((s, p) => s + p.y, 0) / ex.polygon.length;
-                ctx.font = `bold 12px ${CANVAS_FONT_FAMILY}`;
+                ctx.font = "bold 12px sans-serif";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 const tw = ctx.measureText(ex.label).width;
@@ -782,7 +754,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               ctx.lineWidth = 2;
               ctx.stroke();
               ctx.fillStyle = "#111827";
-              ctx.font = `bold 10px ${CANVAS_FONT_FAMILY}`;
+              ctx.font = "bold 10px sans-serif";
               ctx.textAlign = "center";
               ctx.textBaseline = "middle";
               ctx.fillText(String(i + 1), p.x, p.y - 12);

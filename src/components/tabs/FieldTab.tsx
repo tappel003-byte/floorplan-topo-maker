@@ -8,13 +8,11 @@ import { TransitionDetailDialog } from "../TransitionDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Pencil, List, Trash2 } from "lucide-react";
 
-import type { BasePointGps, Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
+import type { Floor, NotePin, SurveyPoint, Transition } from "@/lib/types";
 import { savePoint, deletePoint, reindexFloorPoints, saveFloor, uid } from "@/lib/db";
 import { transitionDelta, formatDelta, getChainBaselineSurface } from "@/lib/transitions";
 import { drawExclusionShape, zoneOfXY } from "@/lib/exclusions";
 import type { FloorSnapshot } from "@/lib/useFloorHistory";
-import { CANVAS_FONT_FAMILY } from "@/lib/utils";
-import { geoError, getPos } from "@/components/AddressGpsButtons";
 
 
 interface Props {
@@ -23,10 +21,6 @@ interface Props {
   customSurfaces?: string[];
   /** Persists a newly typed custom surface name onto the project. */
   onAddCustomSurface?: (name: string) => void;
-  /** Optional GPS already stored on the project (Set Base Point). */
-  basePointGps?: BasePointGps;
-  /** Persist a new Base Point GPS fix onto the project (does not block Continue). */
-  onBasePointGps?: (gps: BasePointGps) => void;
   floor: Floor;
   points: SurveyPoint[];
   onPointsChange: (points: SurveyPoint[]) => void;
@@ -78,8 +72,6 @@ export function FieldTab({
   projectId,
   customSurfaces,
   onAddCustomSurface,
-  basePointGps,
-  onBasePointGps,
   floor,
   points,
   onPointsChange,
@@ -97,8 +89,6 @@ export function FieldTab({
   const [transform, setTransform] = useState<CanvasTransform>({ scale: 1, tx: 0, ty: 0 });
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [bpPromptOpen, setBpPromptOpen] = useState(false);
-  const [gpsBusy, setGpsBusy] = useState(false);
-  const [gpsMsg, setGpsMsg] = useState<string | null>(null);
   const [editingPoint, setEditingPoint] = useState<SurveyPoint | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [dragging, setDragging] = useState<DragState | null>(null);
@@ -445,7 +435,7 @@ export function FieldTab({
     const k = Math.pow(1 / s, 0.5);
     const fontPx = labelFontSize * k;
     const pad = 4 * k;
-    const markerROnScreen = Math.max(0.4, pointSize);
+    const markerROnScreen = Math.min(22, Math.max(6, fontPx * s * 0.4));
     const markerR = markerROnScreen / s;
     for (const p of points) {
       const text = p.value.toFixed(2);
@@ -560,7 +550,7 @@ export function FieldTab({
       )}
 
       {/* Notes toolbar — horizontal pill, top-right, above canvas but below top bar */}
-      <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-card/95 backdrop-blur shadow-md border border-border overflow-hidden text-xs font-medium">
+      <div className="absolute z-20 top-2 right-2 landscape-short:top-auto landscape-short:right-[calc(env(safe-area-inset-right)+0.75rem)] landscape-short:bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] h-9 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-md border border-gray-300 overflow-hidden text-xs font-medium">
         <button
           onClick={() => {
             setNoteMode((v) => !v);
@@ -568,7 +558,7 @@ export function FieldTab({
             setNotesListOpen(false);
           }}
           className={`px-3 py-2 flex items-center gap-1.5 transition-colors ${
-            noteMode ? "bg-orange-500 text-white" : "text-foreground hover:bg-secondary"
+            noteMode ? "bg-orange-500 text-white" : "text-gray-700 hover:bg-gray-50"
           }`}
           aria-pressed={noteMode}
           aria-label="Toggle note mode"
@@ -581,8 +571,8 @@ export function FieldTab({
             setNotesListOpen((v) => !v);
             setEditingNoteId(null);
           }}
-          className={`px-3 py-2 flex items-center gap-1.5 border-l border-border transition-colors ${
-            notesListOpen ? "bg-secondary text-foreground" : "text-foreground hover:bg-secondary"
+          className={`px-3 py-2 flex items-center gap-1.5 border-l border-gray-200 transition-colors ${
+            notesListOpen ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-50"
           }`}
           aria-expanded={notesListOpen}
           aria-label="Show all notes"
@@ -1034,7 +1024,7 @@ export function FieldTab({
           const lblFontPx = labelFontSize * k;
           const lblPadX = 3 * k;
           const lblPadY = 2 * k;
-          const markerROnScreen = Math.max(0.4, pointSize);
+          const markerROnScreen = Math.min(22, Math.max(6, lblFontPx * s * 0.4));
           const markerR = markerROnScreen / s;
           const labelTextFor = (p: SurveyPoint) => {
             const lt = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
@@ -1043,7 +1033,7 @@ export function FieldTab({
               : p.value.toFixed(2);
           };
           const labelRectFor = (p: SurveyPoint) => {
-            ctx.font = `bold ${lblFontPx}px ${CANVAS_FONT_FAMILY}`;
+            ctx.font = `bold ${lblFontPx}px sans-serif`;
             const w = ctx.measureText(labelTextFor(p)).width + lblPadX * 2;
             const h = lblFontPx + lblPadY * 2;
             const halo = p.isTransitionAnchor ? Math.max(markerR + 3, 6) : markerR;
@@ -1134,7 +1124,7 @@ export function FieldTab({
               const markerHalo = isAnchor ? Math.max(markerR + 3, 6) : markerR;
               const lx = p.x + markerHalo + 4 * k;
               const ly = p.y + markerHalo + 3 * k;
-              ctx.font = `bold ${lblFontPx}px ${CANVAS_FONT_FAMILY}`;
+              ctx.font = `bold ${lblFontPx}px sans-serif`;
               const tm = ctx.measureText(label);
               const padX = lblPadX;
               const padY = lblPadY;
@@ -1155,7 +1145,7 @@ export function FieldTab({
               // Zone tag for excluded points — small muted label below the pin
               const zone = zoneOfXY(p.x, p.y, floor.exclusions);
               if (zone && zone.label) {
-                ctx.font = `${Math.max(9, labelFontSize - 2) * k}px ${CANVAS_FONT_FAMILY}`;
+                ctx.font = `${Math.max(9, labelFontSize - 2) * k}px sans-serif`;
                 ctx.fillStyle = "rgba(75,85,99,0.9)";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "top";
@@ -1179,7 +1169,7 @@ export function FieldTab({
             ctx.strokeStyle = "#ffffff";
             ctx.stroke();
             ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 11px ${CANVAS_FONT_FAMILY}";
+            ctx.font = "bold 11px sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(String(i + 1), n.x, n.y + 0.5);
@@ -1411,68 +1401,21 @@ export function FieldTab({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-background rounded-xl shadow-2xl max-w-sm w-full p-5">
             <h3 className="text-lg font-semibold mb-1">Set Base Point</h3>
-            <p className="text-sm text-muted-foreground mb-3">
+            <p className="text-sm text-muted-foreground mb-4">
               This is your first point. It becomes <span className="font-mono">BP1</span>, the
               reference elevation. Default is 9.0". Tap Continue to enter its value.
             </p>
-            <div className="mb-4 space-y-1.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs"
-                disabled={gpsBusy}
-                onClick={async () => {
-                  setGpsBusy(true);
-                  setGpsMsg(null);
-                  try {
-                    const pos = await getPos();
-                    const fix: BasePointGps = {
-                      lat: pos.coords.latitude,
-                      lon: pos.coords.longitude,
-                      accuracyM: pos.coords.accuracy,
-                      capturedAt: Date.now(),
-                    };
-                    onBasePointGps?.(fix);
-                    setGpsMsg(null);
-                  } catch (e) {
-                    setGpsMsg(geoError(e));
-                  } finally {
-                    setGpsBusy(false);
-                  }
-                }}
-              >
-                {gpsBusy ? "Locating…" : "📐 GPS coordinates"}
-              </Button>
-              {(basePointGps || gpsMsg) && (
-                <p className="text-xs text-muted-foreground font-mono leading-snug">
-                  {gpsMsg
-                    ? gpsMsg
-                    : basePointGps
-                      ? `${basePointGps.lat.toFixed(5)}, ${basePointGps.lon.toFixed(5)} (±${Math.round(basePointGps.accuracyM)}m)`
-                      : null}
-                </p>
-              )}
-            </div>
             <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
                 onClick={() => {
                   setPending(null);
                   setBpPromptOpen(false);
-                  setGpsMsg(null);
                 }}
               >
                 Cancel
               </Button>
-              <Button
-                onClick={() => {
-                  setBpPromptOpen(false);
-                  setGpsMsg(null);
-                }}
-              >
-                Continue
-              </Button>
+              <Button onClick={() => setBpPromptOpen(false)}>Continue</Button>
             </div>
           </div>
         </div>

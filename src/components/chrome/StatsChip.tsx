@@ -210,7 +210,7 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
   return (
     <div
       ref={ref}
-      className="fixed z-40 flex items-stretch rounded-full bg-card/95 backdrop-blur shadow-sm border border-border overflow-hidden font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing"
+      className="fixed z-40 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing"
       style={{ left: pos.x, top: pos.y, height, fontSize: fontPx, lineHeight: 1 }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -219,7 +219,7 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       aria-label="Elevation stats — drag to move"
     >
       <div
-        className="flex items-center gap-0.5 text-foreground"
+        className="flex items-center gap-0.5 text-gray-700"
         style={{ paddingLeft: padPx, paddingRight: padPx }}
         onPointerUp={(e) => endDrag(e, "hi")}
       >
@@ -230,17 +230,15 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
         <span className="font-mono">{stats.hi.value.toFixed(2)}</span>
       </div>
       <div
-        className="flex items-center gap-0.5 border-l border-border text-foreground"
+        className="flex items-center gap-0.5 border-l border-gray-200 text-gray-700"
         style={{ paddingLeft: padPx, paddingRight: padPx }}
         onPointerUp={(e) => endDrag(e, "lo")}
       >
-        <span className="font-semibold" style={{ color: "#1f5f9f" }}>
-          L
-        </span>
+        <span className="font-semibold text-sky-600">L</span>
         <span className="font-mono">{stats.lo.value.toFixed(2)}</span>
       </div>
       <div
-        className="flex items-center gap-0.5 border-l border-border text-muted-foreground"
+        className="flex items-center gap-0.5 border-l border-gray-200 text-gray-500"
         style={{ paddingLeft: padPx, paddingRight: padPx }}
       >
         <span className="font-mono">Δ{stats.delta.toFixed(2)}</span>
