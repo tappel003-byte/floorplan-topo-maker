@@ -270,9 +270,12 @@ export function TopoTab({
     }
     // Point-number labels
     if (resolved.showPoints) {
-      const k = Math.pow(1 / (viewScale || 1), 0.5);
+      const fontBase = resolved.pointLabelFontSize;
+      const fontOnScreenRaw = fontBase * Math.pow(viewScale || 1, 0.5);
+      const fontOnScreen = Math.min(fontBase * 4, Math.max(fontBase * 0.5, fontOnScreenRaw));
+      const fontPx = fontOnScreen / (viewScale || 1);
+      const k = fontPx / fontBase;
       const dec = resolved.decimalPlaces;
-      const fontPx = resolved.pointLabelFontSize * k;
       const weight = resolved.pointLabelWeight;
       const pad = 4 * k;
       for (const p of visiblePoints) {
@@ -1253,18 +1256,27 @@ function renderTopoTop(
   const livePinHigh = overlay?.livePinHigh ?? null;
   const livePinLow = overlay?.livePinLow ?? null;
   const highlightPin = overlay?.highlightPin ?? null;
-  // Screen-constant label sizing: dampen the canvas zoom so the
-  // pill stays readable without fully canceling the zoom distance.
-  const k = Math.pow(1 / (overlay?.viewScale || 1), 0.5);
-  const fontPx = resolved.pointLabelFontSize * k;
+  const viewScale = overlay?.viewScale || 1;
+  // Label font: anchored to the user's chosen size at 1x zoom (so exports,
+  // which render at 1x, always match what the user set). Scales with zoom
+  // between 0.5x and 4x of that base — readable at extremes, never runaway.
+  const fontBase = resolved.pointLabelFontSize;
+  const fontOnScreenRaw = fontBase * Math.pow(viewScale, 0.5);
+  const fontOnScreen = Math.min(fontBase * 4, Math.max(fontBase * 0.5, fontOnScreenRaw));
+  const fontPx = fontOnScreen / viewScale;
+  const k = fontPx / fontBase;
   const weight = resolved.pointLabelWeight;
   const color = resolved.pointLabelColor;
 
   if (resolved.showPoints) {
     ctx.globalAlpha = resolved.pointsOpacity;
-    const fontPxOnScreen = fontPx * (overlay?.viewScale || 1);
-    const dotROnScreen = Math.min(22, Math.max(6, fontPxOnScreen * 0.4));
-    const dotR = dotROnScreen / (overlay?.viewScale || 1);
+    // Dot: same anchoring as the label, but keyed to the user's dot-size
+    // stepper (pointSize) instead of font size, so the stepper actually
+    // controls what's drawn.
+    const dotBase = overlay?.pointSize ?? 6;
+    const dotOnScreenRaw = dotBase * Math.pow(viewScale, 0.5);
+    const dotOnScreen = Math.min(dotBase * 4, Math.max(dotBase * 0.5, dotOnScreenRaw));
+    const dotR = dotOnScreen / viewScale;
     const dotColor = overlay?.pointColor ?? "#dc2626";
     const padX = 4 * k;
     const padY = 2.5 * k;
