@@ -432,11 +432,16 @@ export function FieldTab({
     for (const p of points) {
       if (Math.hypot(p.x - x, p.y - y) < dotHit) return { point: p, on: "dot" };
     }
-    const k = Math.pow(1 / s, 0.5);
-    const fontPx = labelFontSize * k;
+    const fontBase = labelFontSize;
+    const fontOnScreenRaw = fontBase * Math.pow(s, 0.5);
+    const fontOnScreen = Math.min(fontBase * 4, Math.max(fontBase * 0.5, fontOnScreenRaw));
+    const fontPx = fontOnScreen / s;
+    const k = fontPx / fontBase;
     const pad = 4 * k;
-    const markerROnScreen = Math.min(22, Math.max(6, fontPx * s * 0.4));
-    const markerR = markerROnScreen / s;
+    const dotBase = pointSize;
+    const dotOnScreenRaw = dotBase * Math.pow(s, 0.5);
+    const dotOnScreen = Math.min(dotBase * 4, Math.max(dotBase * 0.5, dotOnScreenRaw));
+    const markerR = dotOnScreen / s;
     for (const p of points) {
       const text = p.value.toFixed(2);
       const w = text.length * fontPx * 0.62;
@@ -1020,12 +1025,19 @@ export function FieldTab({
           // zoom) so they stay readable on desktop, and a decluttering pass
           // hides labels that would collide. Dots always draw.
           const s = scaleRef.current || 1;
-          const k = Math.pow(1 / s, 0.5);
-          const lblFontPx = labelFontSize * k;
+          const fontBase = labelFontSize;
+          const fontOnScreenRaw = fontBase * Math.pow(s, 0.5);
+          const fontOnScreen = Math.min(fontBase * 4, Math.max(fontBase * 0.5, fontOnScreenRaw));
+          const lblFontPx = fontOnScreen / s;
+          const k = lblFontPx / fontBase;
           const lblPadX = 3 * k;
           const lblPadY = 2 * k;
-          const markerROnScreen = Math.min(22, Math.max(6, lblFontPx * s * 0.4));
-          const markerR = markerROnScreen / s;
+          // Dot: anchored to the pointSize stepper (Data panel "Dot" control)
+          // instead of derived from font size, so the stepper controls what's drawn.
+          const dotBase = pointSize;
+          const dotOnScreenRaw = dotBase * Math.pow(s, 0.5);
+          const dotOnScreen = Math.min(dotBase * 4, Math.max(dotBase * 0.5, dotOnScreenRaw));
+          const markerR = dotOnScreen / s;
           const labelTextFor = (p: SurveyPoint) => {
             const lt = p.transitionId ? transitions.find((t) => t.id === p.transitionId) : null;
             return lt && !p.isTransitionAnchor
