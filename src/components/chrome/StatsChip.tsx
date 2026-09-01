@@ -50,6 +50,10 @@ interface Props {
   points: SurveyPoint[];
   onHighlight?: (point: SurveyPoint) => void;
   storageKey?: string;
+  /** Shown as a leading segment. Used to name the area a pill belongs to. */
+  label?: string;
+  /** Stack index — offsets the default position so pills don't overlap. */
+  stackIndex?: number;
 }
 
 /** Height in px of the top chrome (header + optional floor selector) plus a gap. */
@@ -69,7 +73,13 @@ function topChromeHeight() {
  *   Topo → Labels & layers → "Stats pill size" (persisted in localStorage).
  * - Position persists per storageKey and clamps to viewport on resize/rotate.
  */
-export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }: Props) {
+export function StatsChip({
+  points,
+  onHighlight,
+  storageKey = "stats-chip-pos",
+  label,
+  stackIndex = 0,
+}: Props) {
   const stats = useMemo(() => {
     if (points.length === 0) return null;
     let hi = points[0];
@@ -122,9 +132,9 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     const top = topChromeHeight();
     setPos({
       x: Math.max(8, window.innerWidth / 2 - w / 2),
-      y: Math.max(top, window.innerHeight - h - 80),
+      y: Math.max(top, window.innerHeight - h - 80 - stackIndex * (h + 6)),
     });
-  }, [pos]);
+  }, [pos, stackIndex]);
 
   // Clamp on resize / rotation.
   useEffect(() => {
@@ -218,6 +228,16 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
       onPointerCancel={(e) => endDrag(e)}
       aria-label="Elevation stats — drag to move"
     >
+      {label && (
+        <div
+          className="flex items-center border-r border-gray-200 text-gray-500"
+          style={{ paddingLeft: padPx, paddingRight: padPx }}
+        >
+          <span className="truncate" style={{ maxWidth: 96 }}>
+            {label}
+          </span>
+        </div>
+      )}
       <div
         className="flex items-center gap-0.5 text-gray-700"
         style={{ paddingLeft: padPx, paddingRight: padPx }}
