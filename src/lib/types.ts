@@ -42,8 +42,13 @@ export interface Floor {
   planDataUrl?: string; // stored as data URL for offline-first
   planWidth?: number;
   planHeight?: number;
-  // Boundary polygon in image coordinates
+  // Boundary polygon in image coordinates.
+  // Legacy single-area field: mirrored to areas[0].polygon when areas exist.
   boundary: Array<{ x: number; y: number }>;
+  // Multiple named topo areas. Each gets its own contours and High/Low/Δ.
+  // Absent on legacy floors — read through getAreas() in @/lib/areas.
+  areas?: TopoArea[];
+
   // Scale calibration
   scale?: {
     // two points and the known real-world length in inches between them
@@ -81,12 +86,20 @@ export interface Floor {
 
 }
 
+export interface TopoArea {
+  id: string;
+  name: string; // "Area 1"
+  polygon: Array<{ x: number; y: number }>; // image coords
+  createdAt: number;
+}
+
 export interface Exclusion {
   id: string;
   label?: string;                        // "Garage", "Sunken LR"
   polygon: Array<{ x: number; y: number }>; // image coords
   createdAt: number;
 }
+
 
 export interface NotePin {
   id: string;

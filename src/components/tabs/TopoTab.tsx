@@ -25,12 +25,43 @@ import {
   type Grid,
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
-import { pointInPolygon, pointsOutsideExclusions } from "@/lib/exclusions";
+import { pointsOutsideExclusions } from "@/lib/exclusions";
+import {
+  areaCentroid,
+  exclusionsForArea,
+  getAreas,
+  pointsInArea,
+} from "@/lib/areas";
+import type { Exclusion, TopoArea } from "@/lib/types";
 
-/** Points inside the drawn boundary. Used for High/Low pin placement only. */
-function pointsInBoundary(pts: SurveyPoint[], boundary: Floor["boundary"]) {
-  if (!boundary || boundary.length < 3) return pts;
-  return pts.filter((p) => pointInPolygon(p.x, p.y, boundary));
+/** One area's computed topo surface. Areas each get their own contours. */
+export interface AreaTopo {
+  area: TopoArea;
+  grid: Grid;
+  contours: ReturnType<typeof computeContours>;
+}
+
+/**
+ * High / Low candidates for one area: readings physically inside the area
+ * polygon and outside any exclusion that belongs to that area.
+ */
+export function areaHiLo(
+  points: SurveyPoint[],
+  area: TopoArea,
+  exclusions: Exclusion[] | undefined,
+): { hi: SurveyPoint; lo: SurveyPoint } | null {
+  const cands = pointsOutsideExclusions(
+    pointsInArea(points, area),
+    exclusionsForArea(area, exclusions),
+  );
+  if (!cands.length) return null;
+  let hi = cands[0];
+  let lo = cands[0];
+  for (const p of cands) {
+    if (p.value > hi.value) hi = p;
+    if (p.value < lo.value) lo = p;
+  }
+  return { hi, lo };
 }
 
 interface Props {
@@ -45,6 +76,9 @@ interface Props {
   pointColor?: string;
   excludedIds?: Set<string>;
   onExcludedIdsChange?: (ids: Set<string>) => void;
+  /** "all" (default) shows every area; an id focuses a single area. */
+  activeAreaId?: string;
+  onActiveAreaChange?: (id: string) => void;
 }
 
 const DEFAULT_LABEL_DX = 8;
@@ -111,6 +145,8 @@ export function TopoTab({
   pointColor = "#dc2626",
   excludedIds: excludedIdsProp,
   onExcludedIdsChange,
+  activeAreaId,
+  onActiveAreaChange,
 }: Props) {
   const selectedId =
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
@@ -206,19 +242,28 @@ export function TopoTab({
     [points, excludedIds],
   );
 
-  const canRender = visiblePoints.length >= 3 && floor.boundary.length >= 3;
+  const areas = useMemo(() => getAreas(floor), [floor.areas, floor.boundary]);
+  const areaFocus = activeAreaId ?? "all";
+  const shownAreas = useMemo(
+    () => (areaFocus === "all" ? areas : areas.filter((a) => a.id === areaFocus)),
+    [areas, areaFocus],
+  );
 
-  const gridAndContours = useMemo(() => {
-    if (!canRender) return null;
-    const exPolys = (floor.exclusions ?? []).map((e) => e.polygon);
-    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS, exPolys);
-    if (!grid) return null;
-    const cs = computeContours(grid, contourOptions(grid, resolved));
-    return { grid, contours: cs };
+  // One contour surface per area — separate baselines never get mixed.
+  const areaTopos = useMemo<AreaTopo[]>(() => {
+    const out: AreaTopo[] = [];
+    for (const area of shownAreas) {
+      const pts = pointsInArea(visiblePoints, area);
+      if (pts.length < 3) continue;
+      const exPolys = exclusionsForArea(area, floor.exclusions).map((e) => e.polygon);
+      const grid = buildGrid(pts, area.polygon, TOPO_GRID_TARGET_COLS, exPolys);
+      if (!grid) continue;
+      out.push({ area, grid, contours: computeContours(grid, contourOptions(grid, resolved)) });
+    }
+    return out;
   }, [
-    canRender,
+    shownAreas,
     visiblePoints,
-    floor.boundary,
     floor.exclusions,
     resolved.firstContour,
     resolved.contourStep,
@@ -227,24 +272,22 @@ export function TopoTab({
     resolved.maxClamp,
   ]);
 
+  const canRender = areaTopos.length > 0;
+  // The color legend only makes sense when a single surface is on screen.
+  const singleSurface = areaTopos.length === 1;
+  const primaryGrid = areaTopos[0]?.grid ?? null;
+
   const update = (patch: Partial<RenderSettings>) =>
     onSettingsChange(resolveSettings({ ...resolved, ...patch }));
 
-  // Compute current High / Low points (matches renderTopoTop logic).
-  const hiLo = useMemo(() => {
-    const cands = pointsOutsideExclusions(
-      pointsInBoundary(visiblePoints, floor.boundary),
-      floor.exclusions,
-    );
-    if (!cands.length) return null;
-    let hi = cands[0],
-      lo = cands[0];
-    for (const p of cands) {
-      if (p.value > hi.value) hi = p;
-      if (p.value < lo.value) lo = p;
-    }
-    return { hi, lo };
-  }, [visiblePoints, floor.boundary, floor.exclusions]);
+  // Current High / Low per area (matches renderTopoTop logic).
+  const hiLos = useMemo(
+    () =>
+      areaTopos
+        .map((at) => areaHiLo(visiblePoints, at.area, floor.exclusions))
+        .filter((v): v is { hi: SurveyPoint; lo: SurveyPoint } => !!v),
+    [areaTopos, visiblePoints, floor.exclusions],
+  );
 
 
 
@@ -254,7 +297,7 @@ export function TopoTab({
 
   function hitDraggable(x: number, y: number): Hit | null {
     // Pins first — they sit above the point dot and are visually on top.
-    if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
+    if (resolved.showHighLow && hiLos.length && canRender && resolved.mode !== "points-only") {
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
         const fontPx = resolved.highLowPinSize;
         const w = pinWidth(kind === "pin-high" ? "High" : "Low", fontPx);
@@ -266,10 +309,12 @@ export function TopoTab({
       const hDy = floor.highPinDy ?? 0;
       const lDx = floor.lowPinDx ?? 0;
       const lDy = floor.lowPinDy ?? 0;
-      if (check("pin-high", hiLo.hi, hDx, hDy))
-        return { kind: "pin-high", point: hiLo.hi, dx: hDx, dy: hDy };
-      if (check("pin-low", hiLo.lo, lDx, lDy))
-        return { kind: "pin-low", point: hiLo.lo, dx: lDx, dy: lDy };
+      for (const hiLo of hiLos) {
+        if (check("pin-high", hiLo.hi, hDx, hDy))
+          return { kind: "pin-high", point: hiLo.hi, dx: hDx, dy: hDy };
+        if (check("pin-low", hiLo.lo, lDx, lDy))
+          return { kind: "pin-low", point: hiLo.lo, dx: lDx, dy: lDy };
+      }
     }
     // Point-number labels
     if (resolved.showPoints) {
@@ -438,11 +483,33 @@ export function TopoTab({
         />
       )}
 
+      {/* Area focus — only when the floor has more than one area */}
+      {areas.length > 1 && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex max-w-[70vw] gap-1 overflow-x-auto rounded-full border border-gray-300 bg-white/95 px-1 py-1 shadow-md backdrop-blur">
+          {[{ id: "all", name: "All areas" }, ...areas].map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => onActiveAreaChange?.(a.id)}
+              className={
+                "shrink-0 rounded-full px-2.5 py-1 text-[11px] leading-none " +
+                (areaFocus === a.id
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-700 hover:bg-gray-100")
+              }
+            >
+              {a.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+
       {/* Warning */}
       {!canRender && !warningDismissed && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2 max-w-[calc(100%-6rem)]">
           <span className="flex-1">
-            Need at least 3 points and a closed boundary to generate a topo.
+            Need at least 3 points inside a drawn area to generate a topo.
           </span>
           <button
             onClick={() => setWarningDismissed(true)}
@@ -466,7 +533,7 @@ export function TopoTab({
           onTransform={(t) => setViewScale((s) => (Math.abs(s - t.scale) > 1e-4 ? t.scale : s))}
           onImagePointerDown={(x, y) => {
             // Legend tap: start drag only. Size is edited in Labels & layers.
-            if (resolved.showLegend && gridAndContours?.grid && resolved.mode !== "points-only") {
+            if (resolved.showLegend && singleSurface && resolved.mode !== "points-only") {
               const box = legendBox(resolved);
               const inBox = x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
               if (inBox) {
@@ -538,7 +605,7 @@ export function TopoTab({
             setDrag(null);
           }}
           drawOverlay={(ctx) => {
-            renderTopoBase(ctx, floor, resolved, gridAndContours);
+            renderTopoBase(ctx, floor, resolved, areaTopos);
           }}
           drawOverlayTop={(ctx) => {
             const activeLabel =
@@ -549,7 +616,7 @@ export function TopoTab({
               drag && drag.active && drag.kind === "pin-high" ? { dx: drag.dx, dy: drag.dy } : null;
             const activePinLow =
               drag && drag.active && drag.kind === "pin-low" ? { dx: drag.dx, dy: drag.dy } : null;
-            renderTopoTop(ctx, floor, visiblePoints, resolved, gridAndContours, {
+            renderTopoTop(ctx, floor, visiblePoints, resolved, areaTopos, {
               liveDrag: activeLabel,
               highlightId: activeLabel?.id ?? selectedId,
               livePinHigh: activePinHigh,
@@ -565,10 +632,10 @@ export function TopoTab({
         {/* Contours popover — upper left */}
         {openCorner === "contours" && (
           <CornerPanel pos="top-12 left-2 landscape-short:top-2 landscape-short:left-auto landscape-short:right-2" onClose={() => setOpenCorner(null)} title="Contours">
-            {gridAndContours?.grid && (
+            {primaryGrid && (
               <p className="text-[10px] text-muted-foreground tabular-nums -mt-1">
-                Range {gridAndContours.grid.minValue.toFixed(2)}"–
-                {gridAndContours.grid.maxValue.toFixed(2)}"
+                Range {primaryGrid.minValue.toFixed(2)}"–
+                {primaryGrid.maxValue.toFixed(2)}"
               </p>
             )}
             <div>
@@ -1067,19 +1134,36 @@ function StepperControl({
   );
 }
 
+/** Build one topo surface per area. Shared by the Topo tab and exports. */
+export function computeAreaTopos(
+  floor: Floor,
+  points: SurveyPoint[],
+  settings: RenderSettings,
+): AreaTopo[] {
+  const resolved = resolveSettings(settings);
+  const out: AreaTopo[] = [];
+  for (const area of getAreas(floor)) {
+    const pts = pointsInArea(points, area);
+    if (pts.length < 3) continue;
+    const exPolys = exclusionsForArea(area, floor.exclusions).map((e) => e.polygon);
+    const grid = buildGrid(pts, area.polygon, TOPO_GRID_TARGET_COLS, exPolys);
+    if (!grid) continue;
+    out.push({ area, grid, contours: computeContours(grid, contourOptions(grid, resolved)) });
+  }
+  return out;
+}
+
 // Exported so ExportTab can reuse the exact rendering pipeline.
 export function renderTopo(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   points: SurveyPoint[],
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos?: AreaTopo[] | null,
 ) {
-  renderTopoBase(ctx, floor, settings, gridAndContours);
-  renderTopoTop(ctx, floor, points, settings, gridAndContours);
+  const tops = areaTopos ?? computeAreaTopos(floor, points, settings);
+  renderTopoBase(ctx, floor, settings, tops);
+  renderTopoTop(ctx, floor, points, settings, tops);
 }
 
 // Base pass: contour fills / lines / boundary. Meant to sit UNDER the wall plan.
@@ -1087,10 +1171,7 @@ function renderTopoBase(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
 ) {
   const w = Math.max(1, Math.ceil(floor.planWidth ?? 1000));
   const h = Math.max(1, Math.ceil(floor.planHeight ?? 750));
@@ -1099,7 +1180,7 @@ function renderTopoBase(
   layer.height = h;
   const layerCtx = layer.getContext("2d");
   if (!layerCtx) return;
-  renderTopoBaseLayer(layerCtx, floor, settings, gridAndContours);
+  renderTopoBaseLayer(layerCtx, floor, settings, areaTopos);
   ctx.drawImage(layer, 0, 0, w, h);
 }
 
@@ -1107,15 +1188,9 @@ function renderTopoBaseLayer(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
 ) {
   const resolved = resolveSettings(settings);
-  const g = gridAndContours?.grid ?? null;
-  const paletteMin = resolved.minClamp ?? g?.minValue ?? 0;
-  const paletteMax = resolved.maxClamp ?? g?.maxValue ?? 1;
   const traceExclusionCutouts = () => {
     for (const ex of floor.exclusions ?? []) {
       if (ex.polygon.length < 3) continue;
@@ -1126,19 +1201,22 @@ function renderTopoBaseLayer(
     }
   };
 
-  if (floor.boundary.length >= 3) {
+  // Each area paints its own surface, clipped to its own polygon and holes.
+  for (const at of areaTopos) {
+    const g = at.grid;
+    const paletteMin = resolved.minClamp ?? g.minValue;
+    const paletteMax = resolved.maxClamp ?? g.maxValue;
     ctx.save();
     ctx.beginPath();
-    floor.boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    at.area.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
     ctx.closePath();
-    for (const ex of floor.exclusions ?? []) {
-      if (ex.polygon.length < 3) continue;
+    for (const ex of exclusionsForArea(at.area, floor.exclusions)) {
       ex.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
       ctx.closePath();
     }
     ctx.clip("evenodd");
 
-    if (g && resolved.showContours && resolved.mode === "contour-cells") {
+    if (resolved.showContours && resolved.mode === "contour-cells") {
       // Paint cells opaque to an offscreen canvas first, then blit with opacity.
       // Prevents sub-pixel seams (white streaks) between adjacent cells when
       // globalAlpha < 1 blends each cell individually against the canvas.
@@ -1167,10 +1245,9 @@ function renderTopoBaseLayer(
 
 
     // Contour polygons
-    const cs = gridAndContours?.contours;
+    const cs = at.contours;
     if (
       cs &&
-      g &&
       resolved.showContours &&
       resolved.mode !== "points-only" &&
       resolved.mode !== "contour-cells"
@@ -1237,10 +1314,7 @@ function renderTopoTop(
   floor: Floor,
   points: SurveyPoint[],
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
   overlay?: {
     liveDrag?: { id: string; dx: number; dy: number } | null;
     highlightId?: string | null;
@@ -1253,7 +1327,6 @@ function renderTopoTop(
   },
 ) {
   const resolved = resolveSettings(settings);
-  const g = gridAndContours?.grid ?? null;
   const live = overlay?.liveDrag ?? null;
   const highlightId = overlay?.highlightId ?? null;
   const livePinHigh = overlay?.livePinHigh ?? null;
@@ -1388,35 +1461,26 @@ function renderTopoTop(
   }
 
   // Legend + High/Low pins
-  if (g && resolved.mode !== "points-only") {
-    if (resolved.showLegend)
-      drawLegend(
-        ctx,
-        resolved,
-        g,
-        gridAndContours?.contours ?? null,
-        false,
-      );
-    // High/Low pins are scoped to the drawn boundary — out-of-boundary
-    // reference readings (patio, garage) still draw as dots/labels above,
-    // but never receive a pin. Excluded areas also disqualify a point.
-    const pinCandidates = pointsOutsideExclusions(
-      pointsInBoundary(points, floor.boundary),
-      floor.exclusions,
-    );
-    if (resolved.showHighLow && pinCandidates.length) {
-      let hi = pinCandidates[0],
-        lo = pinCandidates[0];
-      for (const p of pinCandidates) {
-        if (p.value > hi.value) hi = p;
-        if (p.value < lo.value) lo = p;
-      }
+  if (areaTopos.length && resolved.mode !== "points-only") {
+    // One shared color legend only makes sense for a single surface. With
+    // several areas on screen the per-area stats pills carry the numbers and
+    // the "Contours" toggle controls the fill.
+    if (resolved.showLegend && areaTopos.length === 1)
+      drawLegend(ctx, resolved, areaTopos[0].grid, areaTopos[0].contours, false);
+
+    if (resolved.showHighLow) {
       const hDx = livePinHigh ? livePinHigh.dx : (floor.highPinDx ?? 0);
       const hDy = livePinHigh ? livePinHigh.dy : (floor.highPinDy ?? 0);
       const lDx = livePinLow ? livePinLow.dx : (floor.lowPinDx ?? 0);
       const lDy = livePinLow ? livePinLow.dy : (floor.lowPinDy ?? 0);
-      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", resolved.highLowPinSize, highlightPin === "pin-high");
-      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", resolved.highLowPinSize, highlightPin === "pin-low");
+      // Pins are scoped per area: out-of-area reference readings (patio,
+      // garage) and readings inside excluded zones never receive a pin.
+      for (const at of areaTopos) {
+        const hiLo = areaHiLo(points, at.area, floor.exclusions);
+        if (!hiLo) continue;
+        drawPin(ctx, hiLo.hi.x + hDx, hiLo.hi.y + hDy, "High", "#b51d16", resolved.highLowPinSize, highlightPin === "pin-high");
+        drawPin(ctx, hiLo.lo.x + lDx, hiLo.lo.y + lDy, "Low", "#1f5f9f", resolved.highLowPinSize, highlightPin === "pin-low");
+      }
     }
   }
 }

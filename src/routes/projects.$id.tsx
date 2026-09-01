@@ -16,7 +16,8 @@ import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrections
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues, migrateSurfaceName, transitionGroupKey } from "@/lib/transitions";
-import { computeExclusionMap, pointInPolygon } from "@/lib/exclusions";
+import { computeExclusionMap } from "@/lib/exclusions";
+import { getAreas, pointsInAnyArea, pointsInArea } from "@/lib/areas";
 
 
 const ThreeDTab = lazy(() =>
@@ -227,13 +228,23 @@ function ProjectWorkspace() {
     () => correctedPoints.filter((p) => !exclusionMap.has(p.id)),
     [correctedPoints, exclusionMap],
   );
-  // Stats mirror the topo surface: only readings inside the drawn boundary
+  // Stats mirror the topo surface: only readings inside a drawn area
   // (and outside exclusions) count toward High / Low / Δ.
-  const statsPoints = useMemo(() => {
-    const b = activeFloor?.boundary;
-    if (!b || b.length < 3) return nonExcludedPoints;
-    return nonExcludedPoints.filter((p) => pointInPolygon(p.x, p.y, b));
-  }, [nonExcludedPoints, activeFloor?.boundary]);
+  const areas = useMemo(
+    () => (activeFloor ? getAreas(activeFloor) : []),
+    [activeFloor?.areas, activeFloor?.boundary],
+  );
+  const statsPoints = useMemo(
+    () => (areas.length ? pointsInAnyArea(nonExcludedPoints, areas) : nonExcludedPoints),
+    [nonExcludedPoints, areas],
+  );
+  // Which area the Topo tab is focused on ("all" = every area at once).
+  const [topoAreaId, setTopoAreaId] = useState<string>("all");
+  useEffect(() => setTopoAreaId("all"), [activeFloor?.id]);
+  const statsAreas = useMemo(
+    () => (topoAreaId === "all" ? areas : areas.filter((a) => a.id === topoAreaId)),
+    [areas, topoAreaId],
+  );
 
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
@@ -388,6 +399,8 @@ function ProjectWorkspace() {
             selectedIds={topoHighlightIds}
             excludedIds={topoExcludedIds}
             onExcludedIdsChange={setTopoExcludedIds}
+            activeAreaId={topoAreaId}
+            onActiveAreaChange={setTopoAreaId}
           />
         )}
         {mode === "export" && (
@@ -406,22 +419,41 @@ function ProjectWorkspace() {
             mode={mode === "topo" ? "topo" : "data"}
             onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
           />
-          <StatsChip
-            points={
+          {(() => {
+            const base =
               mode === "topo" && topoExcludedIds.size
                 ? statsPoints.filter((p) => !topoExcludedIds.has(p.id))
-                : statsPoints
-            }
-
-            onHighlight={(p) => {
+                : statsPoints;
+            const highlight = (p: SurveyPoint) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
                 setFocusRequest({ x: p.x, y: p.y, nonce: Date.now() });
               } else {
                 setTopoHighlightIds(new Set([p.id]));
               }
-            }}
-          />
+            };
+            // Each area keeps its own High / Low / Δ — elevation baselines
+            // differ between areas, so one combined number would be wrong.
+            const chipAreas = mode === "topo" ? statsAreas : areas;
+            if (chipAreas.length > 1) {
+              return chipAreas.map((a, i) => (
+                <StatsChip
+                  key={a.id}
+                  points={pointsInArea(base, a)}
+                  label={a.name}
+                  stackIndex={i}
+                  storageKey={`stats-chip-pos:${a.id}`}
+                  onHighlight={highlight}
+                />
+              ));
+            }
+            return (
+              <StatsChip
+                points={chipAreas.length === 1 ? pointsInArea(base, chipAreas[0]) : base}
+                onHighlight={highlight}
+              />
+            );
+          })()}
         </>
       )}
       {mode === "field" && (
