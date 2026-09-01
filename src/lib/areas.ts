@@ -11,10 +11,17 @@ import type { Exclusion, Floor, SurveyPoint, TopoArea } from "./types";
 
 export const LEGACY_AREA_ID = "legacy";
 
-/** Areas for a floor, falling back to the legacy single boundary. */
+/**
+ * Areas for a floor, falling back to the legacy single boundary.
+ *
+ * This intentionally returns every stored area — including unfinished ones with
+ * fewer than 3 vertices — so the Setup UI can show and edit areas as they are
+ * being created. Topo/render callers already skip areas that are too small
+ * (`pointsInArea`, `exclusionsForArea`, `areaOfPoint`, and `buildGrid` all
+ * guard on polygon length or point count), so removing the filter here is safe.
+ */
 export function getAreas(floor: Pick<Floor, "areas" | "boundary">): TopoArea[] {
-  const areas = floor.areas?.filter((a) => a.polygon.length >= 3);
-  if (areas && areas.length) return areas;
+  if (floor.areas) return floor.areas;
   if (floor.boundary && floor.boundary.length >= 3) {
     return [
       { id: LEGACY_AREA_ID, name: "Area 1", polygon: floor.boundary, createdAt: 0 },
