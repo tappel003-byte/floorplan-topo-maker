@@ -1290,10 +1290,7 @@ function renderTopoTop(
   floor: Floor,
   points: SurveyPoint[],
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
   overlay?: {
     liveDrag?: { id: string; dx: number; dy: number } | null;
     highlightId?: string | null;
@@ -1306,7 +1303,6 @@ function renderTopoTop(
   },
 ) {
   const resolved = resolveSettings(settings);
-  const g = gridAndContours?.grid ?? null;
   const live = overlay?.liveDrag ?? null;
   const highlightId = overlay?.highlightId ?? null;
   const livePinHigh = overlay?.livePinHigh ?? null;
@@ -1441,35 +1437,26 @@ function renderTopoTop(
   }
 
   // Legend + High/Low pins
-  if (g && resolved.mode !== "points-only") {
-    if (resolved.showLegend)
-      drawLegend(
-        ctx,
-        resolved,
-        g,
-        gridAndContours?.contours ?? null,
-        false,
-      );
-    // High/Low pins are scoped to the drawn boundary — out-of-boundary
-    // reference readings (patio, garage) still draw as dots/labels above,
-    // but never receive a pin. Excluded areas also disqualify a point.
-    const pinCandidates = pointsOutsideExclusions(
-      pointsInBoundary(points, floor.boundary),
-      floor.exclusions,
-    );
-    if (resolved.showHighLow && pinCandidates.length) {
-      let hi = pinCandidates[0],
-        lo = pinCandidates[0];
-      for (const p of pinCandidates) {
-        if (p.value > hi.value) hi = p;
-        if (p.value < lo.value) lo = p;
-      }
+  if (areaTopos.length && resolved.mode !== "points-only") {
+    // One shared color legend only makes sense for a single surface. With
+    // several areas on screen the per-area stats pills carry the numbers and
+    // the "Contours" toggle controls the fill.
+    if (resolved.showLegend && areaTopos.length === 1)
+      drawLegend(ctx, resolved, areaTopos[0].grid, areaTopos[0].contours, false);
+
+    if (resolved.showHighLow) {
       const hDx = livePinHigh ? livePinHigh.dx : (floor.highPinDx ?? 0);
       const hDy = livePinHigh ? livePinHigh.dy : (floor.highPinDy ?? 0);
       const lDx = livePinLow ? livePinLow.dx : (floor.lowPinDx ?? 0);
       const lDy = livePinLow ? livePinLow.dy : (floor.lowPinDy ?? 0);
-      drawPin(ctx, hi.x + hDx, hi.y + hDy, "High", "#b51d16", resolved.highLowPinSize, highlightPin === "pin-high");
-      drawPin(ctx, lo.x + lDx, lo.y + lDy, "Low", "#1f5f9f", resolved.highLowPinSize, highlightPin === "pin-low");
+      // Pins are scoped per area: out-of-area reference readings (patio,
+      // garage) and readings inside excluded zones never receive a pin.
+      for (const at of areaTopos) {
+        const hiLo = areaHiLo(points, at.area, floor.exclusions);
+        if (!hiLo) continue;
+        drawPin(ctx, hiLo.hi.x + hDx, hiLo.hi.y + hDy, "High", "#b51d16", resolved.highLowPinSize, highlightPin === "pin-high");
+        drawPin(ctx, hiLo.lo.x + lDx, hiLo.lo.y + lDy, "Low", "#1f5f9f", resolved.highLowPinSize, highlightPin === "pin-low");
+      }
     }
   }
 }
