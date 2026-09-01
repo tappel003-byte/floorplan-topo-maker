@@ -5,7 +5,7 @@ import { Download } from "lucide-react";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
 import { TOPO_GRID_TARGET_COLS, buildGrid, computeContours } from "@/lib/topo";
 import { zoneOfXY } from "@/lib/exclusions";
-import { computeAreaTopos, renderTopo, resolveSettings } from "./TopoTab";
+import { renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
 
 interface Props {
@@ -36,11 +36,6 @@ export function ExportTab({ project, floor, points, settings }: Props) {
         showLabels: false,
       })
     : resolved;
-
-  const areaTopos = useMemo(
-    () => computeAreaTopos(floor, points, exportSettings),
-    [floor, points, exportSettings],
-  );
 
   const grid = useMemo(() => {
     if (points.length < 3 || floor.boundary.length < 3) return null;
@@ -92,7 +87,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
           ctx.globalAlpha = exportSettings.planOpacity;
           ctx.drawImage(img, 0, 0, imgW, imgH);
           ctx.globalAlpha = 1;
-          renderTopo(ctx, floor, points, exportSettings, areaTopos);
+          renderTopo(ctx, floor, points, exportSettings, gridAndContours);
           drawTitleBlock(ctx, imgW, imgH, project, floor, points);
           resolve();
         };
@@ -100,7 +95,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
         img.src = floor.planDataUrl!;
       });
     } else {
-      renderTopo(ctx, floor, points, exportSettings, areaTopos);
+      renderTopo(ctx, floor, points, exportSettings, gridAndContours);
       drawTitleBlock(ctx, imgW, imgH, project, floor, points);
       return Promise.resolve();
     }
