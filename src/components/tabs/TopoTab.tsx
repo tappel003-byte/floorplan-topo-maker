@@ -25,7 +25,7 @@ import {
   type Grid,
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
-import { pointInPolygon } from "@/lib/exclusions";
+import { pointInPolygon, pointsOutsideExclusions } from "@/lib/exclusions";
 
 /** Points inside the drawn boundary. Used for High/Low pin placement only. */
 function pointsInBoundary(pts: SurveyPoint[], boundary: Floor["boundary"]) {
@@ -232,7 +232,10 @@ export function TopoTab({
 
   // Compute current High / Low points (matches renderTopoTop logic).
   const hiLo = useMemo(() => {
-    const cands = pointsInBoundary(visiblePoints, floor.boundary);
+    const cands = pointsOutsideExclusions(
+      pointsInBoundary(visiblePoints, floor.boundary),
+      floor.exclusions,
+    );
     if (!cands.length) return null;
     let hi = cands[0],
       lo = cands[0];
@@ -241,7 +244,7 @@ export function TopoTab({
       if (p.value < lo.value) lo = p;
     }
     return { hi, lo };
-  }, [visiblePoints, floor.boundary]);
+  }, [visiblePoints, floor.boundary, floor.exclusions]);
 
 
 
@@ -1396,8 +1399,11 @@ function renderTopoTop(
       );
     // High/Low pins are scoped to the drawn boundary — out-of-boundary
     // reference readings (patio, garage) still draw as dots/labels above,
-    // but never receive a pin.
-    const pinCandidates = pointsInBoundary(points, floor.boundary);
+    // but never receive a pin. Excluded areas also disqualify a point.
+    const pinCandidates = pointsOutsideExclusions(
+      pointsInBoundary(points, floor.boundary),
+      floor.exclusions,
+    );
     if (resolved.showHighLow && pinCandidates.length) {
       let hi = pinCandidates[0],
         lo = pinCandidates[0];
