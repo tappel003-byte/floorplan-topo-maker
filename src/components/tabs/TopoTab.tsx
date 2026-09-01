@@ -483,6 +483,28 @@ export function TopoTab({
         />
       )}
 
+      {/* Area focus — only when the floor has more than one area */}
+      {areas.length > 1 && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex max-w-[70vw] gap-1 overflow-x-auto rounded-full border border-gray-300 bg-white/95 px-1 py-1 shadow-md backdrop-blur">
+          {[{ id: "all", name: "All areas" }, ...areas].map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => onActiveAreaChange?.(a.id)}
+              className={
+                "shrink-0 rounded-full px-2.5 py-1 text-[11px] leading-none " +
+                (areaFocus === a.id
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-700 hover:bg-gray-100")
+              }
+            >
+              {a.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+
       {/* Warning */}
       {!canRender && !warningDismissed && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2 max-w-[calc(100%-6rem)]">
