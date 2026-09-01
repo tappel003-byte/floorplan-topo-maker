@@ -9,7 +9,8 @@ import { PlanCanvas } from "../PlanCanvas";
 import { AddressGpsButtons } from "../AddressGpsButtons";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import { drawExclusionShape } from "@/lib/exclusions";
-import type { Floor, Exclusion, ProjectMeta } from "@/lib/types";
+import { getAreas, withAreas, areaCentroid } from "@/lib/areas";
+import type { Floor, Exclusion, ProjectMeta, TopoArea } from "@/lib/types";
 
 interface Props {
   project: ProjectMeta;
@@ -37,7 +38,7 @@ export function SetupTab({
   const steps: Array<{ key: "details" | "plan" | "boundary"; label: string }> = [
     { key: "details", label: "1. Details" },
     { key: "plan", label: "2. Plan" },
-    { key: "boundary", label: "3. Boundary" },
+    { key: "boundary", label: "3. Areas" },
   ];
   const stepIndex = steps.findIndex((s) => s.key === tab);
   const prevStep = stepIndex > 0 ? steps[stepIndex - 1] : null;
@@ -110,7 +111,7 @@ export function SetupTab({
               disabled={nextDisabled}
               variant={tab === "details" ? "default" : "default"}
             >
-              Next: {nextStep.key === "plan" ? "Plan" : "Boundary"}
+              Next: {nextStep.key === "plan" ? "Plan" : "Areas"}
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
