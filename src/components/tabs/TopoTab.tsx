@@ -1110,19 +1110,36 @@ function StepperControl({
   );
 }
 
+/** Build one topo surface per area. Shared by the Topo tab and exports. */
+export function computeAreaTopos(
+  floor: Floor,
+  points: SurveyPoint[],
+  settings: RenderSettings,
+): AreaTopo[] {
+  const resolved = resolveSettings(settings);
+  const out: AreaTopo[] = [];
+  for (const area of getAreas(floor)) {
+    const pts = pointsInArea(points, area);
+    if (pts.length < 3) continue;
+    const exPolys = exclusionsForArea(area, floor.exclusions).map((e) => e.polygon);
+    const grid = buildGrid(pts, area.polygon, TOPO_GRID_TARGET_COLS, exPolys);
+    if (!grid) continue;
+    out.push({ area, grid, contours: computeContours(grid, contourOptions(grid, resolved)) });
+  }
+  return out;
+}
+
 // Exported so ExportTab can reuse the exact rendering pipeline.
 export function renderTopo(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   points: SurveyPoint[],
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos?: AreaTopo[] | null,
 ) {
-  renderTopoBase(ctx, floor, settings, gridAndContours);
-  renderTopoTop(ctx, floor, points, settings, gridAndContours);
+  const tops = areaTopos ?? computeAreaTopos(floor, points, settings);
+  renderTopoBase(ctx, floor, settings, tops);
+  renderTopoTop(ctx, floor, points, settings, tops);
 }
 
 // Base pass: contour fills / lines / boundary. Meant to sit UNDER the wall plan.
@@ -1130,10 +1147,7 @@ function renderTopoBase(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
 ) {
   const w = Math.max(1, Math.ceil(floor.planWidth ?? 1000));
   const h = Math.max(1, Math.ceil(floor.planHeight ?? 750));
@@ -1142,7 +1156,7 @@ function renderTopoBase(
   layer.height = h;
   const layerCtx = layer.getContext("2d");
   if (!layerCtx) return;
-  renderTopoBaseLayer(layerCtx, floor, settings, gridAndContours);
+  renderTopoBaseLayer(layerCtx, floor, settings, areaTopos);
   ctx.drawImage(layer, 0, 0, w, h);
 }
 
@@ -1150,15 +1164,9 @@ function renderTopoBaseLayer(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
 ) {
   const resolved = resolveSettings(settings);
-  const g = gridAndContours?.grid ?? null;
-  const paletteMin = resolved.minClamp ?? g?.minValue ?? 0;
-  const paletteMax = resolved.maxClamp ?? g?.maxValue ?? 1;
   const traceExclusionCutouts = () => {
     for (const ex of floor.exclusions ?? []) {
       if (ex.polygon.length < 3) continue;
@@ -1169,19 +1177,22 @@ function renderTopoBaseLayer(
     }
   };
 
-  if (floor.boundary.length >= 3) {
+  // Each area paints its own surface, clipped to its own polygon and holes.
+  for (const at of areaTopos) {
+    const g = at.grid;
+    const paletteMin = resolved.minClamp ?? g.minValue;
+    const paletteMax = resolved.maxClamp ?? g.maxValue;
     ctx.save();
     ctx.beginPath();
-    floor.boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    at.area.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
     ctx.closePath();
-    for (const ex of floor.exclusions ?? []) {
-      if (ex.polygon.length < 3) continue;
+    for (const ex of exclusionsForArea(at.area, floor.exclusions)) {
       ex.polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
       ctx.closePath();
     }
     ctx.clip("evenodd");
 
-    if (g && resolved.showContours && resolved.mode === "contour-cells") {
+    if (resolved.showContours && resolved.mode === "contour-cells") {
       // Paint cells opaque to an offscreen canvas first, then blit with opacity.
       // Prevents sub-pixel seams (white streaks) between adjacent cells when
       // globalAlpha < 1 blends each cell individually against the canvas.
@@ -1210,10 +1221,9 @@ function renderTopoBaseLayer(
 
 
     // Contour polygons
-    const cs = gridAndContours?.contours;
+    const cs = at.contours;
     if (
       cs &&
-      g &&
       resolved.showContours &&
       resolved.mode !== "points-only" &&
       resolved.mode !== "contour-cells"
