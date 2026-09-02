@@ -350,10 +350,42 @@ export function TopoTab({
 
   type Hit =
     | { kind: "label"; point: SurveyPoint }
-    | { kind: "pin-high" | "pin-low"; point: SurveyPoint; dx: number; dy: number };
+    | { kind: "pin-high" | "pin-low"; point: SurveyPoint; dx: number; dy: number }
+    | { kind: "pill"; areaId: string; dx: number; dy: number; tapPoint: SurveyPoint | null };
 
   function hitDraggable(x: number, y: number): Hit | null {
-    // Pins first — they sit above the point dot and are visually on top.
+    // Stats pills are drawn last, so they hit-test first.
+    {
+      const h = pillHeightImg(statsChipSize, viewScale);
+      const showLabel = areaTopos.length > 1;
+      const dec = resolved.decimalPlaces;
+      for (let i = areaTopos.length - 1; i >= 0; i--) {
+        const at = areaTopos[i];
+        const m = pillMetrics(h, showLabel ? at.area.name : null, at.hi.value, at.lo.value, dec);
+        const { cx, cy } = pillCenter(at.area);
+        const x0 = cx - m.total / 2;
+        const y0 = cy - h / 2;
+        if (x < x0 || x > x0 + m.total || y < y0 || y > y0 + h) continue;
+        let sx = x0;
+        let tapPoint: SurveyPoint | null = null;
+        for (const s of m.segs) {
+          if (x >= sx && x <= sx + s.w) {
+            if (s.kind === "hi") tapPoint = at.hi;
+            else if (s.kind === "lo") tapPoint = at.lo;
+            break;
+          }
+          sx += s.w;
+        }
+        return {
+          kind: "pill",
+          areaId: at.area.id,
+          dx: at.area.pillDx ?? 0,
+          dy: at.area.pillDy ?? 0,
+          tapPoint,
+        };
+      }
+    }
+    // Pins next — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
         const fontPx = resolved.highLowPinSize;
