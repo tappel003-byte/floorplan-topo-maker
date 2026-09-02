@@ -9,7 +9,8 @@ import { PlanCanvas } from "../PlanCanvas";
 import { AddressGpsButtons } from "../AddressGpsButtons";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import { drawExclusionShape } from "@/lib/exclusions";
-import type { Floor, Exclusion, ProjectMeta } from "@/lib/types";
+import type { Floor, Exclusion, ProjectMeta, TopoArea } from "@/lib/types";
+import { getAreas, withAreas, areaCentroid } from "@/lib/areas";
 
 interface Props {
   project: ProjectMeta;
@@ -31,13 +32,13 @@ export function SetupTab({
   onActiveFloorChange,
   onStartSurveying,
 }: Props) {
-  const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
+  const [tab, setTab] = useState<"details" | "plan" | "areas">("details");
   const hasPlan = !!activeFloor?.planDataUrl;
 
-  const steps: Array<{ key: "details" | "plan" | "boundary"; label: string }> = [
+  const steps: Array<{ key: "details" | "plan" | "areas"; label: string }> = [
     { key: "details", label: "1. Details" },
     { key: "plan", label: "2. Plan" },
-    { key: "boundary", label: "3. Boundary" },
+    { key: "areas", label: "3. Areas" },
   ];
   const stepIndex = steps.findIndex((s) => s.key === tab);
   const prevStep = stepIndex > 0 ? steps[stepIndex - 1] : null;
@@ -66,7 +67,7 @@ export function SetupTab({
         ))}
       </div>
 
-      <div className={tab === "boundary" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
+      <div className={tab === "areas" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
         {tab === "details" && <DetailsPanel project={project} onChange={onProjectChange} />}
         {tab === "plan" && (
           <PlanPanel
@@ -77,8 +78,8 @@ export function SetupTab({
             onActiveFloorChange={onActiveFloorChange}
           />
         )}
-        {tab === "boundary" && (
-          <BoundaryPanel
+        {tab === "areas" && (
+          <AreasPanel
             floor={activeFloor}
             onChange={async (f) => {
               await saveFloor(f);
@@ -101,7 +102,7 @@ export function SetupTab({
           {tab === "plan" && !hasPlan && (
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
-          {tab === "boundary" && !hasPlan && (
+          {tab === "areas" && !hasPlan && (
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
           {nextStep ? (
@@ -110,7 +111,7 @@ export function SetupTab({
               disabled={nextDisabled}
               variant={tab === "details" ? "default" : "default"}
             >
-              Next: {nextStep.key === "plan" ? "Plan" : "Boundary"}
+              Next: {nextStep.key === "plan" ? "Plan" : "Areas"}
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
