@@ -1588,6 +1588,76 @@ function renderTopoTop(
       }
     }
   }
+
+  // H / L / Δ stats pill — one per area, drawn last so it sits on top.
+  {
+    const livePill = overlay?.livePill ?? null;
+    const base = overlay?.pillSize ?? DEFAULT_STATS_PILL_SIZE;
+    const h = pillHeightImg(base, viewScale);
+    const showLabel = areaTopos.length > 1;
+    for (const at of areaTopos) {
+      const live = livePill && livePill.id === at.area.id ? livePill : null;
+      drawStatsPill(
+        ctx,
+        at,
+        h,
+        showLabel ? at.area.name : null,
+        resolved.decimalPlaces,
+        pillCenter(at.area, live),
+        !!live,
+      );
+    }
+  }
+}
+
+/** Rounded H / L / Δ pill, centered on `center`, in image coords. */
+function drawStatsPill(
+  ctx: CanvasRenderingContext2D,
+  at: AreaTopo,
+  h: number,
+  label: string | null,
+  dec: number,
+  center: { cx: number; cy: number },
+  dragging: boolean,
+) {
+  const m = pillMetrics(h, label, at.hi.value, at.lo.value, dec);
+  const x0 = center.cx - m.total / 2;
+  const y0 = center.cy - h / 2;
+
+  ctx.save();
+  ctx.globalAlpha = 1;
+  roundRectPath(ctx, x0, y0, m.total, h, h / 2);
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.fill();
+  ctx.lineWidth = dragging ? Math.max(1, h * 0.08) : Math.max(0.6, h * 0.045);
+  ctx.strokeStyle = dragging ? "#17130e" : "#cbd0d6";
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  let sx = x0;
+  m.segs.forEach((s, i) => {
+    if (i > 0) {
+      ctx.beginPath();
+      ctx.moveTo(sx, y0 + h * 0.18);
+      ctx.lineTo(sx, y0 + h * 0.82);
+      ctx.strokeStyle = "#e2e5e9";
+      ctx.lineWidth = Math.max(0.5, h * 0.035);
+      ctx.stroke();
+    }
+    ctx.font = `600 ${m.font}px sans-serif`;
+    ctx.fillStyle =
+      s.kind === "hi"
+        ? "#b51d16"
+        : s.kind === "lo"
+          ? "#1f5f9f"
+          : s.kind === "delta"
+            ? "#6b7280"
+            : "#6b7280";
+    ctx.fillText(s.text, sx + s.w / 2, center.cy);
+    sx += s.w;
+  });
+  ctx.restore();
 }
 
 function drawPin(
