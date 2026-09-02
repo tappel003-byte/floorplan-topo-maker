@@ -215,6 +215,7 @@ export function TopoTab({
   onExcludedIdsChange,
   selectedAreaId = null,
   onSelectedAreaIdChange,
+  onHighlight,
 }: Props) {
   const selectedId =
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
