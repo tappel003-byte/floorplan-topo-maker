@@ -13,7 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Undo2, X, Waves, Palette, Tag, SlidersHorizontal, Minus, Plus } from "lucide-react";
-import type { Floor, RenderSettings, SurveyPoint } from "@/lib/types";
+import type { Floor, RenderSettings, SurveyPoint, TopoArea } from "@/lib/types";
 import { defaultRenderSettings } from "@/lib/types";
 import { TopoDiagnosticPanel } from "../TopoDiagnosticPanel";
 import {
@@ -25,17 +25,57 @@ import {
   type Grid,
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
-import { pointInPolygon, pointsOutsideExclusions } from "@/lib/exclusions";
+import { pointsOutsideExclusions } from "@/lib/exclusions";
+import { closedAreas, exclusionsForArea, pointsInArea } from "@/lib/areas";
 
-/** Points inside the drawn boundary and outside exclusion zones.
- *  Used for High/Low pin placement only. */
-function hiLoCandidates(pts: SurveyPoint[], floor: Floor) {
-  const inBoundary =
-    floor.boundary && floor.boundary.length >= 3
-      ? pts.filter((p) => pointInPolygon(p.x, p.y, floor.boundary))
-      : pts;
-  return pointsOutsideExclusions(inBoundary, floor.exclusions);
+/** One area's own contour surface plus its own High / Low. */
+export interface AreaTopo {
+  area: TopoArea;
+  points: SurveyPoint[];
+  grid: Grid;
+  contours: ReturnType<typeof computeContours>;
+  hi: SurveyPoint;
+  lo: SurveyPoint;
 }
+
+/** Points inside one area and outside the exclusion zones that fall in it.
+ *  Used for that area's contour surface and its High/Low pins. */
+export function areaCandidates(pts: SurveyPoint[], floor: Floor, area: TopoArea) {
+  return pointsOutsideExclusions(pointsInArea(pts, area), exclusionsForArea(area, floor.exclusions));
+}
+
+function hiLoOf(pts: SurveyPoint[]) {
+  let hi = pts[0];
+  let lo = pts[0];
+  for (const p of pts) {
+    if (p.value > hi.value) hi = p;
+    if (p.value < lo.value) lo = p;
+  }
+  return { hi, lo };
+}
+
+/** Build one contour surface + High/Low per area with at least 3 usable points. */
+export function buildAreaTopos(
+  floor: Floor,
+  points: SurveyPoint[],
+  settings: RenderSettings,
+  onlyAreaId?: string | null,
+): AreaTopo[] {
+  const out: AreaTopo[] = [];
+  for (const area of closedAreas(floor)) {
+    if (onlyAreaId && area.id !== onlyAreaId) continue;
+    const pts = areaCandidates(points, floor, area);
+    if (pts.length < 3) continue;
+    const exPolys = exclusionsForArea(area, floor.exclusions).map((e) => e.polygon);
+    const grid = buildGrid(pts, area.polygon, TOPO_GRID_TARGET_COLS, exPolys);
+    if (!grid) continue;
+    const contours = computeContours(grid, contourOptions(grid, settings));
+    const { hi, lo } = hiLoOf(pts);
+    out.push({ area, points: pts, grid, contours, hi, lo });
+  }
+  return out;
+}
+
 
 interface Props {
   floor: Floor;
