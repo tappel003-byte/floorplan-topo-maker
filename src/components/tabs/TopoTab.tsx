@@ -99,6 +99,8 @@ interface Props {
   /** null = "All areas". Owned by the route so the stats pills stay in sync. */
   selectedAreaId?: string | null;
   onSelectedAreaIdChange?: (id: string | null) => void;
+  /** Tap H or L on an area's stats pill to highlight that point. */
+  onHighlight?: (p: SurveyPoint) => void;
 }
 
 const DEFAULT_LABEL_DX = 8;
