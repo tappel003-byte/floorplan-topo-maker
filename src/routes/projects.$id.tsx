@@ -114,10 +114,30 @@ function ProjectWorkspace() {
       //     group averages applied globally — preserve their prior behavior
       //     by stamping the flag on every transition whose surface pair has
       //     an applied average in the stored floor.
+      //  3. Default area names: stored areas named exactly "Area N" are
+      //     renamed to "Boundary N" (custom-typed names untouched). One-time
+      //     rename matching the user-facing "topo boundary" relabel.
 
       const migrated = fs.map((f) => {
-        if (!f.transitions?.length) return f;
         let changed = false;
+        let nextAreas = f.areas;
+        if (nextAreas?.length) {
+          const renamed = nextAreas.map((a) =>
+            /^Area \d+$/.test(a.name)
+              ? { ...a, name: a.name.replace(/^Area /, "Boundary ") }
+              : a,
+          );
+          if (renamed.some((a, i) => a !== nextAreas![i])) {
+            changed = true;
+            nextAreas = renamed;
+          }
+        }
+        if (!f.transitions?.length) {
+          if (!changed) return f;
+          const nf = { ...f, areas: nextAreas };
+          void saveFloor(nf);
+          return nf;
+        }
         let nextT = f.transitions.map((t) => {
           const a2 = migrateSurfaceName(t.surfaceA);
           const b2 = migrateSurfaceName(t.surfaceB);
