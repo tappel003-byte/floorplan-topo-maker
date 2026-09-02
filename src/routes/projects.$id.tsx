@@ -175,7 +175,7 @@ function ProjectWorkspace() {
           });
         }
         if (!changed) return f;
-        const nf = { ...f, transitions: nextT, transitionGroupAverages: nextAvgs };
+        const nf = { ...f, areas: nextAreas, transitions: nextT, transitionGroupAverages: nextAvgs };
         void saveFloor(nf);
         return nf;
       });
