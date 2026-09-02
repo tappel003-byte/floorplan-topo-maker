@@ -132,13 +132,12 @@ export function SetupTab({
           {tab === "areas" && !hasPlan && (
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
+          {tab === "areas" && hasPlan && !anyAreaClosed && (
+            <span className="text-xs text-muted-foreground">Draw an area first</span>
+          )}
           {nextStep ? (
-            <Button
-              onClick={() => setTab(nextStep.key)}
-              disabled={nextDisabled}
-              variant={tab === "details" ? "default" : "default"}
-            >
-              Next: {nextStep.key === "plan" ? "Plan" : "Areas"}
+            <Button onClick={() => setTab(nextStep.key)} disabled={nextDisabled}>
+              Next: {stepNames[nextStep.key]}
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
