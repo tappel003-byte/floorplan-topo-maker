@@ -234,6 +234,14 @@ export function StatsChip({
       onPointerCancel={(e) => endDrag(e)}
       aria-label="Elevation stats — drag to move"
     >
+      {label && (
+        <div
+          className="flex items-center border-r border-gray-200 text-gray-500 max-w-[8rem] truncate"
+          style={{ paddingLeft: padPx, paddingRight: padPx }}
+        >
+          {label}
+        </div>
+      )}
       <div
         className="flex items-center gap-0.5 text-gray-700"
         style={{ paddingLeft: padPx, paddingRight: padPx }}
