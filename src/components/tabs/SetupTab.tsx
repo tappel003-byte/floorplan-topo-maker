@@ -629,11 +629,11 @@ function DrawingPanel({
                   onPointerMove={(e) => e.stopPropagation()}
                   onPointerUp={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-24 bg-transparent text-base outline-none border-b border-transparent focus:border-primary sm:w-20"
+                  size={Math.max(8, a.name.length + 1)}
+                  className="w-auto min-w-0 bg-transparent text-base outline-none border-b border-transparent focus:border-primary"
                   placeholder="Boundary"
                   enterKeyHint="done"
                 />
-                <span className="text-muted-foreground tabular-nums">{a.polygon.length}</span>
                 <button
                   type="button"
                   onClick={() => deleteArea(a.id)}

@@ -420,7 +420,7 @@ export function TopoTab({
           value={selectedAreaId ?? ""}
           onChange={(e) => onSelectedAreaIdChange?.(e.target.value || null)}
           aria-label="Topo boundary"
-          className="absolute z-30 top-2 left-1/2 -translate-x-1/2 h-8 max-w-[9rem] rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md px-3 text-xs text-gray-700"
+          className="absolute z-30 top-2 left-1/2 -translate-x-1/2 h-8 max-w-[9rem] rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md px-3 text-xs text-gray-700 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none"
         >
           <option value="">All boundaries</option>
           {areas.map((a) => (
