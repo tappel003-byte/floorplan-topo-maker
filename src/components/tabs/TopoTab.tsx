@@ -1205,7 +1205,6 @@ function renderTopoBaseLayer(
 
 
     // Contour polygons
-    const cs = gridAndContours?.contours;
     if (
       cs &&
       g &&
