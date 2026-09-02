@@ -1113,13 +1113,10 @@ export function renderTopo(
   floor: Floor,
   points: SurveyPoint[],
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
 ) {
-  renderTopoBase(ctx, floor, settings, gridAndContours);
-  renderTopoTop(ctx, floor, points, settings, gridAndContours);
+  renderTopoBase(ctx, floor, settings, areaTopos);
+  renderTopoTop(ctx, floor, points, settings, areaTopos);
 }
 
 // Base pass: contour fills / lines / boundary. Meant to sit UNDER the wall plan.
@@ -1127,10 +1124,7 @@ function renderTopoBase(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
 ) {
   const w = Math.max(1, Math.ceil(floor.planWidth ?? 1000));
   const h = Math.max(1, Math.ceil(floor.planHeight ?? 750));
@@ -1139,7 +1133,7 @@ function renderTopoBase(
   layer.height = h;
   const layerCtx = layer.getContext("2d");
   if (!layerCtx) return;
-  renderTopoBaseLayer(layerCtx, floor, settings, gridAndContours);
+  renderTopoBaseLayer(layerCtx, floor, settings, areaTopos);
   ctx.drawImage(layer, 0, 0, w, h);
 }
 
@@ -1147,15 +1141,14 @@ function renderTopoBaseLayer(
   ctx: CanvasRenderingContext2D,
   floor: Floor,
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
 ) {
   const resolved = resolveSettings(settings);
-  const g = gridAndContours?.grid ?? null;
-  const paletteMin = resolved.minClamp ?? g?.minValue ?? 0;
-  const paletteMax = resolved.maxClamp ?? g?.maxValue ?? 1;
+  // Palette range spans every area so colors mean the same thing across areas.
+  const allMin = areaTopos.length ? Math.min(...areaTopos.map((a) => a.grid.minValue)) : 0;
+  const allMax = areaTopos.length ? Math.max(...areaTopos.map((a) => a.grid.maxValue)) : 1;
+  const paletteMin = resolved.minClamp ?? allMin;
+  const paletteMax = resolved.maxClamp ?? allMax;
   const traceExclusionCutouts = () => {
     for (const ex of floor.exclusions ?? []) {
       if (ex.polygon.length < 3) continue;
@@ -1166,10 +1159,13 @@ function renderTopoBaseLayer(
     }
   };
 
-  if (floor.boundary.length >= 3) {
+  for (const at of areaTopos) {
+    const g = at.grid;
+    const cs = at.contours;
+    const polygon = at.area.polygon;
     ctx.save();
     ctx.beginPath();
-    floor.boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
     ctx.closePath();
     for (const ex of floor.exclusions ?? []) {
       if (ex.polygon.length < 3) continue;
@@ -1177,6 +1173,8 @@ function renderTopoBaseLayer(
       ctx.closePath();
     }
     ctx.clip("evenodd");
+
+
 
     if (g && resolved.showContours && resolved.mode === "contour-cells") {
       // Paint cells opaque to an offscreen canvas first, then blit with opacity.
