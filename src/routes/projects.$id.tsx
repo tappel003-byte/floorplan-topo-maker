@@ -399,6 +399,8 @@ function ProjectWorkspace() {
             selectedIds={topoHighlightIds}
             excludedIds={topoExcludedIds}
             onExcludedIdsChange={setTopoExcludedIds}
+            selectedAreaId={topoAreaId}
+            onSelectedAreaIdChange={setTopoAreaId}
           />
         )}
         {mode === "export" && (
@@ -417,22 +419,38 @@ function ProjectWorkspace() {
             mode={mode === "topo" ? "topo" : "data"}
             onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
           />
-          <StatsChip
-            points={
+          {(() => {
+            const strip = (pts: SurveyPoint[]) =>
               mode === "topo" && topoExcludedIds.size
-                ? statsPoints.filter((p) => !topoExcludedIds.has(p.id))
-                : statsPoints
-            }
-
-            onHighlight={(p) => {
+                ? pts.filter((p) => !topoExcludedIds.has(p.id))
+                : pts;
+            const highlight = (p: SurveyPoint) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
                 setFocusRequest({ x: p.x, y: p.y, nonce: Date.now() });
               } else {
                 setTopoHighlightIds(new Set([p.id]));
               }
-            }}
-          />
+            };
+            // Combined Topo view with several areas: one pill per area.
+            const combined = mode === "topo" && !topoAreaId && statsByArea.length > 1;
+            if (combined) {
+              return statsByArea.map((a, i) => (
+                <StatsChip
+                  key={a.area.id}
+                  points={strip(a.points)}
+                  label={a.area.name}
+                  stackIndex={i}
+                  onHighlight={highlight}
+                />
+              ));
+            }
+            const focused =
+              mode === "topo" && topoAreaId
+                ? (statsByArea.find((a) => a.area.id === topoAreaId)?.points ?? [])
+                : statsPoints;
+            return <StatsChip points={strip(focused)} onHighlight={highlight} />;
+          })()}
         </>
       )}
       {mode === "field" && (
