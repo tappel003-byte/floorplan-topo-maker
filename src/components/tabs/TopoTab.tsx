@@ -498,7 +498,7 @@ export function TopoTab({
       {!canRender && !warningDismissed && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2 max-w-[calc(100%-6rem)]">
           <span className="flex-1">
-            Need at least 3 points and a closed boundary to generate a topo.
+            Need at least 3 points inside a closed area to generate a topo.
           </span>
           <button
             onClick={() => setWarningDismissed(true)}
