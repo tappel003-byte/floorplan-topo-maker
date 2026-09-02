@@ -699,15 +699,19 @@ export function TopoTab({
           }}
           onImagePointerUp={() => {
             setLegendDrag(null);
-            setLegendDrag(null);
             clearLongPress();
-            if (drag && drag.active) {
+            if (drag) {
               const moved = drag.dx !== drag.startDx || drag.dy !== drag.startDy;
-              if (moved) {
+              if (drag.active && moved) {
                 if (drag.kind === "label") commitLabelMove(drag.id, drag.dx, drag.dy);
+                else if (drag.kind === "pill") commitPillMove(drag.id, drag.dx, drag.dy);
                 else commitPinMove(drag.kind, drag.dx, drag.dy);
+              } else if (drag.kind === "pill" && !moved && pillTapRef.current) {
+                // Quick tap on the pill's H or L segment highlights that point.
+                onHighlight?.(pillTapRef.current);
               }
             }
+            pillTapRef.current = null;
             setDrag(null);
           }}
           drawOverlay={(ctx) => {
@@ -722,12 +726,21 @@ export function TopoTab({
               drag && drag.active && drag.kind === "pin-high" ? { dx: drag.dx, dy: drag.dy } : null;
             const activePinLow =
               drag && drag.active && drag.kind === "pin-low" ? { dx: drag.dx, dy: drag.dy } : null;
+            const activePill =
+              drag && drag.active && drag.kind === "pill"
+                ? { id: drag.id, dx: drag.dx, dy: drag.dy }
+                : null;
             renderTopoTop(ctx, floor, visiblePoints, resolved, areaTopos, {
               liveDrag: activeLabel,
               highlightId: activeLabel?.id ?? selectedId,
               livePinHigh: activePinHigh,
               livePinLow: activePinLow,
-              highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
+              highlightPin:
+                drag?.active && (drag.kind === "pin-high" || drag.kind === "pin-low")
+                  ? drag.kind
+                  : null,
+              livePill: activePill,
+              pillSize: statsChipSize,
               pointSize,
               pointColor,
               viewScale,
