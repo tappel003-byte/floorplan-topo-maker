@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2, Upload, Undo2, ArrowRight, ArrowLeft, Ban, Check, X } from "lucide-react";
+import { Plus, Trash2, Upload, Undo2, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
 import { PlanCanvas } from "../PlanCanvas";
 import { AddressGpsButtons } from "../AddressGpsButtons";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
@@ -32,34 +32,52 @@ export function SetupTab({
   onActiveFloorChange,
   onStartSurveying,
 }: Props) {
-  const [tab, setTab] = useState<"details" | "plan" | "areas">("details");
+  const [tab, setTab] = useState<"details" | "plan" | "areas" | "excluded">("details");
   const hasPlan = !!activeFloor?.planDataUrl;
+  const anyAreaClosed = getAreas(activeFloor).some((a) => a.polygon.length >= 3);
 
-  const steps: Array<{ key: "details" | "plan" | "areas"; label: string }> = [
+  type StepKey = "details" | "plan" | "areas" | "excluded";
+  const steps: Array<{ key: StepKey; label: string; disabled?: boolean; title?: string }> = [
     { key: "details", label: "1. Details" },
     { key: "plan", label: "2. Plan" },
     { key: "areas", label: "3. Areas" },
+    {
+      key: "excluded",
+      label: "4. Excluded",
+      disabled: !anyAreaClosed,
+      title: anyAreaClosed ? undefined : "Draw an area first",
+    },
   ];
   const stepIndex = steps.findIndex((s) => s.key === tab);
   const prevStep = stepIndex > 0 ? steps[stepIndex - 1] : null;
   const nextStep = stepIndex < steps.length - 1 ? steps[stepIndex + 1] : null;
 
   // Next / Start conditions
-  const nextDisabled = tab === "plan" && !hasPlan;
+  const nextDisabled =
+    (tab === "plan" && !hasPlan) || (tab === "areas" && !anyAreaClosed);
   const startDisabled = !hasPlan;
+  const stepNames: Record<StepKey, string> = {
+    details: "Details",
+    plan: "Plan",
+    areas: "Areas",
+    excluded: "Excluded",
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="shrink-0 border-b flex overflow-x-auto">
-        {steps.map(({ key, label }) => (
+      <div className="shrink-0 border-b flex overflow-x-auto overscroll-x-contain">
+        {steps.map(({ key, label, disabled, title }) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => !disabled && setTab(key)}
+            disabled={disabled}
+            title={title}
             className={
-              "px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px " +
+              "shrink-0 px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px " +
               (tab === key
                 ? "border-primary text-foreground font-medium"
-                : "border-transparent text-muted-foreground")
+                : "border-transparent text-muted-foreground") +
+              (disabled ? " opacity-40 cursor-not-allowed" : "")
             }
           >
             {label}
@@ -67,7 +85,7 @@ export function SetupTab({
         ))}
       </div>
 
-      <div className={tab === "areas" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
+      <div className={tab === "areas" || tab === "excluded" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
         {tab === "details" && <DetailsPanel project={project} onChange={onProjectChange} />}
         {tab === "plan" && (
           <PlanPanel
@@ -80,6 +98,15 @@ export function SetupTab({
         )}
         {tab === "areas" && (
           <AreasPanel
+            floor={activeFloor}
+            onChange={async (f) => {
+              await saveFloor(f);
+              onFloorsChange(await listFloors(project.id));
+            }}
+          />
+        )}
+        {tab === "excluded" && (
+          <ExcludedPanel
             floor={activeFloor}
             onChange={async (f) => {
               await saveFloor(f);
@@ -105,13 +132,12 @@ export function SetupTab({
           {tab === "areas" && !hasPlan && (
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
+          {tab === "areas" && hasPlan && !anyAreaClosed && (
+            <span className="text-xs text-muted-foreground">Draw an area first</span>
+          )}
           {nextStep ? (
-            <Button
-              onClick={() => setTab(nextStep.key)}
-              disabled={nextDisabled}
-              variant={tab === "details" ? "default" : "default"}
-            >
-              Next: {nextStep.key === "plan" ? "Plan" : "Areas"}
+            <Button onClick={() => setTab(nextStep.key)} disabled={nextDisabled}>
+              Next: {stepNames[nextStep.key]}
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
@@ -359,12 +385,29 @@ function PlanPanel({
   );
 }
 
-function AreasPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) => void }) {
+function AreasPanel(props: { floor: Floor; onChange: (f: Floor) => void }) {
+  return <DrawingPanel {...props} mode="areas" />;
+}
+
+function ExcludedPanel(props: { floor: Floor; onChange: (f: Floor) => void }) {
+  return <DrawingPanel {...props} mode="excluded" />;
+}
+
+function DrawingPanel({
+  floor,
+  onChange,
+  mode,
+}: {
+  floor: Floor;
+  onChange: (f: Floor) => void;
+  mode: "areas" | "excluded";
+}) {
   const areas = getAreas(floor);
   const exclusions = floor.exclusions ?? [];
   const anyAreaClosed = areas.some((a) => a.polygon.length >= 3);
 
-  const [tool, setTool] = useState<"area" | "exclusion">("area");
+  // The Areas step edits areas only; the Excluded step edits exclusions only.
+  const tool: "area" | "exclusion" = mode === "areas" ? "area" : "exclusion";
   const [activeAreaId, setActiveAreaId] = useState<string>(areas[0]?.id ?? "");
   const [draft, setDraft] = useState<{ x: number; y: number }[] | null>(null);
   const [draftKind, setDraftKind] = useState<"area" | "exclusion">("exclusion");
@@ -487,34 +530,8 @@ function AreasPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) =>
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      {/* Tool switcher */}
-      <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-1 overflow-hidden">
-        <Button
-          size="sm"
-          variant={tool === "area" ? "default" : "ghost"}
-          onClick={() => {
-            setTool("area");
-            setDraft(null);
-          }}
-          className="h-7"
-        >
-          Areas
-        </Button>
-        <Button
-          size="sm"
-          variant={tool === "exclusion" ? "default" : "ghost"}
-          onClick={() => {
-            setTool("exclusion");
-            setDraft(null);
-          }}
-          disabled={!anyAreaClosed}
-          className="h-7"
-          title={anyAreaClosed ? undefined : "Draw an area first"}
-        >
-          <Ban className="h-3.5 w-3.5 mr-1" />
-          Excluded areas
-        </Button>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+      {/* Toolbar */}
+      <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-2 overflow-x-auto overscroll-x-contain [&_button]:shrink-0">
           {tool === "area" && !drafting && (
             <>
               <span className="text-xs text-muted-foreground hidden sm:inline">
@@ -587,7 +604,6 @@ function AreasPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) =>
               </Button>
             </>
           )}
-        </div>
       </div>
 
       {/* Area list */}
