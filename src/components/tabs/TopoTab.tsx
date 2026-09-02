@@ -1205,7 +1205,7 @@ function renderTopoBaseLayer(
           for (let c = 0; c < g.width; c++) {
             const idx = r * g.width + c;
             if (!g.mask[idx]) continue;
-            const t = clampValue(g.values[idx], paletteMin, paletteMax);
+            const t = clampValue(g.values[idx], areaPaletteMin, areaPaletteMax);
             octx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
             octx.fillRect(pad + c * g.step, pad + r * g.step, g.step + 1, g.step + 1);
           }
@@ -1227,7 +1227,7 @@ function renderTopoBaseLayer(
     ) {
       ctx.save();
       if (resolved.mode === "contour-fill") {
-        const minColorT = clampValue(paletteMin, paletteMin, paletteMax);
+        const minColorT = clampValue(areaPaletteMin, areaPaletteMin, areaPaletteMax);
         ctx.fillStyle = paletteColor(minColorT, resolved.palette, resolved.reversePalette);
         ctx.globalAlpha = 0.7 * resolved.contourOpacity;
         ctx.fillRect(g.x0, g.y0, g.width * g.step, g.height * g.step);
@@ -1246,7 +1246,7 @@ function renderTopoBaseLayer(
           }
         }
         if (resolved.mode === "contour-fill") {
-          const t = clampValue(c.value, paletteMin, paletteMax);
+          const t = clampValue(c.value, areaPaletteMin, areaPaletteMax);
           ctx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
           ctx.globalAlpha = 0.7 * resolved.contourOpacity;
           ctx.fill();
