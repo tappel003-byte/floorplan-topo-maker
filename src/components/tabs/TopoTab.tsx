@@ -26,7 +26,14 @@ import {
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
 import { pointsOutsideExclusions } from "@/lib/exclusions";
-import { closedAreas, exclusionsForArea, pointsInArea } from "@/lib/areas";
+import {
+  areaCentroid,
+  closedAreas,
+  exclusionsForArea,
+  getAreas,
+  pointsInArea,
+  withAreas,
+} from "@/lib/areas";
 
 /** One area's own contour surface plus its own High / Low. */
 export interface AreaTopo {
@@ -92,6 +99,8 @@ interface Props {
   /** null = "All areas". Owned by the route so the stats pills stay in sync. */
   selectedAreaId?: string | null;
   onSelectedAreaIdChange?: (id: string | null) => void;
+  /** Tap H or L on an area's stats pill to highlight that point. */
+  onHighlight?: (p: SurveyPoint) => void;
 }
 
 const DEFAULT_LABEL_DX = 8;
@@ -146,6 +155,52 @@ function labelAnchor(p: SurveyPoint, k = 1) {
   };
 }
 
+/* ---------------------------------------------------------------------------
+ * H / L / Δ stats pill — drawn on the canvas, one per area, anchored to the
+ * area centroid (+ the area's stored pillDx/pillDy nudge). Sized the same
+ * screen-constant way point labels are: the user's base size at 1x zoom,
+ * scaling with zoom between 0.5x and 4x of that base.
+ * ------------------------------------------------------------------------- */
+
+export const DEFAULT_STATS_PILL_SIZE = 28;
+
+/** Pill height in IMAGE coords for a given base (screen px) and zoom. */
+function pillHeightImg(base: number, viewScale: number) {
+  const z = viewScale || 1;
+  const onScreen = Math.min(base * 4, Math.max(base * 0.5, base * Math.pow(z, 0.5)));
+  return onScreen / z;
+}
+
+type PillSeg = { kind: "label" | "hi" | "lo" | "delta"; text: string; w: number };
+
+/** Segment layout + typography for one pill, in image coords. */
+function pillMetrics(h: number, label: string | null, hi: number, lo: number, dec: number) {
+  const font = Math.max(4, h * 0.42);
+  const pad = Math.max(2, h * 0.22);
+  const seg = (kind: PillSeg["kind"], text: string): PillSeg => ({
+    kind,
+    text,
+    w: measureLabel(text, font, "600").w + pad * 2,
+  });
+  const segs: PillSeg[] = [];
+  if (label) segs.push(seg("label", label));
+  segs.push(seg("hi", `H ${hi.toFixed(dec)}`));
+  segs.push(seg("lo", `L ${lo.toFixed(dec)}`));
+  segs.push(seg("delta", `\u0394${(hi - lo).toFixed(dec)}`));
+  const total = segs.reduce((s, x) => s + x.w, 0);
+  return { font, pad, h, segs, total };
+}
+
+/** Pill center in image coords for an area. */
+function pillCenter(area: TopoArea, live?: { dx: number; dy: number } | null) {
+  const c = areaCentroid(area);
+  const dx = live ? live.dx : (area.pillDx ?? 0);
+  const dy = live ? live.dy : (area.pillDy ?? 0);
+  return { cx: c.x + dx, cy: c.y + dy };
+}
+
+
+
 export function TopoTab({
   floor,
   points,
@@ -160,6 +215,7 @@ export function TopoTab({
   onExcludedIdsChange,
   selectedAreaId = null,
   onSelectedAreaIdChange,
+  onHighlight,
 }: Props) {
   const selectedId =
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
@@ -215,11 +271,12 @@ export function TopoTab({
   }, [resolved.legendScale, resolved.legendX, resolved.legendY]);
 
 
-  // Live drag (long-press-and-drag). One kind at a time: a point label or a H/L pin.
-  type DragKind = "label" | "pin-high" | "pin-low";
+  // Live drag (long-press-and-drag). One kind at a time: a point label, a H/L
+  // pin, or an area's stats pill.
+  type DragKind = "label" | "pin-high" | "pin-low" | "pill";
   const [drag, setDrag] = useState<{
     kind: DragKind;
-    id: string; // point id for "label", floor id for pins
+    id: string; // point id for "label", area id for "pill", floor id for pins
     dx: number;
     dy: number;
     startPointerX: number;
@@ -229,9 +286,12 @@ export function TopoTab({
     active: boolean; // true after long-press fires
   } | null>(null);
   const longPressTimer = useRef<number | null>(null);
+  // Point to highlight if the current pill press ends as a tap (no drag).
+  const pillTapRef = useRef<SurveyPoint | null>(null);
   type LastMove =
     | { kind: "label"; id: string; prevDx: number | undefined; prevDy: number | undefined }
-    | { kind: "pin-high" | "pin-low"; prevDx: number | undefined; prevDy: number | undefined };
+    | { kind: "pin-high" | "pin-low"; prevDx: number | undefined; prevDy: number | undefined }
+    | { kind: "pill"; id: string; prevDx: number | undefined; prevDy: number | undefined };
   const [lastMove, setLastMove] = useState<LastMove | null>(null);
 
   // Diagnostic exclusion (Topo-only, session-only). Removed points do NOT
@@ -290,10 +350,42 @@ export function TopoTab({
 
   type Hit =
     | { kind: "label"; point: SurveyPoint }
-    | { kind: "pin-high" | "pin-low"; point: SurveyPoint; dx: number; dy: number };
+    | { kind: "pin-high" | "pin-low"; point: SurveyPoint; dx: number; dy: number }
+    | { kind: "pill"; areaId: string; dx: number; dy: number; tapPoint: SurveyPoint | null };
 
   function hitDraggable(x: number, y: number): Hit | null {
-    // Pins first — they sit above the point dot and are visually on top.
+    // Stats pills are drawn last, so they hit-test first.
+    {
+      const h = pillHeightImg(statsChipSize, viewScale);
+      const showLabel = areaTopos.length > 1;
+      const dec = resolved.decimalPlaces;
+      for (let i = areaTopos.length - 1; i >= 0; i--) {
+        const at = areaTopos[i];
+        const m = pillMetrics(h, showLabel ? at.area.name : null, at.hi.value, at.lo.value, dec);
+        const { cx, cy } = pillCenter(at.area);
+        const x0 = cx - m.total / 2;
+        const y0 = cy - h / 2;
+        if (x < x0 || x > x0 + m.total || y < y0 || y > y0 + h) continue;
+        let sx = x0;
+        let tapPoint: SurveyPoint | null = null;
+        for (const s of m.segs) {
+          if (x >= sx && x <= sx + s.w) {
+            if (s.kind === "hi") tapPoint = at.hi;
+            else if (s.kind === "lo") tapPoint = at.lo;
+            break;
+          }
+          sx += s.w;
+        }
+        return {
+          kind: "pill",
+          areaId: at.area.id,
+          dx: at.area.pillDx ?? 0,
+          dy: at.area.pillDy ?? 0,
+          tapPoint,
+        };
+      }
+    }
+    // Pins next — they sit above the point dot and are visually on top.
     if (resolved.showHighLow && hiLo && gridAndContours?.grid && resolved.mode !== "points-only") {
       const check = (kind: "pin-high" | "pin-low", pt: SurveyPoint, dx: number, dy: number) => {
         const fontPx = resolved.highLowPinSize;
@@ -361,6 +453,23 @@ export function TopoTab({
     saveFloor(updated).catch(() => {});
   }
 
+
+  /** Write a pill offset onto one area of this floor. */
+  function applyPillOffset(areaId: string, dx: number | undefined, dy: number | undefined) {
+    const next = getAreas(floor).map((a) =>
+      a.id === areaId ? { ...a, pillDx: dx, pillDy: dy } : a,
+    );
+    const updated = withAreas(floor, next);
+    onFloorChange(updated);
+    saveFloor(updated).catch(() => {});
+  }
+
+  function commitPillMove(areaId: string, dx: number, dy: number) {
+    const prev = getAreas(floor).find((a) => a.id === areaId);
+    setLastMove({ kind: "pill", id: areaId, prevDx: prev?.pillDx, prevDy: prev?.pillDy });
+    applyPillOffset(areaId, dx, dy);
+  }
+
   function undoLastMove() {
     if (!lastMove) return;
     if (lastMove.kind === "label") {
@@ -372,6 +481,8 @@ export function TopoTab({
       const updated: SurveyPoint = { ...p, labelDx: lastMove.prevDx, labelDy: lastMove.prevDy };
       onPointsChange(points.map((pt) => (pt.id === lastMove.id ? updated : pt)));
       savePoint(updated).catch(() => {});
+    } else if (lastMove.kind === "pill") {
+      applyPillOffset(lastMove.id, lastMove.prevDx, lastMove.prevDy);
     } else {
       const updated: Floor =
         lastMove.kind === "pin-high"
@@ -530,16 +641,22 @@ export function TopoTab({
                 return true;
               }
             }
-            // Long-press on a label or a H/L pin to pick it up
+            // Long-press on a label, a H/L pin or a stats pill to pick it up
             const hit = hitDraggable(x, y);
             if (hit) {
               const startDx =
                 hit.kind === "label" ? (hit.point.labelDx ?? DEFAULT_LABEL_DX) : hit.dx;
               const startDy =
                 hit.kind === "label" ? (hit.point.labelDy ?? DEFAULT_LABEL_DY) : hit.dy;
+              pillTapRef.current = hit.kind === "pill" ? hit.tapPoint : null;
               setDrag({
                 kind: hit.kind,
-                id: hit.kind === "label" ? hit.point.id : floor.id,
+                id:
+                  hit.kind === "label"
+                    ? hit.point.id
+                    : hit.kind === "pill"
+                      ? hit.areaId
+                      : floor.id,
                 dx: startDx,
                 dy: startDy,
                 startPointerX: x,
@@ -582,15 +699,19 @@ export function TopoTab({
           }}
           onImagePointerUp={() => {
             setLegendDrag(null);
-            setLegendDrag(null);
             clearLongPress();
-            if (drag && drag.active) {
+            if (drag) {
               const moved = drag.dx !== drag.startDx || drag.dy !== drag.startDy;
-              if (moved) {
+              if (drag.active && moved) {
                 if (drag.kind === "label") commitLabelMove(drag.id, drag.dx, drag.dy);
+                else if (drag.kind === "pill") commitPillMove(drag.id, drag.dx, drag.dy);
                 else commitPinMove(drag.kind, drag.dx, drag.dy);
+              } else if (drag.kind === "pill" && !moved && pillTapRef.current) {
+                // Quick tap on the pill's H or L segment highlights that point.
+                onHighlight?.(pillTapRef.current);
               }
             }
+            pillTapRef.current = null;
             setDrag(null);
           }}
           drawOverlay={(ctx) => {
@@ -605,12 +726,21 @@ export function TopoTab({
               drag && drag.active && drag.kind === "pin-high" ? { dx: drag.dx, dy: drag.dy } : null;
             const activePinLow =
               drag && drag.active && drag.kind === "pin-low" ? { dx: drag.dx, dy: drag.dy } : null;
+            const activePill =
+              drag && drag.active && drag.kind === "pill"
+                ? { id: drag.id, dx: drag.dx, dy: drag.dy }
+                : null;
             renderTopoTop(ctx, floor, visiblePoints, resolved, areaTopos, {
               liveDrag: activeLabel,
               highlightId: activeLabel?.id ?? selectedId,
               livePinHigh: activePinHigh,
               livePinLow: activePinLow,
-              highlightPin: drag?.active && drag.kind !== "label" ? drag.kind : null,
+              highlightPin:
+                drag?.active && (drag.kind === "pin-high" || drag.kind === "pin-low")
+                  ? drag.kind
+                  : null,
+              livePill: activePill,
+              pillSize: statsChipSize,
               pointSize,
               pointColor,
               viewScale,
@@ -1294,6 +1424,10 @@ function renderTopoTop(
     livePinHigh?: { dx: number; dy: number } | null;
     livePinLow?: { dx: number; dy: number } | null;
     highlightPin?: "pin-high" | "pin-low" | null;
+    /** Area whose stats pill is being dragged right now. */
+    livePill?: { id: string; dx: number; dy: number } | null;
+    /** Base (1x zoom) stats-pill height in screen px. */
+    pillSize?: number;
     pointSize?: number;
     pointColor?: string;
     viewScale?: number;
@@ -1454,6 +1588,76 @@ function renderTopoTop(
       }
     }
   }
+
+  // H / L / Δ stats pill — one per area, drawn last so it sits on top.
+  {
+    const livePill = overlay?.livePill ?? null;
+    const base = overlay?.pillSize ?? DEFAULT_STATS_PILL_SIZE;
+    const h = pillHeightImg(base, viewScale);
+    const showLabel = areaTopos.length > 1;
+    for (const at of areaTopos) {
+      const live = livePill && livePill.id === at.area.id ? livePill : null;
+      drawStatsPill(
+        ctx,
+        at,
+        h,
+        showLabel ? at.area.name : null,
+        resolved.decimalPlaces,
+        pillCenter(at.area, live),
+        !!live,
+      );
+    }
+  }
+}
+
+/** Rounded H / L / Δ pill, centered on `center`, in image coords. */
+function drawStatsPill(
+  ctx: CanvasRenderingContext2D,
+  at: AreaTopo,
+  h: number,
+  label: string | null,
+  dec: number,
+  center: { cx: number; cy: number },
+  dragging: boolean,
+) {
+  const m = pillMetrics(h, label, at.hi.value, at.lo.value, dec);
+  const x0 = center.cx - m.total / 2;
+  const y0 = center.cy - h / 2;
+
+  ctx.save();
+  ctx.globalAlpha = 1;
+  roundRectPath(ctx, x0, y0, m.total, h, h / 2);
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.fill();
+  ctx.lineWidth = dragging ? Math.max(1, h * 0.08) : Math.max(0.6, h * 0.045);
+  ctx.strokeStyle = dragging ? "#17130e" : "#cbd0d6";
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  let sx = x0;
+  m.segs.forEach((s, i) => {
+    if (i > 0) {
+      ctx.beginPath();
+      ctx.moveTo(sx, y0 + h * 0.18);
+      ctx.lineTo(sx, y0 + h * 0.82);
+      ctx.strokeStyle = "#e2e5e9";
+      ctx.lineWidth = Math.max(0.5, h * 0.035);
+      ctx.stroke();
+    }
+    ctx.font = `600 ${m.font}px sans-serif`;
+    ctx.fillStyle =
+      s.kind === "hi"
+        ? "#b51d16"
+        : s.kind === "lo"
+          ? "#1f5f9f"
+          : s.kind === "delta"
+            ? "#6b7280"
+            : "#6b7280";
+    ctx.fillText(s.text, sx + s.w / 2, center.cy);
+    sx += s.w;
+  });
+  ctx.restore();
 }
 
 function drawPin(

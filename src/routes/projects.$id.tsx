@@ -261,11 +261,6 @@ function ProjectWorkspace() {
     () => pointsInAnyArea(nonExcludedPoints, floorAreas),
     [nonExcludedPoints, floorAreas],
   );
-  /** One entry per area: that area's stats points (already exclusion-filtered). */
-  const statsByArea = useMemo(
-    () => floorAreas.map((a) => ({ area: a, points: pointsInArea(nonExcludedPoints, a) })),
-    [floorAreas, nonExcludedPoints],
-  );
 
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
@@ -422,6 +417,7 @@ function ProjectWorkspace() {
             onExcludedIdsChange={setTopoExcludedIds}
             selectedAreaId={topoAreaId}
             onSelectedAreaIdChange={setTopoAreaId}
+            onHighlight={(p) => setTopoHighlightIds(new Set([p.id]))}
           />
         )}
         {mode === "export" && (
@@ -440,45 +436,18 @@ function ProjectWorkspace() {
             mode={mode === "topo" ? "topo" : "data"}
             onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
           />
-          {(() => {
-            const strip = (pts: SurveyPoint[]) =>
-              mode === "topo" && topoExcludedIds.size
-                ? pts.filter((p) => !topoExcludedIds.has(p.id))
-                : pts;
-            const highlight = (p: SurveyPoint) => {
-              if (mode === "field") {
+          {/* Field/Data mode keeps the floating stats pill. In Topo mode the
+              pill is drawn inside the canvas by TopoTab itself. */}
+          {mode === "field" && (
+            <StatsChip
+              storageKey={`stats-chip-pos:${activeFloor.id}:solo`}
+              points={statsPoints}
+              onHighlight={(p) => {
                 setSelectedIds(new Set([p.id]));
                 setFocusRequest({ x: p.x, y: p.y, nonce: Date.now() });
-              } else {
-                setTopoHighlightIds(new Set([p.id]));
-              }
-            };
-            // Combined Topo view with several areas: one pill per area.
-            const combined = mode === "topo" && !topoAreaId && statsByArea.length > 1;
-            if (combined) {
-              return statsByArea.map((a, i) => (
-                <StatsChip
-                  key={a.area.id}
-                  storageKey={`stats-chip-pos:${activeFloor.id}:${a.area.id}`}
-                  points={strip(a.points)}
-                  label={a.area.name}
-                  stackIndex={i}
-                  onHighlight={highlight}
-                />
-              ));
-            }
-            const focused =
-              mode === "topo" && topoAreaId
-                ? (statsByArea.find((a) => a.area.id === topoAreaId)?.points ?? [])
-                : statsPoints;
-            return (
-              <StatsChip
-                storageKey={`stats-chip-pos:${activeFloor.id}:solo`}
-                points={strip(focused)}
-                onHighlight={highlight}
-              />
-            );
-          })()}
+              }}
+            />
+          )}
         </>
       )}
       {mode === "field" && (
