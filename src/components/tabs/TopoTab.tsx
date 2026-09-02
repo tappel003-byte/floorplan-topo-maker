@@ -1274,10 +1274,7 @@ function renderTopoTop(
   floor: Floor,
   points: SurveyPoint[],
   settings: RenderSettings,
-  gridAndContours: {
-    grid: Grid;
-    contours: ReturnType<typeof computeContours>;
-  } | null,
+  areaTopos: AreaTopo[],
   overlay?: {
     liveDrag?: { id: string; dx: number; dy: number } | null;
     highlightId?: string | null;
@@ -1290,7 +1287,8 @@ function renderTopoTop(
   },
 ) {
   const resolved = resolveSettings(settings);
-  const g = gridAndContours?.grid ?? null;
+  // The shared color legend only makes sense for a single surface.
+  const soloGrid = areaTopos.length === 1 ? areaTopos[0] : null;
   const live = overlay?.liveDrag ?? null;
   const highlightId = overlay?.highlightId ?? null;
   const livePinHigh = overlay?.livePinHigh ?? null;
