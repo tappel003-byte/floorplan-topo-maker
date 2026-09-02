@@ -16,7 +16,7 @@ export function getAreas(floor: Floor): TopoArea[] {
   return [
     {
       id: LEGACY_AREA_ID,
-      name: "Area 1",
+      name: "Boundary 1",
       polygon: floor.boundary ?? [],
       createdAt: floor.createdAt ?? Date.now(),
     },
