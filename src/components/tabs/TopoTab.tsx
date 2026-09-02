@@ -453,6 +453,23 @@ export function TopoTab({
     saveFloor(updated).catch(() => {});
   }
 
+
+  /** Write a pill offset onto one area of this floor. */
+  function applyPillOffset(areaId: string, dx: number | undefined, dy: number | undefined) {
+    const next = getAreas(floor).map((a) =>
+      a.id === areaId ? { ...a, pillDx: dx, pillDy: dy } : a,
+    );
+    const updated = withAreas(floor, next);
+    onFloorChange(updated);
+    saveFloor(updated).catch(() => {});
+  }
+
+  function commitPillMove(areaId: string, dx: number, dy: number) {
+    const prev = getAreas(floor).find((a) => a.id === areaId);
+    setLastMove({ kind: "pill", id: areaId, prevDx: prev?.pillDx, prevDy: prev?.pillDy });
+    applyPillOffset(areaId, dx, dy);
+  }
+
   function undoLastMove() {
     if (!lastMove) return;
     if (lastMove.kind === "label") {
@@ -464,6 +481,8 @@ export function TopoTab({
       const updated: SurveyPoint = { ...p, labelDx: lastMove.prevDx, labelDy: lastMove.prevDy };
       onPointsChange(points.map((pt) => (pt.id === lastMove.id ? updated : pt)));
       savePoint(updated).catch(() => {});
+    } else if (lastMove.kind === "pill") {
+      applyPillOffset(lastMove.id, lastMove.prevDx, lastMove.prevDy);
     } else {
       const updated: Floor =
         lastMove.kind === "pin-high"
