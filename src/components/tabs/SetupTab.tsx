@@ -32,21 +32,36 @@ export function SetupTab({
   onActiveFloorChange,
   onStartSurveying,
 }: Props) {
-  const [tab, setTab] = useState<"details" | "plan" | "areas">("details");
+  const [tab, setTab] = useState<"details" | "plan" | "areas" | "excluded">("details");
   const hasPlan = !!activeFloor?.planDataUrl;
+  const anyAreaClosed = getAreas(activeFloor).some((a) => a.polygon.length >= 3);
 
-  const steps: Array<{ key: "details" | "plan" | "areas"; label: string }> = [
+  type StepKey = "details" | "plan" | "areas" | "excluded";
+  const steps: Array<{ key: StepKey; label: string; disabled?: boolean; title?: string }> = [
     { key: "details", label: "1. Details" },
     { key: "plan", label: "2. Plan" },
     { key: "areas", label: "3. Areas" },
+    {
+      key: "excluded",
+      label: "4. Excluded",
+      disabled: !anyAreaClosed,
+      title: anyAreaClosed ? undefined : "Draw an area first",
+    },
   ];
   const stepIndex = steps.findIndex((s) => s.key === tab);
   const prevStep = stepIndex > 0 ? steps[stepIndex - 1] : null;
   const nextStep = stepIndex < steps.length - 1 ? steps[stepIndex + 1] : null;
 
   // Next / Start conditions
-  const nextDisabled = tab === "plan" && !hasPlan;
+  const nextDisabled =
+    (tab === "plan" && !hasPlan) || (tab === "areas" && !anyAreaClosed);
   const startDisabled = !hasPlan;
+  const stepNames: Record<StepKey, string> = {
+    details: "Details",
+    plan: "Plan",
+    areas: "Areas",
+    excluded: "Excluded",
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
