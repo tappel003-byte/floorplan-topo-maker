@@ -73,7 +73,13 @@ function topChromeHeight() {
  *   Topo → Labels & layers → "Stats pill size" (persisted in localStorage).
  * - Position persists per storageKey and clamps to viewport on resize/rotate.
  */
-export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }: Props) {
+export function StatsChip({
+  points,
+  onHighlight,
+  storageKey = "stats-chip-pos",
+  label,
+  stackIndex = 0,
+}: Props) {
   const stats = useMemo(() => {
     if (points.length === 0) return null;
     let hi = points[0];
