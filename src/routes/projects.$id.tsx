@@ -422,6 +422,7 @@ function ProjectWorkspace() {
             onExcludedIdsChange={setTopoExcludedIds}
             selectedAreaId={topoAreaId}
             onSelectedAreaIdChange={setTopoAreaId}
+            onHighlight={(p) => setTopoHighlightIds(new Set([p.id]))}
           />
         )}
         {mode === "export" && (
