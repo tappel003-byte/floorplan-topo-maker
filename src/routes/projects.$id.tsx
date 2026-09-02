@@ -261,11 +261,6 @@ function ProjectWorkspace() {
     () => pointsInAnyArea(nonExcludedPoints, floorAreas),
     [nonExcludedPoints, floorAreas],
   );
-  /** One entry per area: that area's stats points (already exclusion-filtered). */
-  const statsByArea = useMemo(
-    () => floorAreas.map((a) => ({ area: a, points: pointsInArea(nonExcludedPoints, a) })),
-    [floorAreas, nonExcludedPoints],
-  );
 
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
