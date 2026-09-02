@@ -1424,6 +1424,10 @@ function renderTopoTop(
     livePinHigh?: { dx: number; dy: number } | null;
     livePinLow?: { dx: number; dy: number } | null;
     highlightPin?: "pin-high" | "pin-low" | null;
+    /** Area whose stats pill is being dragged right now. */
+    livePill?: { id: string; dx: number; dy: number } | null;
+    /** Base (1x zoom) stats-pill height in screen px. */
+    pillSize?: number;
     pointSize?: number;
     pointColor?: string;
     viewScale?: number;
