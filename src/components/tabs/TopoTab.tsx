@@ -153,6 +153,52 @@ function labelAnchor(p: SurveyPoint, k = 1) {
   };
 }
 
+/* ---------------------------------------------------------------------------
+ * H / L / Δ stats pill — drawn on the canvas, one per area, anchored to the
+ * area centroid (+ the area's stored pillDx/pillDy nudge). Sized the same
+ * screen-constant way point labels are: the user's base size at 1x zoom,
+ * scaling with zoom between 0.5x and 4x of that base.
+ * ------------------------------------------------------------------------- */
+
+export const DEFAULT_STATS_PILL_SIZE = 28;
+
+/** Pill height in IMAGE coords for a given base (screen px) and zoom. */
+function pillHeightImg(base: number, viewScale: number) {
+  const z = viewScale || 1;
+  const onScreen = Math.min(base * 4, Math.max(base * 0.5, base * Math.pow(z, 0.5)));
+  return onScreen / z;
+}
+
+type PillSeg = { kind: "label" | "hi" | "lo" | "delta"; text: string; w: number };
+
+/** Segment layout + typography for one pill, in image coords. */
+function pillMetrics(h: number, label: string | null, hi: number, lo: number, dec: number) {
+  const font = Math.max(4, h * 0.42);
+  const pad = Math.max(2, h * 0.22);
+  const seg = (kind: PillSeg["kind"], text: string): PillSeg => ({
+    kind,
+    text,
+    w: measureLabel(text, font, "600").w + pad * 2,
+  });
+  const segs: PillSeg[] = [];
+  if (label) segs.push(seg("label", label));
+  segs.push(seg("hi", `H ${hi.toFixed(dec)}`));
+  segs.push(seg("lo", `L ${lo.toFixed(dec)}`));
+  segs.push(seg("delta", `\u0394${(hi - lo).toFixed(dec)}`));
+  const total = segs.reduce((s, x) => s + x.w, 0);
+  return { font, pad, h, segs, total };
+}
+
+/** Pill center in image coords for an area. */
+function pillCenter(area: TopoArea, live?: { dx: number; dy: number } | null) {
+  const c = areaCentroid(area);
+  const dx = live ? live.dx : (area.pillDx ?? 0);
+  const dy = live ? live.dy : (area.pillDy ?? 0);
+  return { cx: c.x + dx, cy: c.y + dy };
+}
+
+
+
 export function TopoTab({
   floor,
   points,
