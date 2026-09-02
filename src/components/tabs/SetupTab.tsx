@@ -531,7 +531,7 @@ function DrawingPanel({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-2 overflow-x-auto overscroll-x-contain">
+      <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-2 overflow-x-auto overscroll-x-contain [&_button]:shrink-0">
           {tool === "area" && !drafting && (
             <>
               <span className="text-xs text-muted-foreground hidden sm:inline">
