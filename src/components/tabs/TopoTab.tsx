@@ -1398,10 +1398,10 @@ function renderTopoTop(
         gridAndContours?.contours ?? null,
         false,
       );
-    // High/Low pins are scoped to the drawn boundary — out-of-boundary
-    // reference readings (patio, garage) still draw as dots/labels above,
-    // but never receive a pin.
-    const pinCandidates = pointsInBoundary(points, floor.boundary);
+    // High/Low pins are scoped to the drawn boundary and outside exclusion
+    // zones — out-of-boundary reference readings and excluded areas never
+    // receive a pin.
+    const pinCandidates = hiLoCandidates(points, floor);
     if (resolved.showHighLow && pinCandidates.length) {
       let hi = pinCandidates[0],
         lo = pinCandidates[0];
