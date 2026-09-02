@@ -439,6 +439,7 @@ function ProjectWorkspace() {
               return statsByArea.map((a, i) => (
                 <StatsChip
                   key={a.area.id}
+                  storageKey={`stats-chip-pos:${activeFloor.id}:${a.area.id}`}
                   points={strip(a.points)}
                   label={a.area.name}
                   stackIndex={i}
@@ -450,7 +451,13 @@ function ProjectWorkspace() {
               mode === "topo" && topoAreaId
                 ? (statsByArea.find((a) => a.area.id === topoAreaId)?.points ?? [])
                 : statsPoints;
-            return <StatsChip points={strip(focused)} onHighlight={highlight} />;
+            return (
+              <StatsChip
+                storageKey={`stats-chip-pos:${activeFloor.id}:solo`}
+                points={strip(focused)}
+                onHighlight={highlight}
+              />
+            );
           })()}
         </>
       )}
