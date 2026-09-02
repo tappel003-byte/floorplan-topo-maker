@@ -604,7 +604,6 @@ function DrawingPanel({
               </Button>
             </>
           )}
-        </div>
       </div>
 
       {/* Area list */}
