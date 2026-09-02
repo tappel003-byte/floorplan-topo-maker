@@ -89,6 +89,10 @@ export interface TopoArea {
   name: string;                             // "Area 1", "Kitchen", …
   polygon: Array<{ x: number; y: number }>; // image coords
   createdAt: number;
+  // Offset (image coords) of this area's H/L/Δ stats pill from the area
+  // centroid. Undefined = pill sits at the centroid.
+  pillDx?: number;
+  pillDy?: number;
 }
 
 export interface Exclusion {
