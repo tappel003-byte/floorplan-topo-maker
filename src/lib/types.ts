@@ -42,8 +42,11 @@ export interface Floor {
   planDataUrl?: string; // stored as data URL for offline-first
   planWidth?: number;
   planHeight?: number;
-  // Boundary polygon in image coordinates
+  // Legacy single outer boundary. Always mirrors areas[0].polygon.
   boundary: Array<{ x: number; y: number }>;
+  // Survey areas — each draws its own contour surface and its own High/Low/Δ.
+  // Missing on older floors; getAreas() falls back to `boundary` as "Area 1".
+  areas?: TopoArea[];
   // Scale calibration
   scale?: {
     // two points and the known real-world length in inches between them
