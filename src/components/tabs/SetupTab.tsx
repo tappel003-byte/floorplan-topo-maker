@@ -40,12 +40,12 @@ export function SetupTab({
   const steps: Array<{ key: StepKey; label: string; disabled?: boolean; title?: string }> = [
     { key: "details", label: "1. Details" },
     { key: "plan", label: "2. Plan" },
-    { key: "areas", label: "3. Areas" },
+    { key: "areas", label: "3. Topo boundary" },
     {
       key: "excluded",
       label: "4. Excluded",
       disabled: !anyAreaClosed,
-      title: anyAreaClosed ? undefined : "Draw an area first",
+      title: anyAreaClosed ? undefined : "Draw a topo boundary first",
     },
   ];
   const stepIndex = steps.findIndex((s) => s.key === tab);
@@ -59,7 +59,7 @@ export function SetupTab({
   const stepNames: Record<StepKey, string> = {
     details: "Details",
     plan: "Plan",
-    areas: "Areas",
+    areas: "Topo boundary",
     excluded: "Excluded",
   };
 
@@ -133,7 +133,7 @@ export function SetupTab({
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
           {tab === "areas" && hasPlan && !anyAreaClosed && (
-            <span className="text-xs text-muted-foreground">Draw an area first</span>
+            <span className="text-xs text-muted-foreground">Draw a topo boundary first</span>
           )}
           {nextStep ? (
             <Button onClick={() => setTab(nextStep.key)} disabled={nextDisabled}>
@@ -488,7 +488,7 @@ function DrawingPanel({
     if (draftKind === "area") {
       const area: TopoArea = {
         id: uid(),
-        name: `Area ${areas.length + 1}`,
+        name: `Boundary ${areas.length + 1}`,
         polygon: draft,
         createdAt: Date.now(),
       };
@@ -520,7 +520,7 @@ function DrawingPanel({
 
   function deleteArea(id: string) {
     if (areas.length <= 1) return;
-    if (!confirm("Delete this area? Its contour surface will be removed.")) return;
+    if (!confirm("Delete this boundary? Its contour surface will be removed.")) return;
     const next = areas.filter((a) => a.id !== id);
     setAreas(next);
     if (activeAreaId === id) setActiveAreaId(next[0].id);
@@ -562,7 +562,7 @@ function DrawingPanel({
                 }}
                 disabled={!anyAreaClosed}
               >
-                <Plus className="h-4 w-4 mr-1" /> Add area
+                <Plus className="h-4 w-4 mr-1" /> Add boundary
               </Button>
             </>
           )}
@@ -630,7 +630,7 @@ function DrawingPanel({
                   onPointerUp={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
                   className="w-24 bg-transparent text-base outline-none border-b border-transparent focus:border-primary sm:w-20"
-                  placeholder="Area"
+                  placeholder="Boundary"
                   enterKeyHint="done"
                 />
                 <span className="text-muted-foreground tabular-nums">{a.polygon.length}</span>
