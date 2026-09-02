@@ -271,11 +271,12 @@ export function TopoTab({
   }, [resolved.legendScale, resolved.legendX, resolved.legendY]);
 
 
-  // Live drag (long-press-and-drag). One kind at a time: a point label or a H/L pin.
-  type DragKind = "label" | "pin-high" | "pin-low";
+  // Live drag (long-press-and-drag). One kind at a time: a point label, a H/L
+  // pin, or an area's stats pill.
+  type DragKind = "label" | "pin-high" | "pin-low" | "pill";
   const [drag, setDrag] = useState<{
     kind: DragKind;
-    id: string; // point id for "label", floor id for pins
+    id: string; // point id for "label", area id for "pill", floor id for pins
     dx: number;
     dy: number;
     startPointerX: number;
@@ -285,9 +286,12 @@ export function TopoTab({
     active: boolean; // true after long-press fires
   } | null>(null);
   const longPressTimer = useRef<number | null>(null);
+  // Point to highlight if the current pill press ends as a tap (no drag).
+  const pillTapRef = useRef<SurveyPoint | null>(null);
   type LastMove =
     | { kind: "label"; id: string; prevDx: number | undefined; prevDy: number | undefined }
-    | { kind: "pin-high" | "pin-low"; prevDx: number | undefined; prevDy: number | undefined };
+    | { kind: "pin-high" | "pin-low"; prevDx: number | undefined; prevDy: number | undefined }
+    | { kind: "pill"; id: string; prevDx: number | undefined; prevDy: number | undefined };
   const [lastMove, setLastMove] = useState<LastMove | null>(null);
 
   // Diagnostic exclusion (Topo-only, session-only). Removed points do NOT
