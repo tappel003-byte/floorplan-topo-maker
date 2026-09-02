@@ -25,12 +25,16 @@ import {
   type Grid,
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
-import { pointInPolygon } from "@/lib/exclusions";
+import { pointInPolygon, pointsOutsideExclusions } from "@/lib/exclusions";
 
-/** Points inside the drawn boundary. Used for High/Low pin placement only. */
-function pointsInBoundary(pts: SurveyPoint[], boundary: Floor["boundary"]) {
-  if (!boundary || boundary.length < 3) return pts;
-  return pts.filter((p) => pointInPolygon(p.x, p.y, boundary));
+/** Points inside the drawn boundary and outside exclusion zones.
+ *  Used for High/Low pin placement only. */
+function hiLoCandidates(pts: SurveyPoint[], floor: Floor) {
+  const inBoundary =
+    floor.boundary && floor.boundary.length >= 3
+      ? pts.filter((p) => pointInPolygon(p.x, p.y, floor.boundary))
+      : pts;
+  return pointsOutsideExclusions(inBoundary, floor.exclusions);
 }
 
 interface Props {
