@@ -255,42 +255,36 @@ export function TopoTab({
     [points, excludedIds],
   );
 
-  const canRender = visiblePoints.length >= 3 && floor.boundary.length >= 3;
+  const areas = useMemo(() => closedAreas(floor), [floor]);
 
-  const gridAndContours = useMemo(() => {
-    if (!canRender) return null;
-    const exPolys = (floor.exclusions ?? []).map((e) => e.polygon);
-    const grid = buildGrid(visiblePoints, floor.boundary, TOPO_GRID_TARGET_COLS, exPolys);
-    if (!grid) return null;
-    const cs = computeContours(grid, contourOptions(grid, resolved));
-    return { grid, contours: cs };
-  }, [
-    canRender,
-    visiblePoints,
-    floor.boundary,
-    floor.exclusions,
-    resolved.firstContour,
-    resolved.contourStep,
-    resolved.contourCount,
-    resolved.minClamp,
-    resolved.maxClamp,
-  ]);
+  // One contour surface + High/Low per area. Focused on a single area, only
+  // that area is computed; "All areas" computes them all.
+  const areaTopos = useMemo(
+    () => buildAreaTopos(floor, visiblePoints, resolved, selectedAreaId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      floor,
+      visiblePoints,
+      selectedAreaId,
+      resolved.firstContour,
+      resolved.contourStep,
+      resolved.contourCount,
+      resolved.minClamp,
+      resolved.maxClamp,
+    ],
+  );
+
+  const canRender = areaTopos.length > 0;
+  // Single-surface view (focused area, or only one area exists).
+  const soloTopo = areaTopos.length === 1 ? areaTopos[0] : null;
+  const gridAndContours = soloTopo ? { grid: soloTopo.grid, contours: soloTopo.contours } : null;
 
   const update = (patch: Partial<RenderSettings>) =>
     onSettingsChange(resolveSettings({ ...resolved, ...patch }));
 
-  // Compute current High / Low points (matches renderTopoTop logic).
-  const hiLo = useMemo(() => {
-    const cands = hiLoCandidates(visiblePoints, floor);
-    if (!cands.length) return null;
-    let hi = cands[0],
-      lo = cands[0];
-    for (const p of cands) {
-      if (p.value > hi.value) hi = p;
-      if (p.value < lo.value) lo = p;
-    }
-    return { hi, lo };
-  }, [visiblePoints, floor]);
+  // High / Low of the focused area (used for pin hit-testing / dragging).
+  const hiLo = soloTopo ? { hi: soloTopo.hi, lo: soloTopo.lo } : null;
+
 
 
 
