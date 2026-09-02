@@ -16,7 +16,8 @@ import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrections
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues, migrateSurfaceName, transitionGroupKey } from "@/lib/transitions";
-import { computeExclusionMap, pointInPolygon } from "@/lib/exclusions";
+import { computeExclusionMap } from "@/lib/exclusions";
+import { closedAreas, pointsInAnyArea, pointsInArea } from "@/lib/areas";
 
 
 const ThreeDTab = lazy(() =>
@@ -48,8 +49,11 @@ function ProjectWorkspace() {
   // Diagnostic exclusions live at the route so the StatsChip can filter with
   // them on Topo. Session-only: cleared when floor changes or when leaving Topo.
   const [topoExcludedIds, setTopoExcludedIds] = useState<Set<string>>(new Set());
+  // Topo area focus. null = "All areas".
+  const [topoAreaId, setTopoAreaId] = useState<string | null>(null);
   useEffect(() => {
     setTopoExcludedIds(new Set());
+    setTopoAreaId(null);
   }, [activeFloorId]);
   useEffect(() => {
     if (mode !== "topo") setTopoExcludedIds(new Set());
@@ -227,13 +231,21 @@ function ProjectWorkspace() {
     () => correctedPoints.filter((p) => !exclusionMap.has(p.id)),
     [correctedPoints, exclusionMap],
   );
-  // Stats mirror the topo surface: only readings inside the drawn boundary
+  // Stats mirror the topo surfaces: only readings inside a drawn area
   // (and outside exclusions) count toward High / Low / Δ.
-  const statsPoints = useMemo(() => {
-    const b = activeFloor?.boundary;
-    if (!b || b.length < 3) return nonExcludedPoints;
-    return nonExcludedPoints.filter((p) => pointInPolygon(p.x, p.y, b));
-  }, [nonExcludedPoints, activeFloor?.boundary]);
+  const floorAreas = useMemo(
+    () => (activeFloor ? closedAreas(activeFloor) : []),
+    [activeFloor],
+  );
+  const statsPoints = useMemo(
+    () => pointsInAnyArea(nonExcludedPoints, floorAreas),
+    [nonExcludedPoints, floorAreas],
+  );
+  /** One entry per area: that area's stats points (already exclusion-filtered). */
+  const statsByArea = useMemo(
+    () => floorAreas.map((a) => ({ area: a, points: pointsInArea(nonExcludedPoints, a) })),
+    [floorAreas, nonExcludedPoints],
+  );
 
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
@@ -388,6 +400,8 @@ function ProjectWorkspace() {
             selectedIds={topoHighlightIds}
             excludedIds={topoExcludedIds}
             onExcludedIdsChange={setTopoExcludedIds}
+            selectedAreaId={topoAreaId}
+            onSelectedAreaIdChange={setTopoAreaId}
           />
         )}
         {mode === "export" && (
@@ -406,22 +420,38 @@ function ProjectWorkspace() {
             mode={mode === "topo" ? "topo" : "data"}
             onChange={(m) => setMode(m === "topo" ? "topo" : "field")}
           />
-          <StatsChip
-            points={
+          {(() => {
+            const strip = (pts: SurveyPoint[]) =>
               mode === "topo" && topoExcludedIds.size
-                ? statsPoints.filter((p) => !topoExcludedIds.has(p.id))
-                : statsPoints
-            }
-
-            onHighlight={(p) => {
+                ? pts.filter((p) => !topoExcludedIds.has(p.id))
+                : pts;
+            const highlight = (p: SurveyPoint) => {
               if (mode === "field") {
                 setSelectedIds(new Set([p.id]));
                 setFocusRequest({ x: p.x, y: p.y, nonce: Date.now() });
               } else {
                 setTopoHighlightIds(new Set([p.id]));
               }
-            }}
-          />
+            };
+            // Combined Topo view with several areas: one pill per area.
+            const combined = mode === "topo" && !topoAreaId && statsByArea.length > 1;
+            if (combined) {
+              return statsByArea.map((a, i) => (
+                <StatsChip
+                  key={a.area.id}
+                  points={strip(a.points)}
+                  label={a.area.name}
+                  stackIndex={i}
+                  onHighlight={highlight}
+                />
+              ));
+            }
+            const focused =
+              mode === "topo" && topoAreaId
+                ? (statsByArea.find((a) => a.area.id === topoAreaId)?.points ?? [])
+                : statsPoints;
+            return <StatsChip points={strip(focused)} onHighlight={highlight} />;
+          })()}
         </>
       )}
       {mode === "field" && (

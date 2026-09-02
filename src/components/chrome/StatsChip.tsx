@@ -50,6 +50,10 @@ interface Props {
   points: SurveyPoint[];
   onHighlight?: (point: SurveyPoint) => void;
   storageKey?: string;
+  /** Optional area name shown as a leading segment (combined multi-area view). */
+  label?: string;
+  /** Vertical stacking slot so multiple pills don't overlap. */
+  stackIndex?: number;
 }
 
 /** Height in px of the top chrome (header + optional floor selector) plus a gap. */
@@ -69,7 +73,13 @@ function topChromeHeight() {
  *   Topo → Labels & layers → "Stats pill size" (persisted in localStorage).
  * - Position persists per storageKey and clamps to viewport on resize/rotate.
  */
-export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }: Props) {
+export function StatsChip({
+  points,
+  onHighlight,
+  storageKey = "stats-chip-pos",
+  label,
+  stackIndex = 0,
+}: Props) {
   const stats = useMemo(() => {
     if (points.length === 0) return null;
     let hi = points[0];
@@ -211,13 +221,27 @@ export function StatsChip({ points, onHighlight, storageKey = "stats-chip-pos" }
     <div
       ref={ref}
       className="fixed z-40 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing"
-      style={{ left: pos.x, top: pos.y, height, fontSize: fontPx, lineHeight: 1 }}
+      style={{
+        left: pos.x,
+        top: pos.y + stackIndex * (height + 6),
+        height,
+        fontSize: fontPx,
+        lineHeight: 1,
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={(e) => endDrag(e)}
       onPointerCancel={(e) => endDrag(e)}
       aria-label="Elevation stats — drag to move"
     >
+      {label && (
+        <div
+          className="flex items-center border-r border-gray-200 text-gray-500 max-w-[8rem] truncate"
+          style={{ paddingLeft: padPx, paddingRight: padPx }}
+        >
+          {label}
+        </div>
+      )}
       <div
         className="flex items-center gap-0.5 text-gray-700"
         style={{ paddingLeft: padPx, paddingRight: padPx }}

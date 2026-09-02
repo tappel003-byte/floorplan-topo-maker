@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
 import type { Floor, ProjectMeta, RenderSettings, SurveyPoint } from "@/lib/types";
-import { TOPO_GRID_TARGET_COLS, buildGrid, computeContours } from "@/lib/topo";
 import { zoneOfXY } from "@/lib/exclusions";
-import { renderTopo, resolveSettings } from "./TopoTab";
+import { buildAreaTopos, renderTopo, resolveSettings } from "./TopoTab";
 import { canvasToPdfBlob } from "@/lib/pdf";
 
 interface Props {
@@ -37,32 +36,20 @@ export function ExportTab({ project, floor, points, settings }: Props) {
       })
     : resolved;
 
-  const grid = useMemo(() => {
-    if (points.length < 3 || floor.boundary.length < 3) return null;
-    const exPolys = (floor.exclusions ?? []).map((e) => e.polygon);
-    return buildGrid(points, floor.boundary, TOPO_GRID_TARGET_COLS, exPolys);
-  }, [points, floor.boundary, floor.exclusions]);
-
-  const gridAndContours = useMemo(() => {
-    if (!grid) return null;
-    return {
-      grid,
-      contours: computeContours(grid, {
-        first: resolved.firstContour,
-        step: resolved.contourStep,
-        count: resolved.contourCount ?? undefined,
-        min: resolved.minClamp ?? grid.minValue,
-        max: resolved.maxClamp ?? grid.maxValue,
-      }),
-    };
-  }, [
-    grid,
-    resolved.firstContour,
-    resolved.contourStep,
-    resolved.contourCount,
-    resolved.minClamp,
-    resolved.maxClamp,
-  ]);
+  // One contour surface per drawn area (falls back to the legacy boundary).
+  const areaTopos = useMemo(
+    () => buildAreaTopos(floor, points, resolved),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      floor,
+      points,
+      resolved.firstContour,
+      resolved.contourStep,
+      resolved.contourCount,
+      resolved.minClamp,
+      resolved.maxClamp,
+    ],
+  );
 
   const imgW = floor.planWidth ?? 1000;
   const imgH = floor.planHeight ?? 750;
@@ -87,7 +74,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
           ctx.globalAlpha = exportSettings.planOpacity;
           ctx.drawImage(img, 0, 0, imgW, imgH);
           ctx.globalAlpha = 1;
-          renderTopo(ctx, floor, points, exportSettings, gridAndContours);
+          renderTopo(ctx, floor, points, exportSettings, areaTopos);
           drawTitleBlock(ctx, imgW, imgH, project, floor, points);
           resolve();
         };
@@ -95,7 +82,7 @@ export function ExportTab({ project, floor, points, settings }: Props) {
         img.src = floor.planDataUrl!;
       });
     } else {
-      renderTopo(ctx, floor, points, exportSettings, gridAndContours);
+      renderTopo(ctx, floor, points, exportSettings, areaTopos);
       drawTitleBlock(ctx, imgW, imgH, project, floor, points);
       return Promise.resolve();
     }
