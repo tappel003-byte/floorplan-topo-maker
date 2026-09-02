@@ -65,16 +65,19 @@ export function SetupTab({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="shrink-0 border-b flex overflow-x-auto">
-        {steps.map(({ key, label }) => (
+      <div className="shrink-0 border-b flex overflow-x-auto overscroll-x-contain">
+        {steps.map(({ key, label, disabled, title }) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => !disabled && setTab(key)}
+            disabled={disabled}
+            title={title}
             className={
-              "px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px " +
+              "shrink-0 px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px " +
               (tab === key
                 ? "border-primary text-foreground font-medium"
-                : "border-transparent text-muted-foreground")
+                : "border-transparent text-muted-foreground") +
+              (disabled ? " opacity-40 cursor-not-allowed" : "")
             }
           >
             {label}
@@ -82,7 +85,7 @@ export function SetupTab({
         ))}
       </div>
 
-      <div className={tab === "areas" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
+      <div className={tab === "areas" || tab === "excluded" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
         {tab === "details" && <DetailsPanel project={project} onChange={onProjectChange} />}
         {tab === "plan" && (
           <PlanPanel
