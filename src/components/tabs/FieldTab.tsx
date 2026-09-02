@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { closedAreas } from "@/lib/areas";
 import { PlanCanvas, type CanvasTransform } from "../PlanCanvas";
 import { NumericKeypad } from "../NumericKeypad";
 import { AddTransitionSheet } from "../AddTransitionSheet";
@@ -538,11 +539,11 @@ export function FieldTab({
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Dismissible boundary warning */}
-      {floor.boundary.length < 3 && !warningDismissed && (
+      {/* Dismissible area warning */}
+      {closedAreas(floor).length === 0 && !warningDismissed && (
         <div className="absolute top-2 left-2 right-2 z-20 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
           <span className="flex-1">
-            Draw a boundary in Setup → Boundary before collecting points.
+            Draw an area in Setup → Areas before collecting points.
           </span>
           <button
             onClick={() => setWarningDismissed(true)}

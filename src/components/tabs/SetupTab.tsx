@@ -9,7 +9,8 @@ import { PlanCanvas } from "../PlanCanvas";
 import { AddressGpsButtons } from "../AddressGpsButtons";
 import { saveFloor, saveProject, deleteFloor, uid, listFloors } from "@/lib/db";
 import { drawExclusionShape } from "@/lib/exclusions";
-import type { Floor, Exclusion, ProjectMeta } from "@/lib/types";
+import type { Floor, Exclusion, ProjectMeta, TopoArea } from "@/lib/types";
+import { getAreas, withAreas, areaCentroid } from "@/lib/areas";
 
 interface Props {
   project: ProjectMeta;
@@ -31,13 +32,13 @@ export function SetupTab({
   onActiveFloorChange,
   onStartSurveying,
 }: Props) {
-  const [tab, setTab] = useState<"details" | "plan" | "boundary">("details");
+  const [tab, setTab] = useState<"details" | "plan" | "areas">("details");
   const hasPlan = !!activeFloor?.planDataUrl;
 
-  const steps: Array<{ key: "details" | "plan" | "boundary"; label: string }> = [
+  const steps: Array<{ key: "details" | "plan" | "areas"; label: string }> = [
     { key: "details", label: "1. Details" },
     { key: "plan", label: "2. Plan" },
-    { key: "boundary", label: "3. Boundary" },
+    { key: "areas", label: "3. Areas" },
   ];
   const stepIndex = steps.findIndex((s) => s.key === tab);
   const prevStep = stepIndex > 0 ? steps[stepIndex - 1] : null;
@@ -66,7 +67,7 @@ export function SetupTab({
         ))}
       </div>
 
-      <div className={tab === "boundary" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
+      <div className={tab === "areas" ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
         {tab === "details" && <DetailsPanel project={project} onChange={onProjectChange} />}
         {tab === "plan" && (
           <PlanPanel
@@ -77,8 +78,8 @@ export function SetupTab({
             onActiveFloorChange={onActiveFloorChange}
           />
         )}
-        {tab === "boundary" && (
-          <BoundaryPanel
+        {tab === "areas" && (
+          <AreasPanel
             floor={activeFloor}
             onChange={async (f) => {
               await saveFloor(f);
@@ -101,7 +102,7 @@ export function SetupTab({
           {tab === "plan" && !hasPlan && (
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
-          {tab === "boundary" && !hasPlan && (
+          {tab === "areas" && !hasPlan && (
             <span className="text-xs text-muted-foreground">Upload a plan first</span>
           )}
           {nextStep ? (
@@ -110,7 +111,7 @@ export function SetupTab({
               disabled={nextDisabled}
               variant={tab === "details" ? "default" : "default"}
             >
-              Next: {nextStep.key === "plan" ? "Plan" : "Boundary"}
+              Next: {nextStep.key === "plan" ? "Plan" : "Areas"}
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
@@ -358,20 +359,21 @@ function PlanPanel({
   );
 }
 
-function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) => void }) {
-  const boundary = floor.boundary;
+function AreasPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) => void }) {
+  const areas = getAreas(floor);
   const exclusions = floor.exclusions ?? [];
-  const boundaryClosed = boundary.length >= 3;
+  const anyAreaClosed = areas.some((a) => a.polygon.length >= 3);
 
-  // Which polygon are we drawing / editing?
-  // "boundary": outer boundary. "exclusion:new": drafting a new exclusion.
-  // "exclusion:<id>": editing an existing one (vertex drag).
-  const [tool, setTool] = useState<"boundary" | "exclusion">("boundary");
+  const [tool, setTool] = useState<"area" | "exclusion">("area");
+  const [activeAreaId, setActiveAreaId] = useState<string>(areas[0]?.id ?? "");
   const [draft, setDraft] = useState<{ x: number; y: number }[] | null>(null);
+  const [draftKind, setDraftKind] = useState<"area" | "exclusion">("exclusion");
 
-  // Drag state — works for boundary, saved exclusions, and the in-progress draft.
+  const activeArea = areas.find((a) => a.id === activeAreaId) ?? areas[0];
+  const activeAreaPoly = activeArea?.polygon ?? [];
+
   const dragRef = useRef<{
-    target: "boundary" | "draft" | { exclusionId: string };
+    target: "area" | "draft" | { exclusionId: string };
     index: number;
     original: { x: number; y: number };
     moved: boolean;
@@ -380,23 +382,34 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
 
   const HIT_RADIUS = 26;
 
+  function setAreas(next: TopoArea[]) {
+    onChange(withAreas(floor, next));
+  }
+
+  function patchActiveArea(polygon: { x: number; y: number }[]) {
+    if (!activeArea) return;
+    setAreas(areas.map((a) => (a.id === activeArea.id ? { ...a, polygon } : a)));
+  }
+
   function findVertexAt(x: number, y: number):
-    | { target: "boundary"; index: number }
+    | { target: "area"; index: number }
     | { target: "draft"; index: number }
     | { target: { exclusionId: string }; index: number }
     | null {
     let best:
-      | { target: "boundary" | "draft" | { exclusionId: string }; index: number }
+      | { target: "area" | "draft" | { exclusionId: string }; index: number }
       | null = null;
     let bestD2 = HIT_RADIUS * HIT_RADIUS;
-    if (tool === "boundary") {
-      for (let i = 0; i < boundary.length; i++) {
-        const dx = boundary[i].x - x;
-        const dy = boundary[i].y - y;
-        const d2 = dx * dx + dy * dy;
-        if (d2 <= bestD2) {
-          bestD2 = d2;
-          best = { target: "boundary", index: i };
+    if (tool === "area") {
+      if (!draft) {
+        for (let i = 0; i < activeAreaPoly.length; i++) {
+          const dx = activeAreaPoly[i].x - x;
+          const dy = activeAreaPoly[i].y - y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= bestD2) {
+            bestD2 = d2;
+            best = { target: "area", index: i };
+          }
         }
       }
     }
@@ -412,15 +425,15 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
           }
         }
       }
-      if (draft) {
-        for (let i = 0; i < draft.length; i++) {
-          const dx = draft[i].x - x;
-          const dy = draft[i].y - y;
-          const d2 = dx * dx + dy * dy;
-          if (d2 <= bestD2) {
-            bestD2 = d2;
-            best = { target: "draft", index: i };
-          }
+    }
+    if (draft) {
+      for (let i = 0; i < draft.length; i++) {
+        const dx = draft[i].x - x;
+        const dy = draft[i].y - y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= bestD2) {
+          bestD2 = d2;
+          best = { target: "draft", index: i };
         }
       }
     }
@@ -429,13 +442,24 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
 
   function saveDraft() {
     if (!draft || draft.length < 3) return;
-    const ex: Exclusion = {
-      id: uid(),
-      polygon: draft,
-      label: `Excluded ${exclusions.length + 1}`,
-      createdAt: Date.now(),
-    };
-    onChange({ ...floor, exclusions: [...exclusions, ex] });
+    if (draftKind === "area") {
+      const area: TopoArea = {
+        id: uid(),
+        name: `Area ${areas.length + 1}`,
+        polygon: draft,
+        createdAt: Date.now(),
+      };
+      setAreas([...areas, area]);
+      setActiveAreaId(area.id);
+    } else {
+      const ex: Exclusion = {
+        id: uid(),
+        polygon: draft,
+        label: `Excluded ${exclusions.length + 1}`,
+        createdAt: Date.now(),
+      };
+      onChange({ ...floor, exclusions: [...exclusions, ex] });
+    }
     setDraft(null);
   }
 
@@ -451,7 +475,15 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
     onChange({ ...floor, exclusions: exclusions.filter((e) => e.id !== id) });
   }
 
-  const drafting = tool === "exclusion" && !!draft;
+  function deleteArea(id: string) {
+    if (areas.length <= 1) return;
+    if (!confirm("Delete this area? Its contour surface will be removed.")) return;
+    const next = areas.filter((a) => a.id !== id);
+    setAreas(next);
+    if (activeAreaId === id) setActiveAreaId(next[0].id);
+  }
+
+  const drafting = !!draft;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -459,28 +491,31 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
       <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-1 overflow-hidden">
         <Button
           size="sm"
-          variant={tool === "boundary" ? "default" : "ghost"}
+          variant={tool === "area" ? "default" : "ghost"}
           onClick={() => {
-            setTool("boundary");
+            setTool("area");
             setDraft(null);
           }}
           className="h-7"
         >
-          Outer boundary
+          Areas
         </Button>
         <Button
           size="sm"
           variant={tool === "exclusion" ? "default" : "ghost"}
-          onClick={() => setTool("exclusion")}
-          disabled={!boundaryClosed}
+          onClick={() => {
+            setTool("exclusion");
+            setDraft(null);
+          }}
+          disabled={!anyAreaClosed}
           className="h-7"
-          title={boundaryClosed ? undefined : "Draw the outer boundary first"}
+          title={anyAreaClosed ? undefined : "Draw an area first"}
         >
           <Ban className="h-3.5 w-3.5 mr-1" />
           Excluded areas
         </Button>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {tool === "boundary" && (
+          {tool === "area" && !drafting && (
             <>
               <span className="text-xs text-muted-foreground hidden sm:inline">
                 Tap to add · drag a vertex to move
@@ -488,27 +523,45 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => onChange({ ...floor, boundary: boundary.slice(0, -1) })}
-                disabled={boundary.length === 0}
+                onClick={() => patchActiveArea(activeAreaPoly.slice(0, -1))}
+                disabled={activeAreaPoly.length === 0}
               >
                 <Undo2 className="h-4 w-4 mr-1" /> Undo
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => onChange({ ...floor, boundary: [] })}
-                disabled={boundary.length === 0}
+                onClick={() => patchActiveArea([])}
+                disabled={activeAreaPoly.length === 0}
               >
                 Clear
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setDraftKind("area");
+                  setDraft([]);
+                }}
+                disabled={!anyAreaClosed}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add area
               </Button>
             </>
           )}
           {tool === "exclusion" && !drafting && (
-            <Button size="sm" variant="outline" onClick={() => setDraft([])}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setDraftKind("exclusion");
+                setDraft([]);
+              }}
+            >
               <Plus className="h-4 w-4 mr-1" /> New excluded area
             </Button>
           )}
-          {tool === "exclusion" && drafting && (
+          {drafting && (
             <>
               <span className="text-xs text-muted-foreground hidden sm:inline">
                 Tap to add corners · at least 3
@@ -537,7 +590,50 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
         </div>
       </div>
 
-      {/* Exclusion list (only when in exclusion mode with some existing) */}
+      {/* Area list */}
+      {tool === "area" && (
+        <div className="shrink-0 border-b px-2 py-1.5 flex flex-nowrap gap-1.5 overflow-x-auto bg-muted/30 overscroll-x-contain">
+          {areas.map((a) => {
+            const active = a.id === activeArea?.id;
+            return (
+              <div
+                key={a.id}
+                onPointerDown={() => setActiveAreaId(a.id)}
+                className={
+                  "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs " +
+                  (active ? "border-primary bg-background" : "bg-background/60")
+                }
+              >
+                <input
+                  value={a.name}
+                  onChange={(e) =>
+                    setAreas(areas.map((x) => (x.id === a.id ? { ...x, name: e.target.value } : x)))
+                  }
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onPointerMove={(e) => e.stopPropagation()}
+                  onPointerUp={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="w-24 bg-transparent text-base outline-none border-b border-transparent focus:border-primary sm:w-20"
+                  placeholder="Area"
+                  enterKeyHint="done"
+                />
+                <span className="text-muted-foreground tabular-nums">{a.polygon.length}</span>
+                <button
+                  type="button"
+                  onClick={() => deleteArea(a.id)}
+                  disabled={areas.length <= 1}
+                  className="text-muted-foreground hover:text-destructive disabled:opacity-30"
+                  aria-label="Delete area"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Exclusion list */}
       {tool === "exclusion" && exclusions.length > 0 && (
         <div className="shrink-0 border-b px-2 py-1.5 flex flex-nowrap gap-1.5 overflow-x-auto bg-muted/30 overscroll-x-contain">
           {exclusions.map((ex) => (
@@ -574,24 +670,22 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
         planWidth={floor.planWidth}
         planHeight={floor.planHeight}
         onTap={(x, y) => {
-          if (tool === "boundary") {
-            const hit = findVertexAt(x, y);
-            if (hit) return; // handled as drag
-            onChange({ ...floor, boundary: [...boundary, { x, y }] });
-          } else if (drafting && draft) {
-            const hit = findVertexAt(x, y);
-            if (hit) return; // handled as drag
+          const hit = findVertexAt(x, y);
+          if (hit) return; // handled as drag
+          if (drafting && draft) {
             setDraft([...draft, { x, y }]);
+          } else if (tool === "area") {
+            patchActiveArea([...activeAreaPoly, { x, y }]);
           }
         }}
         onImagePointerDown={(x, y) => {
           const hit = findVertexAt(x, y);
           if (!hit) return false;
-          if (hit.target === "boundary") {
+          if (hit.target === "area") {
             dragRef.current = {
-              target: "boundary",
+              target: "area",
               index: hit.index,
-              original: { x: boundary[hit.index].x, y: boundary[hit.index].y },
+              original: { ...activeAreaPoly[hit.index] },
               moved: false,
             };
           } else if (hit.target === "draft") {
@@ -599,7 +693,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             dragRef.current = {
               target: "draft",
               index: hit.index,
-              original: { x: draft[hit.index].x, y: draft[hit.index].y },
+              original: { ...draft[hit.index] },
               moved: false,
             };
           } else {
@@ -608,7 +702,7 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             dragRef.current = {
               target: { exclusionId: eid },
               index: hit.index,
-              original: { x: ex.polygon[hit.index].x, y: ex.polygon[hit.index].y },
+              original: { ...ex.polygon[hit.index] },
               moved: false,
             };
           }
@@ -619,10 +713,10 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
           const drag = dragRef.current;
           if (!drag) return;
           drag.moved = true;
-          if (drag.target === "boundary") {
-            const next = boundary.slice();
+          if (drag.target === "area") {
+            const next = activeAreaPoly.slice();
             next[drag.index] = { x, y };
-            onChange({ ...floor, boundary: next });
+            patchActiveArea(next);
           } else if (drag.target === "draft") {
             setDraft((d) => {
               if (!d) return d;
@@ -650,10 +744,10 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
         onImagePointerCancel={() => {
           const drag = dragRef.current;
           if (drag && drag.moved) {
-            if (drag.target === "boundary") {
-              const next = boundary.slice();
+            if (drag.target === "area") {
+              const next = activeAreaPoly.slice();
               next[drag.index] = drag.original;
-              onChange({ ...floor, boundary: next });
+              patchActiveArea(next);
             } else if (drag.target === "draft") {
               setDraft((d) => {
                 if (!d) return d;
@@ -678,30 +772,46 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
           force((n) => n + 1);
         }}
         drawOverlay={(ctx) => {
-          // Boundary
-          if (boundary.length > 0) {
+          // Areas
+          for (const a of areas) {
+            const poly = a.polygon;
+            if (poly.length === 0) continue;
+            const isActive = tool === "area" && a.id === activeArea?.id && !drafting;
             ctx.beginPath();
-            boundary.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-            if (boundary.length > 2) ctx.closePath();
-            ctx.fillStyle = "rgba(59,130,246,0.15)";
-            if (boundary.length > 2) ctx.fill();
-            ctx.strokeStyle = "#2563eb";
+            poly.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+            if (poly.length > 2) ctx.closePath();
+            ctx.fillStyle = isActive ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.07)";
+            if (poly.length > 2) ctx.fill();
+            ctx.strokeStyle = isActive ? "#2563eb" : "#93b4f5";
             ctx.lineWidth = 3;
             ctx.stroke();
-            const dragging =
-              dragRef.current && dragRef.current.target === "boundary"
-                ? dragRef.current.index
-                : -1;
-            boundary.forEach((p, i) => {
-              const active = i === dragging;
-              ctx.beginPath();
-              ctx.arc(p.x, p.y, active ? 12 : 9, 0, Math.PI * 2);
-              ctx.fillStyle = active ? "#f59e0b" : "#2563eb";
-              ctx.fill();
-              ctx.strokeStyle = "#ffffff";
-              ctx.lineWidth = 2;
-              ctx.stroke();
-            });
+
+            if (isActive) {
+              const dragging =
+                dragRef.current && dragRef.current.target === "area" ? dragRef.current.index : -1;
+              poly.forEach((p, i) => {
+                const act = i === dragging;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, act ? 12 : 9, 0, Math.PI * 2);
+                ctx.fillStyle = act ? "#f59e0b" : "#2563eb";
+                ctx.fill();
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+              });
+            }
+
+            if (poly.length > 2 && a.name) {
+              const c = areaCentroid(a);
+              ctx.font = "bold 12px sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              const tw = ctx.measureText(a.name).width;
+              ctx.fillStyle = "rgba(255,255,255,0.9)";
+              ctx.fillRect(c.x - tw / 2 - 4, c.y - 9, tw + 8, 18);
+              ctx.fillStyle = isActive ? "#1d4ed8" : "#64748b";
+              ctx.fillText(a.name, c.x, c.y);
+            }
           }
 
           // Saved exclusions
@@ -742,13 +852,28 @@ function BoundaryPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor)
             }
           }
 
-          // Draft exclusion
+          // Draft polygon (new area or new exclusion)
           if (drafting && draft) {
-            drawExclusionShape(ctx, draft, { closed: draft.length >= 3, muted: false, hatched: true });
+            if (draftKind === "area") {
+              ctx.beginPath();
+              draft.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+              if (draft.length > 2) ctx.closePath();
+              ctx.fillStyle = "rgba(59,130,246,0.15)";
+              if (draft.length > 2) ctx.fill();
+              ctx.strokeStyle = "#2563eb";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            } else {
+              drawExclusionShape(ctx, draft, {
+                closed: draft.length >= 3,
+                muted: false,
+                hatched: true,
+              });
+            }
             draft.forEach((p, i) => {
               ctx.beginPath();
               ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-              ctx.fillStyle = "#4b5563";
+              ctx.fillStyle = draftKind === "area" ? "#2563eb" : "#4b5563";
               ctx.fill();
               ctx.strokeStyle = "#fff";
               ctx.lineWidth = 2;
