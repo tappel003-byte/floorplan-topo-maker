@@ -543,7 +543,7 @@ export function FieldTab({
       {closedAreas(floor).length === 0 && !warningDismissed && (
         <div className="absolute top-2 left-2 right-2 z-20 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2">
           <span className="flex-1">
-            Draw an area in Setup → Areas before collecting points.
+            Draw a topo boundary in Setup → Topo boundary before collecting points.
           </span>
           <button
             onClick={() => setWarningDismissed(true)}

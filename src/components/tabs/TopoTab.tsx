@@ -419,10 +419,10 @@ export function TopoTab({
         <select
           value={selectedAreaId ?? ""}
           onChange={(e) => onSelectedAreaIdChange?.(e.target.value || null)}
-          aria-label="Area"
+          aria-label="Topo boundary"
           className="absolute z-30 top-2 left-1/2 -translate-x-1/2 h-8 max-w-[9rem] rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md px-3 text-xs text-gray-700"
         >
-          <option value="">All areas</option>
+          <option value="">All boundaries</option>
           {areas.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
@@ -498,7 +498,7 @@ export function TopoTab({
       {!canRender && !warningDismissed && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-amber-50/95 backdrop-blur border border-amber-200 text-amber-900 text-xs px-3 py-2 shadow-sm flex items-start gap-2 max-w-[calc(100%-6rem)]">
           <span className="flex-1">
-            Need at least 3 points inside a closed area to generate a topo.
+            Need at least 3 points inside a closed boundary to generate a topo.
           </span>
           <button
             onClick={() => setWarningDismissed(true)}
