@@ -236,7 +236,7 @@ export function TopoTab({
 
   // Compute current High / Low points (matches renderTopoTop logic).
   const hiLo = useMemo(() => {
-    const cands = pointsInBoundary(visiblePoints, floor.boundary);
+    const cands = hiLoCandidates(visiblePoints, floor);
     if (!cands.length) return null;
     let hi = cands[0],
       lo = cands[0];
@@ -245,7 +245,7 @@ export function TopoTab({
       if (p.value < lo.value) lo = p;
     }
     return { hi, lo };
-  }, [visiblePoints, floor.boundary]);
+  }, [visiblePoints, floor]);
 
 
 
