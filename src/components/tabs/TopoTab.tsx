@@ -158,6 +158,8 @@ export function TopoTab({
   pointColor = "#dc2626",
   excludedIds: excludedIdsProp,
   onExcludedIdsChange,
+  selectedAreaId = null,
+  onSelectedAreaIdChange,
 }: Props) {
   const selectedId =
     selectedIds && selectedIds.size > 0 ? (selectedIds.values().next().value ?? null) : null;
