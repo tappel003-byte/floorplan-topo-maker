@@ -50,6 +50,10 @@ interface Props {
   points: SurveyPoint[];
   onHighlight?: (point: SurveyPoint) => void;
   storageKey?: string;
+  /** Optional area name shown as a leading segment (combined multi-area view). */
+  label?: string;
+  /** Vertical stacking slot so multiple pills don't overlap. */
+  stackIndex?: number;
 }
 
 /** Height in px of the top chrome (header + optional floor selector) plus a gap. */
