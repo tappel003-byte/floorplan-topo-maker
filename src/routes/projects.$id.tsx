@@ -48,8 +48,11 @@ function ProjectWorkspace() {
   // Diagnostic exclusions live at the route so the StatsChip can filter with
   // them on Topo. Session-only: cleared when floor changes or when leaving Topo.
   const [topoExcludedIds, setTopoExcludedIds] = useState<Set<string>>(new Set());
+  // Topo area focus. null = "All areas".
+  const [topoAreaId, setTopoAreaId] = useState<string | null>(null);
   useEffect(() => {
     setTopoExcludedIds(new Set());
+    setTopoAreaId(null);
   }, [activeFloorId]);
   useEffect(() => {
     if (mode !== "topo") setTopoExcludedIds(new Set());
