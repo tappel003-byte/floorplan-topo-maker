@@ -16,7 +16,8 @@ import { AveragedCorrectionsChip } from "@/components/chrome/AveragedCorrections
 import { TransitionsSheet } from "@/components/TransitionsSheet";
 import { useFloorHistory, useUndoRedoEvents, type FloorSnapshot } from "@/lib/useFloorHistory";
 import { withCorrectedValues, migrateSurfaceName, transitionGroupKey } from "@/lib/transitions";
-import { computeExclusionMap, pointInPolygon } from "@/lib/exclusions";
+import { computeExclusionMap } from "@/lib/exclusions";
+import { closedAreas, pointsInAnyArea, pointsInArea } from "@/lib/areas";
 
 
 const ThreeDTab = lazy(() =>
