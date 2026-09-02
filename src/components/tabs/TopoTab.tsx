@@ -1160,11 +1160,6 @@ function renderTopoBaseLayer(
   areaTopos: AreaTopo[],
 ) {
   const resolved = resolveSettings(settings);
-  // Palette range spans every area so colors mean the same thing across areas.
-  const allMin = areaTopos.length ? Math.min(...areaTopos.map((a) => a.grid.minValue)) : 0;
-  const allMax = areaTopos.length ? Math.max(...areaTopos.map((a) => a.grid.maxValue)) : 1;
-  const paletteMin = resolved.minClamp ?? allMin;
-  const paletteMax = resolved.maxClamp ?? allMax;
   const traceExclusionCutouts = () => {
     for (const ex of floor.exclusions ?? []) {
       if (ex.polygon.length < 3) continue;
@@ -1179,6 +1174,8 @@ function renderTopoBaseLayer(
     const g = at.grid;
     const cs = at.contours;
     const polygon = at.area.polygon;
+    const areaPaletteMin = resolved.minClamp ?? g.minValue;
+    const areaPaletteMax = resolved.maxClamp ?? g.maxValue;
     ctx.save();
     ctx.beginPath();
     polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
@@ -1208,7 +1205,7 @@ function renderTopoBaseLayer(
           for (let c = 0; c < g.width; c++) {
             const idx = r * g.width + c;
             if (!g.mask[idx]) continue;
-            const t = clampValue(g.values[idx], paletteMin, paletteMax);
+            const t = clampValue(g.values[idx], areaPaletteMin, areaPaletteMax);
             octx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
             octx.fillRect(pad + c * g.step, pad + r * g.step, g.step + 1, g.step + 1);
           }
@@ -1230,7 +1227,7 @@ function renderTopoBaseLayer(
     ) {
       ctx.save();
       if (resolved.mode === "contour-fill") {
-        const minColorT = clampValue(paletteMin, paletteMin, paletteMax);
+        const minColorT = clampValue(areaPaletteMin, areaPaletteMin, areaPaletteMax);
         ctx.fillStyle = paletteColor(minColorT, resolved.palette, resolved.reversePalette);
         ctx.globalAlpha = 0.7 * resolved.contourOpacity;
         ctx.fillRect(g.x0, g.y0, g.width * g.step, g.height * g.step);
@@ -1249,7 +1246,7 @@ function renderTopoBaseLayer(
           }
         }
         if (resolved.mode === "contour-fill") {
-          const t = clampValue(c.value, paletteMin, paletteMax);
+          const t = clampValue(c.value, areaPaletteMin, areaPaletteMax);
           ctx.fillStyle = paletteColor(t, resolved.palette, resolved.reversePalette);
           ctx.globalAlpha = 0.7 * resolved.contourOpacity;
           ctx.fill();
