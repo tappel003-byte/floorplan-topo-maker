@@ -578,7 +578,7 @@ export function TopoTab({
             setDrag(null);
           }}
           drawOverlay={(ctx) => {
-            renderTopoBase(ctx, floor, resolved, gridAndContours);
+            renderTopoBase(ctx, floor, resolved, areaTopos);
           }}
           drawOverlayTop={(ctx) => {
             const activeLabel =
@@ -589,7 +589,7 @@ export function TopoTab({
               drag && drag.active && drag.kind === "pin-high" ? { dx: drag.dx, dy: drag.dy } : null;
             const activePinLow =
               drag && drag.active && drag.kind === "pin-low" ? { dx: drag.dx, dy: drag.dy } : null;
-            renderTopoTop(ctx, floor, visiblePoints, resolved, gridAndContours, {
+            renderTopoTop(ctx, floor, visiblePoints, resolved, areaTopos, {
               liveDrag: activeLabel,
               highlightId: activeLabel?.id ?? selectedId,
               livePinHigh: activePinHigh,
