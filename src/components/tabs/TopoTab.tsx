@@ -89,6 +89,9 @@ interface Props {
   pointColor?: string;
   excludedIds?: Set<string>;
   onExcludedIdsChange?: (ids: Set<string>) => void;
+  /** null = "All areas". Owned by the route so the stats pills stay in sync. */
+  selectedAreaId?: string | null;
+  onSelectedAreaIdChange?: (id: string | null) => void;
 }
 
 const DEFAULT_LABEL_DX = 8;
