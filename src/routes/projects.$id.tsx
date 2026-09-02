@@ -230,13 +230,21 @@ function ProjectWorkspace() {
     () => correctedPoints.filter((p) => !exclusionMap.has(p.id)),
     [correctedPoints, exclusionMap],
   );
-  // Stats mirror the topo surface: only readings inside the drawn boundary
+  // Stats mirror the topo surfaces: only readings inside a drawn area
   // (and outside exclusions) count toward High / Low / Δ.
-  const statsPoints = useMemo(() => {
-    const b = activeFloor?.boundary;
-    if (!b || b.length < 3) return nonExcludedPoints;
-    return nonExcludedPoints.filter((p) => pointInPolygon(p.x, p.y, b));
-  }, [nonExcludedPoints, activeFloor?.boundary]);
+  const floorAreas = useMemo(
+    () => (activeFloor ? closedAreas(activeFloor) : []),
+    [activeFloor],
+  );
+  const statsPoints = useMemo(
+    () => pointsInAnyArea(nonExcludedPoints, floorAreas),
+    [nonExcludedPoints, floorAreas],
+  );
+  /** One entry per area: that area's stats points (already exclusion-filtered). */
+  const statsByArea = useMemo(
+    () => floorAreas.map((a) => ({ area: a, points: pointsInArea(nonExcludedPoints, a) })),
+    [floorAreas, nonExcludedPoints],
+  );
 
 
   const [transitionsSheetOpen, setTransitionsSheetOpen] = useState(false);
