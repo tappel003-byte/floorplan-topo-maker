@@ -105,6 +105,15 @@ export function SetupTab({
             }}
           />
         )}
+        {tab === "excluded" && (
+          <ExcludedPanel
+            floor={activeFloor}
+            onChange={async (f) => {
+              await saveFloor(f);
+              onFloorsChange(await listFloors(project.id));
+            }}
+          />
+        )}
       </div>
 
       <div className="shrink-0 border-t bg-background/95 backdrop-blur px-3 py-2 flex items-center gap-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
