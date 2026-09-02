@@ -641,16 +641,22 @@ export function TopoTab({
                 return true;
               }
             }
-            // Long-press on a label or a H/L pin to pick it up
+            // Long-press on a label, a H/L pin or a stats pill to pick it up
             const hit = hitDraggable(x, y);
             if (hit) {
               const startDx =
                 hit.kind === "label" ? (hit.point.labelDx ?? DEFAULT_LABEL_DX) : hit.dx;
               const startDy =
                 hit.kind === "label" ? (hit.point.labelDy ?? DEFAULT_LABEL_DY) : hit.dy;
+              pillTapRef.current = hit.kind === "pill" ? hit.tapPoint : null;
               setDrag({
                 kind: hit.kind,
-                id: hit.kind === "label" ? hit.point.id : floor.id,
+                id:
+                  hit.kind === "label"
+                    ? hit.point.id
+                    : hit.kind === "pill"
+                      ? hit.areaId
+                      : floor.id,
                 dx: startDx,
                 dy: startDy,
                 startPointerX: x,
