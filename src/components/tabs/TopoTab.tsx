@@ -25,12 +25,16 @@ import {
   type Grid,
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
-import { pointInPolygon } from "@/lib/exclusions";
+import { pointInPolygon, pointsOutsideExclusions } from "@/lib/exclusions";
 
-/** Points inside the drawn boundary. Used for High/Low pin placement only. */
-function pointsInBoundary(pts: SurveyPoint[], boundary: Floor["boundary"]) {
-  if (!boundary || boundary.length < 3) return pts;
-  return pts.filter((p) => pointInPolygon(p.x, p.y, boundary));
+/** Points inside the drawn boundary and outside exclusion zones.
+ *  Used for High/Low pin placement only. */
+function hiLoCandidates(pts: SurveyPoint[], floor: Floor) {
+  const inBoundary =
+    floor.boundary && floor.boundary.length >= 3
+      ? pts.filter((p) => pointInPolygon(p.x, p.y, floor.boundary))
+      : pts;
+  return pointsOutsideExclusions(inBoundary, floor.exclusions);
 }
 
 interface Props {
@@ -232,7 +236,7 @@ export function TopoTab({
 
   // Compute current High / Low points (matches renderTopoTop logic).
   const hiLo = useMemo(() => {
-    const cands = pointsInBoundary(visiblePoints, floor.boundary);
+    const cands = hiLoCandidates(visiblePoints, floor);
     if (!cands.length) return null;
     let hi = cands[0],
       lo = cands[0];
@@ -241,7 +245,7 @@ export function TopoTab({
       if (p.value < lo.value) lo = p;
     }
     return { hi, lo };
-  }, [visiblePoints, floor.boundary]);
+  }, [visiblePoints, floor]);
 
 
 
@@ -1394,10 +1398,10 @@ function renderTopoTop(
         gridAndContours?.contours ?? null,
         false,
       );
-    // High/Low pins are scoped to the drawn boundary — out-of-boundary
-    // reference readings (patio, garage) still draw as dots/labels above,
-    // but never receive a pin.
-    const pinCandidates = pointsInBoundary(points, floor.boundary);
+    // High/Low pins are scoped to the drawn boundary and outside exclusion
+    // zones — out-of-boundary reference readings and excluded areas never
+    // receive a pin.
+    const pinCandidates = hiLoCandidates(points, floor);
     if (resolved.showHighLow && pinCandidates.length) {
       let hi = pinCandidates[0],
         lo = pinCandidates[0];
