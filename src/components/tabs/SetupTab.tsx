@@ -530,34 +530,8 @@ function DrawingPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      {/* Tool switcher */}
-      <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-1 overflow-hidden">
-        <Button
-          size="sm"
-          variant={tool === "area" ? "default" : "ghost"}
-          onClick={() => {
-            setTool("area");
-            setDraft(null);
-          }}
-          className="h-7"
-        >
-          Areas
-        </Button>
-        <Button
-          size="sm"
-          variant={tool === "exclusion" ? "default" : "ghost"}
-          onClick={() => {
-            setTool("exclusion");
-            setDraft(null);
-          }}
-          disabled={!anyAreaClosed}
-          className="h-7"
-          title={anyAreaClosed ? undefined : "Draw an area first"}
-        >
-          <Ban className="h-3.5 w-3.5 mr-1" />
-          Excluded areas
-        </Button>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+      {/* Toolbar */}
+      <div className="shrink-0 border-b bg-background/70 px-2 py-1.5 flex items-center gap-2 overflow-x-auto overscroll-x-contain">
           {tool === "area" && !drafting && (
             <>
               <span className="text-xs text-muted-foreground hidden sm:inline">
