@@ -84,6 +84,13 @@ export interface Floor {
 
 }
 
+export interface TopoArea {
+  id: string;
+  name: string;                             // "Area 1", "Kitchen", …
+  polygon: Array<{ x: number; y: number }>; // image coords
+  createdAt: number;
+}
+
 export interface Exclusion {
   id: string;
   label?: string;                        // "Garage", "Sunken LR"
