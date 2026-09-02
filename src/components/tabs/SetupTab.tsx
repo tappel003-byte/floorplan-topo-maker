@@ -385,12 +385,29 @@ function PlanPanel({
   );
 }
 
-function AreasPanel({ floor, onChange }: { floor: Floor; onChange: (f: Floor) => void }) {
+function AreasPanel(props: { floor: Floor; onChange: (f: Floor) => void }) {
+  return <DrawingPanel {...props} mode="areas" />;
+}
+
+function ExcludedPanel(props: { floor: Floor; onChange: (f: Floor) => void }) {
+  return <DrawingPanel {...props} mode="excluded" />;
+}
+
+function DrawingPanel({
+  floor,
+  onChange,
+  mode,
+}: {
+  floor: Floor;
+  onChange: (f: Floor) => void;
+  mode: "areas" | "excluded";
+}) {
   const areas = getAreas(floor);
   const exclusions = floor.exclusions ?? [];
   const anyAreaClosed = areas.some((a) => a.polygon.length >= 3);
 
-  const [tool, setTool] = useState<"area" | "exclusion">("area");
+  // The Areas step edits areas only; the Excluded step edits exclusions only.
+  const tool: "area" | "exclusion" = mode === "areas" ? "area" : "exclusion";
   const [activeAreaId, setActiveAreaId] = useState<string>(areas[0]?.id ?? "");
   const [draft, setDraft] = useState<{ x: number; y: number }[] | null>(null);
   const [draftKind, setDraftKind] = useState<"area" | "exclusion">("exclusion");
