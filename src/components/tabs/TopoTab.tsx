@@ -414,6 +414,22 @@ export function TopoTab({
 
   return (
     <div className="flex flex-col h-full relative">
+      {/* Area selector — only when the floor has more than one drawn area. */}
+      {areas.length > 1 && (
+        <select
+          value={selectedAreaId ?? ""}
+          onChange={(e) => onSelectedAreaIdChange?.(e.target.value || null)}
+          aria-label="Area"
+          className="absolute z-30 top-2 left-1/2 -translate-x-1/2 h-8 max-w-[9rem] rounded-full bg-white/95 backdrop-blur border border-gray-300 shadow-md px-3 text-xs text-gray-700"
+        >
+          <option value="">All areas</option>
+          {areas.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      )}
       {/* Corner icons — closed by default, tap to open. Hidden while their own panel is open. */}
       {openCorner !== "contours" && (
         <CornerIcon
