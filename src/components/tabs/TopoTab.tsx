@@ -1160,11 +1160,6 @@ function renderTopoBaseLayer(
   areaTopos: AreaTopo[],
 ) {
   const resolved = resolveSettings(settings);
-  // Palette range spans every area so colors mean the same thing across areas.
-  const allMin = areaTopos.length ? Math.min(...areaTopos.map((a) => a.grid.minValue)) : 0;
-  const allMax = areaTopos.length ? Math.max(...areaTopos.map((a) => a.grid.maxValue)) : 1;
-  const paletteMin = resolved.minClamp ?? allMin;
-  const paletteMax = resolved.maxClamp ?? allMax;
   const traceExclusionCutouts = () => {
     for (const ex of floor.exclusions ?? []) {
       if (ex.polygon.length < 3) continue;
@@ -1179,6 +1174,8 @@ function renderTopoBaseLayer(
     const g = at.grid;
     const cs = at.contours;
     const polygon = at.area.polygon;
+    const areaPaletteMin = resolved.minClamp ?? g.minValue;
+    const areaPaletteMax = resolved.maxClamp ?? g.maxValue;
     ctx.save();
     ctx.beginPath();
     polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
