@@ -221,7 +221,13 @@ export function StatsChip({
     <div
       ref={ref}
       className="fixed z-40 flex items-stretch rounded-full bg-white/95 backdrop-blur shadow-sm border border-gray-300 overflow-hidden font-medium tabular-nums select-none touch-none cursor-grab active:cursor-grabbing"
-      style={{ left: pos.x, top: pos.y, height, fontSize: fontPx, lineHeight: 1 }}
+      style={{
+        left: pos.x,
+        top: pos.y + stackIndex * (height + 6),
+        height,
+        fontSize: fontPx,
+        lineHeight: 1,
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={(e) => endDrag(e)}
