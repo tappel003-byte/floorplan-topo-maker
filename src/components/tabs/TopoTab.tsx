@@ -26,7 +26,14 @@ import {
 } from "@/lib/topo";
 import { savePoint, saveFloor } from "@/lib/db";
 import { pointsOutsideExclusions } from "@/lib/exclusions";
-import { closedAreas, exclusionsForArea, pointsInArea } from "@/lib/areas";
+import {
+  areaCentroid,
+  closedAreas,
+  exclusionsForArea,
+  getAreas,
+  pointsInArea,
+  withAreas,
+} from "@/lib/areas";
 
 /** One area's own contour surface plus its own High / Low. */
 export interface AreaTopo {
